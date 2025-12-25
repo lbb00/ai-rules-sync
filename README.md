@@ -6,7 +6,18 @@
 
 [English](./README.md) | [中文](./README_ZH.md)
 
-This project is used by symbolic link to sync cursor rules from one git repository to any project.
+**Cursor Rules Sync (CRS)**
+*Synchronize, Manage, and Share Your Cursor IDE Rules with Ease.*
+
+CRS allows you to centrally manage Cursor rules in Git repositories and synchronize them across any number of projects using symbolic links. Say goodbye to copy-pasting `.mdc` files and drifting configurations.
+
+### Why CRS?
+
+- **🧩 Multi-Repository & Decentralized**: Mix and match rules from various sources—company standards, team-specific protocols, or open-source collections—without conflict.
+- **🔄 Sync Once, Update Everywhere**: Define your rules in one place. CRS ensures every project stays in sync with the latest standards automatically.
+- **🤝 Seamless Team Alignment**: Enforce shared coding standards and behaviors across your entire team. Onboard new members instantly with a single command.
+- **🔒 Privacy First**: Need project-specific overrides or private rules? Use `cursor-rules.local.json` to keep sensitive rules out of version control.
+- **🛠️ Integrated Git Management**: Manage your rule repositories directly through the CLI. Pull updates, check status, or switch branches without leaving your project context using `crs git`.
 
 ## Install
 
