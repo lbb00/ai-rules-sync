@@ -22,7 +22,6 @@ describe('Link Module', () => {
     beforeEach(() => {
         vi.resetAllMocks();
         vi.mocked(fs.ensureDir).mockResolvedValue(undefined);
-        vi.mocked(fs.ensureFile).mockResolvedValue(undefined as any);
         vi.mocked(fs.symlink).mockResolvedValue(undefined as any);
         vi.mocked(fs.rename).mockResolvedValue(undefined as any);
         vi.mocked(fs.unlink).mockResolvedValue(undefined as any);
@@ -30,10 +29,10 @@ describe('Link Module', () => {
         vi.mocked(utilsModule.addIgnoreEntry).mockResolvedValue(true);
         vi.mocked(fs.readlink).mockResolvedValue('missing' as any);
 
-        vi.mocked(linkany.loadOrCreateManifest).mockResolvedValue({ version: 1, installs: [] } as any);
-        vi.mocked(linkany.upsertEntry).mockImplementation(() => { });
-        vi.mocked(linkany.saveManifest).mockResolvedValue(undefined as any);
-        vi.mocked(linkany.install).mockResolvedValue({ ok: true, errors: [], changes: [{ action: 'symlink' }] } as any);
+        vi.mocked(linkany.install).mockResolvedValue({
+            result: { ok: true, errors: [], changes: [{ action: 'symlink' }] },
+            manifest: { version: 1, installs: [] }
+        } as any);
     });
 
     it('should link rule using default rules directory', async () => {
@@ -60,11 +59,10 @@ describe('Link Module', () => {
         const expectedSourcePath = path.join(mockRepo.path, 'rules', 'my-rule');
         const expectedTargetPath = path.join(path.resolve(mockProjectPath), '.cursor', 'rules', 'my-rule');
 
-        const expectedManifestPath = path.join(path.resolve(mockProjectPath), '.cursor-rules-sync.linkany.json');
-        expect(linkany.loadOrCreateManifest).toHaveBeenCalledWith(expectedManifestPath);
-        expect(linkany.upsertEntry).toHaveBeenCalledWith(expect.any(Object), { source: expectedSourcePath, target: expectedTargetPath, atomic: true });
-        expect(linkany.saveManifest).toHaveBeenCalledWith(expectedManifestPath, expect.any(Object));
-        expect(linkany.install).toHaveBeenCalledWith(expectedManifestPath);
+        expect(linkany.install).toHaveBeenCalledWith({
+            version: 1,
+            installs: [{ source: expectedSourcePath, target: expectedTargetPath, atomic: true }]
+        }, expect.any(Object));
     });
 
     it('should link rule using configured rootPath from repo config', async () => {
@@ -93,11 +91,10 @@ describe('Link Module', () => {
         const expectedSourcePath = path.join(mockRepo.path, 'custom/rules/path', 'my-rule');
         const expectedTargetPath = path.join(path.resolve(mockProjectPath), '.cursor', 'rules', 'my-rule');
 
-        const expectedManifestPath = path.join(path.resolve(mockProjectPath), '.cursor-rules-sync.linkany.json');
-        expect(linkany.loadOrCreateManifest).toHaveBeenCalledWith(expectedManifestPath);
-        expect(linkany.upsertEntry).toHaveBeenCalledWith(expect.any(Object), { source: expectedSourcePath, target: expectedTargetPath, atomic: true });
-        expect(linkany.saveManifest).toHaveBeenCalledWith(expectedManifestPath, expect.any(Object));
-        expect(linkany.install).toHaveBeenCalledWith(expectedManifestPath);
+        expect(linkany.install).toHaveBeenCalledWith({
+            version: 1,
+            installs: [{ source: expectedSourcePath, target: expectedTargetPath, atomic: true }]
+        }, expect.any(Object));
     });
 
     it('should throw error if source rule does not exist', async () => {

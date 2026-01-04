@@ -22,7 +22,7 @@ CRS uses **`linkany`** — a safety-first symlink + manifest manager — as an *
 import { add, remove, install, uninstall } from 'linkany';
 ```
 
-CRS keeps a small, tool-internal manifest at project root: **`.cursor-rules-sync.linkany.json`** (auto-added to `.gitignore`).
+CRS uses `linkany` with an **in-memory manifest JSON** and routes audit logs to the OS null device, so it **does not create any manifest/audit files in your project**.
 
 ### Why CRS?
 

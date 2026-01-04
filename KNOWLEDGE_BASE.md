@@ -15,7 +15,7 @@
 - **Config**: Stored in `~/.cursor-rules-sync/config.json` (global) and project roots.
 - **Git Operations**: Uses `execa` to run git commands; stores repos in `~/.cursor-rules-sync/repos/`.
 - **Linking Engine**: Uses the standalone npm package **`linkany`** to perform safe symlink convergence.
-  - CRS maintains a small per-project manifest file: `.cursor-rules-sync.linkany.json` (gitignored).
+  - CRS passes an **in-memory manifest JSON** into `linkany` APIs and routes audit logs to the OS null device, so it **does not create manifest/audit files in the project**.
   - This replaces the old “vendored/internal linkany source” approach.
 
 ## Feature Summary
