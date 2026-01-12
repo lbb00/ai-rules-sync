@@ -27,34 +27,37 @@ describe('Link Module', () => {
         vi.mocked(utilsModule.addIgnoreEntry).mockResolvedValue(true);
     });
 
-    it('should link rule using default rules directory', async () => {
-        // Mock getProjectConfig to return empty config (no rootPath)
-        vi.mocked(projectConfigModule.getProjectConfig).mockResolvedValue({});
+    it('should link rule using default .cursor/rules directory', async () => {
+        // Mock getRepoSourceConfig to return empty config
+        vi.mocked(projectConfigModule.getRepoSourceConfig).mockResolvedValue({});
+        vi.mocked(projectConfigModule.getSourceDir).mockReturnValue('.cursor/rules');
 
         await linkRule(mockProjectPath, 'my-rule', mockRepo);
 
-        const expectedSourcePath = path.join(mockRepo.path, 'rules', 'my-rule');
+        const expectedSourcePath = path.join(mockRepo.path, '.cursor/rules', 'my-rule');
         const expectedTargetPath = path.join(path.resolve(mockProjectPath), '.cursor', 'rules', 'my-rule');
 
         expect(fs.ensureSymlink).toHaveBeenCalledWith(expectedSourcePath, expectedTargetPath);
     });
 
-    it('should link rule using configured rootPath from repo config', async () => {
-        // Mock getProjectConfig to return config with rootPath
-        vi.mocked(projectConfigModule.getProjectConfig).mockResolvedValue({
-            rootPath: 'custom/rules/path'
+    it('should link rule using configured cursor.rules from repo config', async () => {
+        // Mock getRepoSourceConfig to return config with custom rules directory
+        vi.mocked(projectConfigModule.getRepoSourceConfig).mockResolvedValue({
+            cursor: { rules: 'custom-rules' }
         });
+        vi.mocked(projectConfigModule.getSourceDir).mockReturnValue('custom-rules');
 
         await linkRule(mockProjectPath, 'my-rule', mockRepo);
 
-        const expectedSourcePath = path.join(mockRepo.path, 'custom/rules/path', 'my-rule');
+        const expectedSourcePath = path.join(mockRepo.path, 'custom-rules', 'my-rule');
         const expectedTargetPath = path.join(path.resolve(mockProjectPath), '.cursor', 'rules', 'my-rule');
 
         expect(fs.ensureSymlink).toHaveBeenCalledWith(expectedSourcePath, expectedTargetPath);
     });
 
     it('should throw error if source rule does not exist', async () => {
-        vi.mocked(projectConfigModule.getProjectConfig).mockResolvedValue({});
+        vi.mocked(projectConfigModule.getRepoSourceConfig).mockResolvedValue({});
+        vi.mocked(projectConfigModule.getSourceDir).mockReturnValue('.cursor/rules');
         // Mock source path check to return false
         vi.mocked(fs.pathExists).mockImplementation(async (p) => {
             if (typeof p === 'string' && p.includes(mockRepo.path)) {

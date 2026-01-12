@@ -27,11 +27,12 @@ describe('Copilot instructions linking', () => {
   });
 
   it('resolves <name>.md when name has no suffix', async () => {
-    vi.mocked(projectConfigModule.getProjectConfig).mockResolvedValue({});
+    vi.mocked(projectConfigModule.getRepoSourceConfig).mockResolvedValue({});
+    vi.mocked(projectConfigModule.getSourceDir).mockReturnValue('.github/instructions');
 
     vi.mocked(fs.pathExists).mockImplementation(async (p) => {
-      const a = path.join(mockRepo.path, 'rules', 'foo.instructions.md');
-      const b = path.join(mockRepo.path, 'rules', 'foo.md');
+      const a = path.join(mockRepo.path, '.github/instructions', 'foo.instructions.md');
+      const b = path.join(mockRepo.path, '.github/instructions', 'foo.md');
       const target = path.join(path.resolve(mockProjectPath), '.github', 'instructions', 'foo.md');
       if (p === a) return false;
       if (p === b) return true;
@@ -41,16 +42,18 @@ describe('Copilot instructions linking', () => {
 
     await linkCopilotInstruction(mockProjectPath, 'foo', mockRepo as any);
 
-    const expectedSource = path.join(mockRepo.path, 'rules', 'foo.md');
+    const expectedSource = path.join(mockRepo.path, '.github/instructions', 'foo.md');
     const expectedTarget = path.join(path.resolve(mockProjectPath), '.github', 'instructions', 'foo.md');
     expect(fs.ensureSymlink).toHaveBeenCalledWith(expectedSource, expectedTarget);
   });
 
   it('resolves <name>.instructions.md when name has no suffix', async () => {
-    vi.mocked(projectConfigModule.getProjectConfig).mockResolvedValue({});
+    vi.mocked(projectConfigModule.getRepoSourceConfig).mockResolvedValue({});
+    vi.mocked(projectConfigModule.getSourceDir).mockReturnValue('.github/instructions');
+
     vi.mocked(fs.pathExists).mockImplementation(async (p) => {
-      const a = path.join(mockRepo.path, 'rules', 'bar.instructions.md');
-      const b = path.join(mockRepo.path, 'rules', 'bar.md');
+      const a = path.join(mockRepo.path, '.github/instructions', 'bar.instructions.md');
+      const b = path.join(mockRepo.path, '.github/instructions', 'bar.md');
       const target = path.join(path.resolve(mockProjectPath), '.github', 'instructions', 'bar.instructions.md');
       if (p === a) return true;
       if (p === b) return false;
@@ -60,16 +63,18 @@ describe('Copilot instructions linking', () => {
 
     await linkCopilotInstruction(mockProjectPath, 'bar', mockRepo as any);
 
-    const expectedSource = path.join(mockRepo.path, 'rules', 'bar.instructions.md');
+    const expectedSource = path.join(mockRepo.path, '.github/instructions', 'bar.instructions.md');
     const expectedTarget = path.join(path.resolve(mockProjectPath), '.github', 'instructions', 'bar.instructions.md');
     expect(fs.ensureSymlink).toHaveBeenCalledWith(expectedSource, expectedTarget);
   });
 
   it('errors when both <name>.md and <name>.instructions.md exist', async () => {
-    vi.mocked(projectConfigModule.getProjectConfig).mockResolvedValue({});
+    vi.mocked(projectConfigModule.getRepoSourceConfig).mockResolvedValue({});
+    vi.mocked(projectConfigModule.getSourceDir).mockReturnValue('.github/instructions');
+
     vi.mocked(fs.pathExists).mockImplementation(async (p) => {
-      const a = path.join(mockRepo.path, 'rules', 'dup.instructions.md');
-      const b = path.join(mockRepo.path, 'rules', 'dup.md');
+      const a = path.join(mockRepo.path, '.github/instructions', 'dup.instructions.md');
+      const b = path.join(mockRepo.path, '.github/instructions', 'dup.md');
       if (p === a) return true;
       if (p === b) return true;
       return false;
@@ -80,10 +85,12 @@ describe('Copilot instructions linking', () => {
   });
 
   it('preserves source suffix when alias has no suffix', async () => {
-    vi.mocked(projectConfigModule.getProjectConfig).mockResolvedValue({});
+    vi.mocked(projectConfigModule.getRepoSourceConfig).mockResolvedValue({});
+    vi.mocked(projectConfigModule.getSourceDir).mockReturnValue('.github/instructions');
+
     vi.mocked(fs.pathExists).mockImplementation(async (p) => {
-      const a = path.join(mockRepo.path, 'rules', 'x.instructions.md');
-      const b = path.join(mockRepo.path, 'rules', 'x.md');
+      const a = path.join(mockRepo.path, '.github/instructions', 'x.instructions.md');
+      const b = path.join(mockRepo.path, '.github/instructions', 'x.md');
       const target = path.join(path.resolve(mockProjectPath), '.github', 'instructions', 'y.instructions.md');
       if (p === a) return true;
       if (p === b) return false;
@@ -93,7 +100,7 @@ describe('Copilot instructions linking', () => {
 
     await linkCopilotInstruction(mockProjectPath, 'x', mockRepo as any, 'y');
 
-    const expectedSource = path.join(mockRepo.path, 'rules', 'x.instructions.md');
+    const expectedSource = path.join(mockRepo.path, '.github/instructions', 'x.instructions.md');
     const expectedTarget = path.join(path.resolve(mockProjectPath), '.github', 'instructions', 'y.instructions.md');
     expect(fs.ensureSymlink).toHaveBeenCalledWith(expectedSource, expectedTarget);
   });

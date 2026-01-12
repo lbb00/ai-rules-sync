@@ -13,7 +13,7 @@ export const copilotInstructionsAdapter: SyncAdapter = {
     name: 'copilot-instructions',
     tool: 'copilot',
     subtype: 'instructions',
-    defaultSourceDir: 'rules',
+    defaultSourceDir: '.github/instructions',
     targetDir: '.github/instructions',
     mode: 'file',
     fileSuffixes: [SUFFIX_INSTRUCTIONS_MD, SUFFIX_MD],

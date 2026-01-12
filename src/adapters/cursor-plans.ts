@@ -10,7 +10,7 @@ export const cursorPlansAdapter: SyncAdapter = {
     name: 'cursor-plans',
     tool: 'cursor',
     subtype: 'plans',
-    defaultSourceDir: 'plans',
+    defaultSourceDir: '.cursor/plans',
     targetDir: '.cursor/plans',
     mode: 'file',
     fileSuffixes: ['.md'],

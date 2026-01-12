@@ -7,6 +7,19 @@ import { getConfig, setConfig } from './config.js';
 
 export type ShellType = 'bash' | 'zsh' | 'fish' | 'unknown';
 
+// Block markers for completion code - makes removal reliable
+export const COMPLETION_START_MARKER = '# >>> ais shell completion >>>';
+export const COMPLETION_END_MARKER = '# <<< ais shell completion <<<';
+
+// Legacy patterns for backward compatibility (removing old format)
+const LEGACY_PATTERNS = [
+    '# ais shell completion',
+    '# Save and source AIS completion script',
+    'ais completion fish | source',
+    'eval "$(ais completion)"',
+    'ais completion > ~/.zsh/ais_completion.zsh',
+];
+
 /**
  * Detect the current shell type from environment variable
  */
@@ -48,25 +61,27 @@ export function getShellConfigPath(shell: ShellType): string | null {
 
 /**
  * Generate the completion snippet to be added to shell config
+ * Uses block markers for reliable removal during reinstall
  */
 export function getCompletionSnippet(shell: ShellType): string {
-  const marker = '# ais shell completion';
+  let content: string;
 
   if (shell === 'fish') {
-    return `\n${marker}\nais completion fish | source\n`;
+    content = 'ais completion fish | source';
+  } else if (shell === 'zsh') {
+    // For zsh, save completion to file first, then source it
+    content = 'ais completion > ~/.zsh/ais_completion.zsh 2>/dev/null && source ~/.zsh/ais_completion.zsh';
+  } else {
+    // bash uses eval
+    content = 'eval "$(ais completion)"';
   }
 
-  // For zsh, try to save completion to file first, then source it
-  if (shell === 'zsh') {
-    return `\n${marker}\n# Save and source AIS completion script\nais completion > ~/.zsh/ais_completion.zsh 2>/dev/null && source ~/.zsh/ais_completion.zsh\n`;
-  }
-
-  // bash uses eval
-  return `\n${marker}\neval "$(ais completion)"\n`;
+  return `\n${COMPLETION_START_MARKER}\n${content}\n${COMPLETION_END_MARKER}\n`;
 }
 
 /**
  * Check if completion is already installed in the config file
+ * Detects both new block format and legacy format
  */
 export async function isCompletionInstalled(configPath: string): Promise<boolean> {
   if (!await fs.pathExists(configPath)) {
@@ -74,6 +89,13 @@ export async function isCompletionInstalled(configPath: string): Promise<boolean
   }
 
   const content = await fs.readFile(configPath, 'utf-8');
+
+  // Check for new block format
+  if (content.includes(COMPLETION_START_MARKER)) {
+    return true;
+  }
+
+  // Check for legacy patterns
   return content.includes('# ais shell completion') || content.includes('ais completion');
 }
 
@@ -232,6 +254,38 @@ async function doInstall(shell: ShellType, configPath: string): Promise<void> {
 }
 
 /**
+ * Remove all ais completion code from content (both new block format and legacy format)
+ */
+export function removeCompletionCode(content: string): string {
+  // First, remove new block format using regex
+  // Match: optional newline, start marker, any content, end marker, optional newline
+  const blockRegex = new RegExp(
+    `\\n?${escapeRegex(COMPLETION_START_MARKER)}[\\s\\S]*?${escapeRegex(COMPLETION_END_MARKER)}\\n?`,
+    'g'
+  );
+  content = content.replace(blockRegex, '\n');
+
+  // Then, remove any legacy patterns (line by line)
+  const lines = content.split('\n');
+  const filteredLines = lines.filter(line => {
+    return !LEGACY_PATTERNS.some(pattern => line.includes(pattern));
+  });
+
+  // Clean up multiple consecutive empty lines
+  let result = filteredLines.join('\n');
+  result = result.replace(/\n{3,}/g, '\n\n');
+
+  return result;
+}
+
+/**
+ * Escape special regex characters in a string
+ */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * Force install completion (for ais completion install command)
  */
 export async function forceInstallCompletion(force: boolean = false): Promise<void> {
@@ -260,16 +314,8 @@ export async function forceInstallCompletion(force: boolean = false): Promise<vo
 
   // If force, we need to remove existing and re-add
   if (force && await isCompletionInstalled(configPath)) {
-    // Read file, remove existing completion block, then add new one
     let content = await fs.readFile(configPath, 'utf-8');
-    // Remove existing ais completion lines
-    const lines = content.split('\n');
-    const filteredLines = lines.filter(line => {
-      return !line.includes('# ais shell completion') &&
-             !line.includes('ais completion fish | source') &&
-             !line.includes('eval "$(ais completion)"');
-    });
-    content = filteredLines.join('\n');
+    content = removeCompletionCode(content);
     await fs.writeFile(configPath, content);
   }
 

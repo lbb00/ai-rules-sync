@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import { RepoConfig } from './config.js';
 import { SyncAdapter, LinkResult, SyncOptions } from './adapters/types.js';
 import { addIgnoreEntry, removeIgnoreEntry } from './utils.js';
-import { getProjectConfig } from './project-config.js';
+import { getRepoSourceConfig, getSourceDir } from './project-config.js';
 
 /**
  * Generic sync engine that works with any SyncAdapter
@@ -20,9 +20,9 @@ export async function linkEntry(
     const { projectPath, name, repo, alias, isLocal = false } = options;
     const repoDir = repo.path;
 
-    // Get root path from repo config
-    const repoConfig = await getProjectConfig(repoDir);
-    const rootPath = repoConfig.rootPath || adapter.defaultSourceDir;
+    // Get source directory from repo config
+    const repoConfig = await getRepoSourceConfig(repoDir);
+    const sourceDir = getSourceDir(repoConfig, adapter.tool, adapter.subtype, adapter.defaultSourceDir);
 
     // Resolve source
     let sourceName: string;
@@ -30,13 +30,13 @@ export async function linkEntry(
     let suffix: string | undefined;
 
     if (adapter.resolveSource) {
-        const resolved = await adapter.resolveSource(repoDir, rootPath, name);
+        const resolved = await adapter.resolveSource(repoDir, sourceDir, name);
         sourceName = resolved.sourceName;
         sourcePath = resolved.sourcePath;
         suffix = resolved.suffix;
     } else {
         // Default resolution
-        sourcePath = path.join(repoDir, rootPath, name);
+        sourcePath = path.join(repoDir, sourceDir, name);
         if (!await fs.pathExists(sourcePath)) {
             throw new Error(`Entry "${name}" not found in repository.`);
         }

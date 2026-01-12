@@ -14,7 +14,7 @@ export interface SyncAdapter {
     /** Subtype under the tool, e.g. "rules", "plans", "instructions" */
     subtype: string;
 
-    /** Default source directory in rules repo (relative to rootPath), e.g. "rules" */
+    /** Default source directory in rules repo, e.g. ".cursor/rules", ".cursor/plans", ".github/instructions" */
     defaultSourceDir: string;
 
     /** Target directory in project (relative to project root), e.g. ".cursor/rules" */

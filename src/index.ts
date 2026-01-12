@@ -7,7 +7,7 @@ import { getConfig, setConfig, getReposBaseDir, getCurrentRepo, RepoConfig } fro
 import { cloneOrUpdateRepo, runGitCommand } from './git.js'
 import { linkCopilotInstruction, linkRule, unlinkCopilotInstruction, unlinkRule, linkPlan, unlinkPlan } from './link.js'
 import { addIgnoreEntry } from './utils.js'
-import { addCopilotDependency, addCursorDependency, removeCopilotDependency, removeCursorDependency, getCombinedProjectConfig, getConfigSource, getProjectConfig, addPlanDependency, removePlanDependency } from './project-config.js'
+import { addCopilotDependency, addCursorDependency, removeCopilotDependency, removeCursorDependency, getCombinedProjectConfig, getConfigSource, getRepoSourceConfig, getSourceDir, addPlanDependency, removePlanDependency } from './project-config.js'
 import { stripCopilotSuffix } from './adapters/index.js'
 import { checkAndPromptCompletion, forceInstallCompletion } from './completion.js'
 
@@ -439,7 +439,7 @@ program
 program
   .command('add')
   .description('Add an entry (auto-detects cursor/copilot if unambiguous)')
-  .argument('<name>', 'Rule/Instruction name in the rules repo (under rootPath)')
+  .argument('<name>', 'Rule/Instruction name in the rules repo')
   .argument('[alias]', 'Alias in the project')
   .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
   .action(async (name, alias, options) => {
@@ -934,17 +934,30 @@ program
         process.exit(0);
       }
 
-      const repoConfig = await getProjectConfig(currentRepo.path);
+      const repoConfig = await getRepoSourceConfig(currentRepo.path);
 
       // Determine which directory to list based on type
-      let rootPath: string;
+      let tool: string;
+      let subtype: string;
+      let defaultDir: string;
+
       if (type === 'plans') {
-        rootPath = 'plans'; // plans have their own directory
+        tool = 'cursor';
+        subtype = 'plans';
+        defaultDir = '.cursor/plans';
+      } else if (type === 'copilot') {
+        tool = 'copilot';
+        subtype = 'instructions';
+        defaultDir = '.github/instructions';
       } else {
-        rootPath = repoConfig.rootPath || 'rules';
+        // cursor rules
+        tool = 'cursor';
+        subtype = 'rules';
+        defaultDir = '.cursor/rules';
       }
 
-      const rulesDir = path.join(currentRepo.path, rootPath);
+      const sourceDir = getSourceDir(repoConfig, tool, subtype, defaultDir);
+      const rulesDir = path.join(currentRepo.path, sourceDir);
 
       if (!await fs.pathExists(rulesDir)) {
         process.exit(0);

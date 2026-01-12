@@ -10,7 +10,7 @@ export const cursorRulesAdapter: SyncAdapter = {
     name: 'cursor-rules',
     tool: 'cursor',
     subtype: 'rules',
-    defaultSourceDir: 'rules',
+    defaultSourceDir: '.cursor/rules',
     targetDir: '.cursor/rules',
     mode: 'directory',
 
