@@ -18,11 +18,11 @@ AIS 允许你在 Git 仓库中集中管理规则，并通过软链接将其同�
 
 ## 支持的同步类型
 
-| 工具 | 类型 | 源目录 | 目标目录 |
-|------|------|--------|----------|
-| Cursor | Rules | `rules/` | `.cursor/rules/` |
-| Cursor | Plans | `plans/` | `.cursor/plans/` |
-| Copilot | Instructions | `rules/` | `.github/instructions/` |
+| 工具 | 类型 | 默认源目录 | 目标目录 |
+|------|------|------------|----------|
+| Cursor | Rules | `.cursor/rules/` | `.cursor/rules/` |
+| Cursor | Plans | `.cursor/plans/` | `.cursor/plans/` |
+| Copilot | Instructions | `.github/instructions/` | `.github/instructions/` |
 
 ## 安装
 
@@ -32,15 +32,34 @@ npm install -g ai-rules-sync
 
 ## 创建规则仓库
 
-- `rules` 文件夹是 Cursor 规则和 Copilot 指令的默认根目录。
-- `plans` 文件夹是 Cursor 计划的默认根目录。
-- 也可以通过在仓库根目录添加 `ai-rules-sync.json` 文件来指定其他目录（例如 `packages/rules`）：
+默认情况下，AIS 会在官方工具配置路径中查找规则：
+- `.cursor/rules/` - Cursor 规则
+- `.cursor/plans/` - Cursor 计划
+- `.github/instructions/` - Copilot 指令
 
-  ```json
-  {
-    "rootPath": "packages/rules"
+你可以通过在规则仓库中添加 `ai-rules-sync.json` 文件来自定义这些路径：
+
+```json
+{
+  "rootPath": "src",
+  "sourceDir": {
+    "cursor": {
+      "rules": ".cursor/rules",
+      "plans": ".cursor/plans"
+    },
+    "copilot": {
+      "instructions": ".github/instructions"
+    }
   }
-  ```
+}
+```
+
+- `rootPath`: 可选的全局前缀，应用于所有源目录（默认：空，表示仓库根目录）
+- `sourceDir.cursor.rules`: Cursor 规则的源目录（默认：`.cursor/rules`）
+- `sourceDir.cursor.plans`: Cursor 计划的源目录（默认：`.cursor/plans`）
+- `sourceDir.copilot.instructions`: Copilot 指令的源目录（默认：`.github/instructions`）
+
+> **注意**：旧的扁平格式（`cursor.rules` 为字符串）仍然支持向后兼容。
 
 ## 全局选项
 
@@ -77,7 +96,7 @@ ais cursor rules add [rule name] [alias]
 
 **注意**：此命令必须在项目的根目录下运行。
 
-该命令会在项目的 `.cursor/rules/` 目录下创建一个指向规则仓库中 `<rootPath>/[rule name]` 的软链接（默认 `<rootPath>=rules`）。
+该命令会在项目的 `.cursor/rules/` 目录下创建一个指向规则仓库中 `.cursor/rules/[rule name]` 的软链接。
 
 - `[rule name]`: 规则仓库中的规则文件夹名称。
 - `[alias]`: （可选）在本地项目中使用的名称。如果指定，规则将被链接为 `.cursor/rules/[alias]`。
@@ -112,7 +131,7 @@ ais cursor add react -t https://github.com/user/rules-repo.git
 ais cursor plans add [plan name] [alias]
 ```
 
-该命令会将规则仓库 `plans/` 目录下的计划文件同步到项目的 `.cursor/plans/` 目录。
+该命令会将规则仓库 `.cursor/plans/` 目录下的计划文件同步到项目的 `.cursor/plans/` 目录。
 
 ```bash
 # 添加 'feature-plan.md' 计划
@@ -134,7 +153,7 @@ ais cursor plans install
 ais copilot add [name] [alias]
 ```
 
-默认映射：规则仓库 `<rootPath>/<name>` → 项目 `.github/instructions/<alias|name>`。
+默认映射：规则仓库 `.github/instructions/<name>` → 项目 `.github/instructions/<alias|name>`。
 
 后缀匹配规则：
 - 可以传 `foo`、`foo.md` 或 `foo.instructions.md`。

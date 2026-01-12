@@ -10,8 +10,41 @@ const LEGACY_LOCAL_CONFIG_FILENAME = 'cursor-rules.local.json';
 
 export type RuleEntry = string | { url: string; rule?: string };
 
+/**
+ * Source directory configuration (for rules repositories)
+ * Defines where source files are located in a rules repo
+ */
+export interface SourceDirConfig {
+    cursor?: {
+        // Source directory for cursor rules, default: ".cursor/rules"
+        rules?: string;
+        // Source directory for cursor plans, default: ".cursor/plans"
+        plans?: string;
+    };
+    copilot?: {
+        // Source directory for copilot instructions, default: ".github/instructions"
+        instructions?: string;
+    };
+}
+
+/**
+ * Unified configuration for ai-rules-sync.json
+ * Used both in rules repos (sourceDir) and in projects (cursor/copilot dependencies)
+ *
+ * In rules repos:
+ *   - rootPath: global path prefix
+ *   - sourceDir: where source files are located
+ *
+ * In projects:
+ *   - cursor/copilot: dependency records
+ */
 export interface ProjectConfig {
-    rootPath?: string; // rules repository root folder, default: "rules"
+    // Global path prefix for source directories, default: "" (root directory)
+    // Only used in rules repos
+    rootPath?: string;
+    // Source directory configuration (only used in rules repos)
+    sourceDir?: SourceDirConfig;
+    // Dependency records (used in projects)
     cursor?: {
         // key is the local alias (target name), value is repo url OR object with url and original rule name
         rules?: Record<string, RuleEntry>;
@@ -20,6 +53,21 @@ export interface ProjectConfig {
     copilot?: {
         // key is the local alias (target name), value is repo url OR object with url and original rule name
         instructions?: Record<string, RuleEntry>;
+    };
+}
+
+/**
+ * @deprecated Use ProjectConfig with sourceDir instead
+ * Kept for backward compatibility during transition
+ */
+export interface RepoSourceConfig {
+    rootPath?: string;
+    cursor?: {
+        rules?: string;
+        plans?: string;
+    };
+    copilot?: {
+        instructions?: string;
     };
 }
 
@@ -50,9 +98,8 @@ async function hasAnyLegacyConfig(projectPath: string): Promise<boolean> {
     );
 }
 
-function legacyToNew(legacy: { rootPath?: string; rules?: Record<string, RuleEntry> }): ProjectConfig {
+function legacyToNew(legacy: { rules?: Record<string, RuleEntry> }): ProjectConfig {
     return {
-        rootPath: legacy.rootPath,
         cursor: {
             rules: legacy.rules || {}
         }
@@ -61,7 +108,6 @@ function legacyToNew(legacy: { rootPath?: string; rules?: Record<string, RuleEnt
 
 function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig {
     return {
-        rootPath: local.rootPath ?? main.rootPath,
         cursor: {
             rules: { ...(main.cursor?.rules || {}), ...(local.cursor?.rules || {}) },
             plans: { ...(main.cursor?.plans || {}), ...(local.cursor?.plans || {}) }
@@ -79,21 +125,85 @@ export async function getConfigSource(projectPath: string): Promise<ConfigSource
 }
 
 /**
- * Read repository-side configuration (used when `projectPath` is a rules repo).
- * - Prefer new `ai-rules-sync.json`
- * - Fall back to legacy `cursor-rules.json` for rootPath only
+ * Read repository-side source configuration (used when `projectPath` is a rules repo).
+ * Returns the full config which may contain sourceDir.
+ * Supports both new (sourceDir) and legacy (flat cursor/copilot with string values) formats.
  */
-export async function getProjectConfig(projectPath: string): Promise<ProjectConfig> {
+export async function getRepoSourceConfig(projectPath: string): Promise<RepoSourceConfig> {
     const newPath = path.join(projectPath, CONFIG_FILENAME);
     if (await fs.pathExists(newPath)) {
-        return await readConfigFile<ProjectConfig>(newPath);
-    }
-    const legacyPath = path.join(projectPath, LEGACY_CONFIG_FILENAME);
-    if (await fs.pathExists(legacyPath)) {
-        const legacy = await readConfigFile<{ rootPath?: string }>(legacyPath);
-        return { rootPath: legacy.rootPath };
+        const config = await readConfigFile<ProjectConfig>(newPath);
+
+        // New format: sourceDir is present
+        if (config.sourceDir) {
+            return {
+                rootPath: config.rootPath,
+                cursor: config.sourceDir.cursor,
+                copilot: config.sourceDir.copilot
+            };
+        }
+
+        // Legacy format: cursor.rules/plans/instructions are strings (source dirs)
+        // We need to detect if this is a rules repo config (string values) vs project config (object values)
+        // Check if cursor.rules is a string (rules repo) or object (project dependencies)
+        const cursorRules = config.cursor?.rules;
+        const cursorPlans = config.cursor?.plans;
+        const copilotInstructions = config.copilot?.instructions;
+
+        const isCursorRulesString = typeof cursorRules === 'string';
+        const isCursorPlansString = typeof cursorPlans === 'string';
+        const isCopilotInstructionsString = typeof copilotInstructions === 'string';
+
+        // If any of these are strings, treat as legacy rules repo config
+        if (isCursorRulesString || isCursorPlansString || isCopilotInstructionsString) {
+            return {
+                rootPath: config.rootPath,
+                cursor: {
+                    rules: isCursorRulesString ? cursorRules : undefined,
+                    plans: isCursorPlansString ? cursorPlans : undefined
+                },
+                copilot: {
+                    instructions: isCopilotInstructionsString ? copilotInstructions : undefined
+                }
+            };
+        }
+
+        // Not a rules repo config (no sourceDir, no string values)
+        return { rootPath: config.rootPath };
     }
     return {};
+}
+
+/**
+ * Get the source directory for a specific tool type from repo config.
+ * @param repoConfig - The repo source configuration
+ * @param tool - Tool name: 'cursor' or 'copilot'
+ * @param subtype - Subtype: 'rules', 'plans', or 'instructions'
+ * @param defaultDir - Default directory if not configured
+ */
+export function getSourceDir(
+    repoConfig: RepoSourceConfig,
+    tool: string,
+    subtype: string,
+    defaultDir: string
+): string {
+    const rootPath = repoConfig.rootPath || '';
+    let toolDir: string | undefined;
+
+    if (tool === 'cursor') {
+        if (subtype === 'rules') {
+            toolDir = repoConfig.cursor?.rules;
+        } else if (subtype === 'plans') {
+            toolDir = repoConfig.cursor?.plans;
+        }
+    } else if (tool === 'copilot') {
+        if (subtype === 'instructions') {
+            toolDir = repoConfig.copilot?.instructions;
+        }
+    }
+
+    const dir = toolDir ?? defaultDir;
+    return rootPath ? path.join(rootPath, dir) : dir;
 }
 
 export async function getCombinedProjectConfig(projectPath: string): Promise<ProjectConfig> {
@@ -129,8 +239,8 @@ export async function migrateLegacyToNew(projectPath: string): Promise<{ migrate
     const legacyMainPath = path.join(projectPath, LEGACY_CONFIG_FILENAME);
     const legacyLocalPath = path.join(projectPath, LEGACY_LOCAL_CONFIG_FILENAME);
 
-    const legacyMain = await readConfigFile<{ rootPath?: string; rules?: Record<string, RuleEntry> }>(legacyMainPath);
-    const legacyLocal = await readConfigFile<{ rootPath?: string; rules?: Record<string, RuleEntry> }>(legacyLocalPath);
+    const legacyMain = await readConfigFile<{ rules?: Record<string, RuleEntry> }>(legacyMainPath);
+    const legacyLocal = await readConfigFile<{ rules?: Record<string, RuleEntry> }>(legacyLocalPath);
 
     const newMain = legacyToNew(legacyMain);
     const newLocal = legacyToNew(legacyLocal);

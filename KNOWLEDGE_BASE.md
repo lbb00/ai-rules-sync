@@ -4,7 +4,7 @@
 **AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor plans**, and **Copilot instructions**, keeping projects up-to-date across teams.
 
 ## Core Concepts
-- **Rules Repository**: A Git repository containing `rules/` and `plans/` folders where definitions are stored.
+- **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/plans/`, `.github/instructions/`).
 - **Symbolic Links**: Entries are linked from the local cache of the repo to project directories, avoiding file duplication and drift.
 - **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules + plans, Copilot instructions).
 - **Privacy**: Supports private/local entries via `ai-rules-sync.local.json` and `.git/info/exclude`.
@@ -38,7 +38,7 @@ interface SyncAdapter {
   name: string;           // e.g. "cursor-rules"
   tool: string;           // e.g. "cursor"
   subtype: string;        // e.g. "rules", "plans"
-  defaultSourceDir: string; // e.g. "rules" or "plans"
+  defaultSourceDir: string; // e.g. ".cursor/rules", ".cursor/plans", ".github/instructions"
   targetDir: string;      // e.g. ".cursor/rules"
   mode: 'directory' | 'file';
   fileSuffixes?: string[];
@@ -46,6 +46,39 @@ interface SyncAdapter {
   resolveTargetName?(...): string;
 }
 ```
+
+**SourceDirConfig Interface (source directory configuration for rules repos):**
+```typescript
+interface SourceDirConfig {
+  cursor?: {
+    rules?: string;       // Default: ".cursor/rules"
+    plans?: string;       // Default: ".cursor/plans"
+  };
+  copilot?: {
+    instructions?: string; // Default: ".github/instructions"
+  };
+}
+```
+
+**ProjectConfig Interface (unified configuration):**
+```typescript
+interface ProjectConfig {
+  // For rules repos: global path prefix
+  rootPath?: string;
+  // For rules repos: source directory configuration
+  sourceDir?: SourceDirConfig;
+  // For projects: dependency records
+  cursor?: {
+    rules?: Record<string, RuleEntry>;
+    plans?: Record<string, RuleEntry>;
+  };
+  copilot?: {
+    instructions?: Record<string, RuleEntry>;
+  };
+}
+```
+
+The `sourceDir` field separates source directory configuration from dependency records, avoiding field name conflicts where `cursor.rules` could mean either a source path (string) or dependencies (object).
 
 ## Feature Summary
 
@@ -56,17 +89,17 @@ interface SyncAdapter {
 
 ### 2. Cursor Rule Synchronization
 - **Syntax**: `ais cursor add <rule_name> [alias]` or `ais cursor rules add <rule_name> [alias]`
-- Links `<repo>/rules/<rule_name>` to `.cursor/rules/<alias>`.
+- Links `<repo>/.cursor/rules/<rule_name>` to `.cursor/rules/<alias>`.
 - **Options**: `-t <repo>`, `--local` (`-l`)
 
 ### 3. Cursor Plan Synchronization
 - **Syntax**: `ais cursor plans add <plan_name> [alias]`
-- Links `<repo>/plans/<plan_name>` to `.cursor/plans/<alias>`.
+- Links `<repo>/.cursor/plans/<plan_name>` to `.cursor/plans/<alias>`.
 - Supports `.md` files.
 
 ### 4. Copilot Instruction Synchronization
 - **Syntax**: `ais copilot add <name> [alias]`
-- Links `<repo>/rules/<name>` to `.github/instructions/<alias>`.
+- Links `<repo>/.github/instructions/<name>` to `.github/instructions/<alias>`.
 - Supports `.md` and `.instructions.md` suffixes with conflict detection.
 
 ### 5. Installation
@@ -75,20 +108,52 @@ interface SyncAdapter {
 - `ais install` - Install everything.
 
 ### 6. Configuration Files
-- **`ai-rules-sync.json`**: Public dependencies (nested schema).
-  ```json
-  {
+
+**Rules Repository Config** (`ai-rules-sync.json` in the rules repo):
+```json
+{
+  "rootPath": "src",
+  "sourceDir": {
     "cursor": {
-      "rules": { "react": "https://..." },
-      "plans": { "feature": "https://..." }
+      "rules": ".cursor/rules",
+      "plans": ".cursor/plans"
     },
     "copilot": {
-      "instructions": { "general": "https://..." }
+      "instructions": ".github/instructions"
     }
   }
-  ```
+}
+```
+
+**Project Config** (`ai-rules-sync.json` in user projects):
+```json
+{
+  "cursor": {
+    "rules": { "react": "https://..." },
+    "plans": { "feature": "https://..." }
+  },
+  "copilot": {
+    "instructions": { "general": "https://..." }
+  }
+}
+```
+
+**Combined Config** (rules repo that also tracks its own dependencies):
+```json
+{
+  "rootPath": "src",
+  "sourceDir": {
+    "cursor": { "rules": ".cursor/rules" }
+  },
+  "cursor": {
+    "rules": { "shared-util": "https://..." }
+  }
+}
+```
+
 - **`ai-rules-sync.local.json`**: Private dependencies (merged, takes precedence).
-- **Legacy**: `cursor-rules*.json` are read-only compatible; write operations migrate to new format.
+- **Legacy format**: Old configs with `cursor.rules` as string (instead of `sourceDir.cursor.rules`) are still supported for backward compatibility.
+- **Legacy files**: `cursor-rules*.json` are read-only compatible; write operations migrate to new format.
 
 ### 7. Shell Completion
 - **Auto-Install**: On first run, AIS prompts to install shell completion automatically.

@@ -22,11 +22,11 @@ AIS allows you to centrally manage rules in Git repositories and synchronize the
 
 ## Supported Sync Types
 
-| Tool | Type | Source Directory | Target Directory |
-|------|------|------------------|------------------|
-| Cursor | Rules | `rules/` | `.cursor/rules/` |
-| Cursor | Plans | `plans/` | `.cursor/plans/` |
-| Copilot | Instructions | `rules/` | `.github/instructions/` |
+| Tool | Type | Default Source Directory | Target Directory |
+|------|------|--------------------------|------------------|
+| Cursor | Rules | `.cursor/rules/` | `.cursor/rules/` |
+| Cursor | Plans | `.cursor/plans/` | `.cursor/plans/` |
+| Copilot | Instructions | `.github/instructions/` | `.github/instructions/` |
 
 ## Install
 
@@ -36,15 +36,34 @@ npm install -g ai-rules-sync
 
 ## Create a rules repository
 
-- `rules` folder is the default root folder for cursor rules and copilot instructions.
-- `plans` folder is the default root folder for cursor plans.
-- To use a different folder (e.g., `packages/rules`), add an `ai-rules-sync.json` file to the root of your repository:
+By default, AIS looks for rules in the official tool configuration paths:
+- `.cursor/rules/` for Cursor rules
+- `.cursor/plans/` for Cursor plans
+- `.github/instructions/` for Copilot instructions
 
-  ```json
-  {
-    "rootPath": "packages/rules"
+You can customize these paths by adding an `ai-rules-sync.json` file to your rules repository:
+
+```json
+{
+  "rootPath": "src",
+  "sourceDir": {
+    "cursor": {
+      "rules": ".cursor/rules",
+      "plans": ".cursor/plans"
+    },
+    "copilot": {
+      "instructions": ".github/instructions"
+    }
   }
-  ```
+}
+```
+
+- `rootPath`: Optional global prefix applied to all source directories (default: empty, meaning repository root)
+- `sourceDir.cursor.rules`: Source directory for Cursor rules (default: `.cursor/rules`)
+- `sourceDir.cursor.plans`: Source directory for Cursor plans (default: `.cursor/plans`)
+- `sourceDir.copilot.instructions`: Source directory for Copilot instructions (default: `.github/instructions`)
+
+> **Note**: The old flat format (`cursor.rules` as string) is still supported for backward compatibility.
 
 ## Global Options
 
@@ -78,7 +97,7 @@ ais cursor rules add [rule name] [alias]
 
 This command must be run in the root of your project.
 
-It will generate a symbolic link from the rules git repository `rules/[rule name]` folder to the project `.cursor/rules/[rule name]` folder.
+It will generate a symbolic link from the rules git repository `.cursor/rules/[rule name]` folder to the project `.cursor/rules/[rule name]` folder.
 
 If you provide an `[alias]`, it will be linked to `.cursor/rules/[alias]`. This is useful for renaming rules or handling conflicts.
 
@@ -114,7 +133,7 @@ ais cursor add react -t https://github.com/user/rules-repo.git
 ais cursor plans add [plan name] [alias]
 ```
 
-This syncs plan files from the rules repository `plans/` directory to `.cursor/plans/` in your project.
+This syncs plan files from the rules repository `.cursor/plans/` directory to `.cursor/plans/` in your project.
 
 ```bash
 # Add 'feature-plan.md' plan
@@ -136,7 +155,7 @@ ais cursor plans install
 ais copilot add [name] [alias]
 ```
 
-Default mapping: rules repo `<rootPath>/<name>` → project `.github/instructions/<alias|name>`.
+Default mapping: rules repo `.github/instructions/<name>` → project `.github/instructions/<alias|name>`.
 
 Suffix matching:
 - You may pass `foo`, `foo.md`, or `foo.instructions.md`.
