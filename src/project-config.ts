@@ -1,16 +1,79 @@
 import fs from 'fs-extra';
 import path from 'path';
 
-const CONFIG_FILENAME = 'cursor-rules.json';
-const LOCAL_CONFIG_FILENAME = 'cursor-rules.local.json';
+const CONFIG_FILENAME = 'ai-rules-sync.json';
+const LOCAL_CONFIG_FILENAME = 'ai-rules-sync.local.json';
 
-export interface ProjectConfig {
-    rules?: Record<string, string | { url: string; rule?: string }>;
-    // rules: key is the local alias (target name), value is repo url OR object with url and original rule name
-    rootPath?: string;
+// Legacy (temporary) compatibility. Intentionally centralized so it can be removed in a future version.
+const LEGACY_CONFIG_FILENAME = 'cursor-rules.json';
+const LEGACY_LOCAL_CONFIG_FILENAME = 'cursor-rules.local.json';
+
+export type RuleEntry = string | { url: string; rule?: string };
+
+/**
+ * Source directory configuration (for rules repositories)
+ * Defines where source files are located in a rules repo
+ */
+export interface SourceDirConfig {
+    cursor?: {
+        // Source directory for cursor rules, default: ".cursor/rules"
+        rules?: string;
+        // Source directory for cursor plans, default: ".cursor/plans"
+        plans?: string;
+    };
+    copilot?: {
+        // Source directory for copilot instructions, default: ".github/instructions"
+        instructions?: string;
+    };
 }
 
-async function readConfigFile(filePath: string): Promise<ProjectConfig> {
+/**
+ * Unified configuration for ai-rules-sync.json
+ * Used both in rules repos (sourceDir) and in projects (cursor/copilot dependencies)
+ *
+ * In rules repos:
+ *   - rootPath: global path prefix
+ *   - sourceDir: where source files are located
+ *
+ * In projects:
+ *   - cursor/copilot: dependency records
+ */
+export interface ProjectConfig {
+    // Global path prefix for source directories, default: "" (root directory)
+    // Only used in rules repos
+    rootPath?: string;
+    // Source directory configuration (only used in rules repos)
+    sourceDir?: SourceDirConfig;
+    // Dependency records (used in projects)
+    cursor?: {
+        // key is the local alias (target name), value is repo url OR object with url and original rule name
+        rules?: Record<string, RuleEntry>;
+        plans?: Record<string, RuleEntry>;
+    };
+    copilot?: {
+        // key is the local alias (target name), value is repo url OR object with url and original rule name
+        instructions?: Record<string, RuleEntry>;
+    };
+}
+
+/**
+ * @deprecated Use ProjectConfig with sourceDir instead
+ * Kept for backward compatibility during transition
+ */
+export interface RepoSourceConfig {
+    rootPath?: string;
+    cursor?: {
+        rules?: string;
+        plans?: string;
+    };
+    copilot?: {
+        instructions?: string;
+    };
+}
+
+export type ConfigSource = 'new' | 'legacy' | 'none';
+
+async function readConfigFile<T>(filePath: string): Promise<T> {
     if (await fs.pathExists(filePath)) {
         try {
             return await fs.readJson(filePath);
@@ -18,65 +81,293 @@ async function readConfigFile(filePath: string): Promise<ProjectConfig> {
             // ignore
         }
     }
-    return {};
+    return {} as T;
 }
 
-export async function getProjectConfig(projectPath: string): Promise<ProjectConfig> {
-    return readConfigFile(path.join(projectPath, CONFIG_FILENAME));
+async function hasAnyNewConfig(projectPath: string): Promise<boolean> {
+    return (
+        await fs.pathExists(path.join(projectPath, CONFIG_FILENAME)) ||
+        await fs.pathExists(path.join(projectPath, LOCAL_CONFIG_FILENAME))
+    );
 }
 
-export async function getCombinedProjectConfig(projectPath: string): Promise<ProjectConfig> {
-    const main = await readConfigFile(path.join(projectPath, CONFIG_FILENAME));
-    const local = await readConfigFile(path.join(projectPath, LOCAL_CONFIG_FILENAME));
+async function hasAnyLegacyConfig(projectPath: string): Promise<boolean> {
+    return (
+        await fs.pathExists(path.join(projectPath, LEGACY_CONFIG_FILENAME)) ||
+        await fs.pathExists(path.join(projectPath, LEGACY_LOCAL_CONFIG_FILENAME))
+    );
+}
 
+function legacyToNew(legacy: { rules?: Record<string, RuleEntry> }): ProjectConfig {
     return {
-        rules: { ...main.rules, ...local.rules }
+        cursor: {
+            rules: legacy.rules || {}
+        }
     };
 }
 
-export async function addDependency(projectPath: string, ruleName: string, repoUrl: string, alias?: string, isLocal: boolean = false) {
-    const filename = isLocal ? LOCAL_CONFIG_FILENAME : CONFIG_FILENAME;
-    const configPath = path.join(projectPath, filename);
-    const config = await readConfigFile(configPath);
+function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig {
+    return {
+        cursor: {
+            rules: { ...(main.cursor?.rules || {}), ...(local.cursor?.rules || {}) },
+            plans: { ...(main.cursor?.plans || {}), ...(local.cursor?.plans || {}) }
+        },
+        copilot: {
+            instructions: { ...(main.copilot?.instructions || {}), ...(local.copilot?.instructions || {}) }
+        }
+    };
+}
 
-    if (!config.rules) {
-        config.rules = {};
+export async function getConfigSource(projectPath: string): Promise<ConfigSource> {
+    if (await hasAnyNewConfig(projectPath)) return 'new';
+    if (await hasAnyLegacyConfig(projectPath)) return 'legacy';
+    return 'none';
+}
+
+/**
+ * Read repository-side source configuration (used when `projectPath` is a rules repo).
+ * Returns the full config which may contain sourceDir.
+ * Supports both new (sourceDir) and legacy (flat cursor/copilot with string values) formats.
+ */
+export async function getRepoSourceConfig(projectPath: string): Promise<RepoSourceConfig> {
+    const newPath = path.join(projectPath, CONFIG_FILENAME);
+    if (await fs.pathExists(newPath)) {
+        const config = await readConfigFile<ProjectConfig>(newPath);
+
+        // New format: sourceDir is present
+        if (config.sourceDir) {
+            return {
+                rootPath: config.rootPath,
+                cursor: config.sourceDir.cursor,
+                copilot: config.sourceDir.copilot
+            };
+        }
+
+        // Legacy format: cursor.rules/plans/instructions are strings (source dirs)
+        // We need to detect if this is a rules repo config (string values) vs project config (object values)
+        // Check if cursor.rules is a string (rules repo) or object (project dependencies)
+        const cursorRules = config.cursor?.rules;
+        const cursorPlans = config.cursor?.plans;
+        const copilotInstructions = config.copilot?.instructions;
+
+        const isCursorRulesString = typeof cursorRules === 'string';
+        const isCursorPlansString = typeof cursorPlans === 'string';
+        const isCopilotInstructionsString = typeof copilotInstructions === 'string';
+
+        // If any of these are strings, treat as legacy rules repo config
+        if (isCursorRulesString || isCursorPlansString || isCopilotInstructionsString) {
+            return {
+                rootPath: config.rootPath,
+                cursor: {
+                    rules: isCursorRulesString ? cursorRules : undefined,
+                    plans: isCursorPlansString ? cursorPlans : undefined
+                },
+                copilot: {
+                    instructions: isCopilotInstructionsString ? copilotInstructions : undefined
+                }
+            };
+        }
+
+        // Not a rules repo config (no sourceDir, no string values)
+        return { rootPath: config.rootPath };
+    }
+    return {};
+}
+
+/**
+ * Get the source directory for a specific tool type from repo config.
+ * @param repoConfig - The repo source configuration
+ * @param tool - Tool name: 'cursor' or 'copilot'
+ * @param subtype - Subtype: 'rules', 'plans', or 'instructions'
+ * @param defaultDir - Default directory if not configured
+ */
+export function getSourceDir(
+    repoConfig: RepoSourceConfig,
+    tool: string,
+    subtype: string,
+    defaultDir: string
+): string {
+    const rootPath = repoConfig.rootPath || '';
+    let toolDir: string | undefined;
+
+    if (tool === 'cursor') {
+        if (subtype === 'rules') {
+            toolDir = repoConfig.cursor?.rules;
+        } else if (subtype === 'plans') {
+            toolDir = repoConfig.cursor?.plans;
+        }
+    } else if (tool === 'copilot') {
+        if (subtype === 'instructions') {
+            toolDir = repoConfig.copilot?.instructions;
+        }
     }
 
-    const targetName = alias || ruleName;
+    const dir = toolDir ?? defaultDir;
+    return rootPath ? path.join(rootPath, dir) : dir;
+}
 
-    if (alias && alias !== ruleName) {
-         config.rules[targetName] = {
-             url: repoUrl,
-             rule: ruleName
-         };
-    } else {
-        config.rules[targetName] = repoUrl;
+export async function getCombinedProjectConfig(projectPath: string): Promise<ProjectConfig> {
+    const source = await getConfigSource(projectPath);
+
+    if (source === 'new') {
+        const main = await readConfigFile<ProjectConfig>(path.join(projectPath, CONFIG_FILENAME));
+        const local = await readConfigFile<ProjectConfig>(path.join(projectPath, LOCAL_CONFIG_FILENAME));
+        return mergeCombined(main, local);
     }
 
+    if (source === 'legacy') {
+        const legacyMain = await readConfigFile<{ rootPath?: string; rules?: Record<string, RuleEntry> }>(
+            path.join(projectPath, LEGACY_CONFIG_FILENAME)
+        );
+        const legacyLocal = await readConfigFile<{ rootPath?: string; rules?: Record<string, RuleEntry> }>(
+            path.join(projectPath, LEGACY_LOCAL_CONFIG_FILENAME)
+        );
+        return mergeCombined(legacyToNew(legacyMain), legacyToNew(legacyLocal));
+    }
+
+    return mergeCombined({}, {});
+}
+
+/**
+ * Migrate legacy cursor-rules*.json into new ai-rules-sync*.json files.
+ * This is ONLY called by write paths (add/remove) to keep legacy-compat removable.
+ */
+export async function migrateLegacyToNew(projectPath: string): Promise<{ migrated: boolean }> {
+    const source = await getConfigSource(projectPath);
+    if (source !== 'legacy') return { migrated: false };
+
+    const legacyMainPath = path.join(projectPath, LEGACY_CONFIG_FILENAME);
+    const legacyLocalPath = path.join(projectPath, LEGACY_LOCAL_CONFIG_FILENAME);
+
+    const legacyMain = await readConfigFile<{ rules?: Record<string, RuleEntry> }>(legacyMainPath);
+    const legacyLocal = await readConfigFile<{ rules?: Record<string, RuleEntry> }>(legacyLocalPath);
+
+    const newMain = legacyToNew(legacyMain);
+    const newLocal = legacyToNew(legacyLocal);
+
+    await fs.writeJson(path.join(projectPath, CONFIG_FILENAME), newMain, { spaces: 2 });
+    if (Object.keys(newLocal.cursor?.rules || {}).length > 0) {
+        await fs.writeJson(path.join(projectPath, LOCAL_CONFIG_FILENAME), newLocal, { spaces: 2 });
+    }
+
+    return { migrated: true };
+}
+
+async function readNewConfigForWrite(projectPath: string, isLocal: boolean): Promise<ProjectConfig> {
+    const configPath = path.join(projectPath, isLocal ? LOCAL_CONFIG_FILENAME : CONFIG_FILENAME);
+    return await readConfigFile<ProjectConfig>(configPath);
+}
+
+async function writeNewConfig(projectPath: string, isLocal: boolean, config: ProjectConfig): Promise<void> {
+    const configPath = path.join(projectPath, isLocal ? LOCAL_CONFIG_FILENAME : CONFIG_FILENAME);
     await fs.writeJson(configPath, config, { spaces: 2 });
 }
 
-export async function removeDependency(projectPath: string, alias: string): Promise<string[]> {
+/**
+ * Generic function to add a dependency to project config
+ * This function works with any adapter by using the configPath
+ * @param projectPath - Path to the project
+ * @param configPath - Config path like ['cursor', 'rules'] or ['copilot', 'instructions']
+ * @param name - Original name of the dependency
+ * @param repoUrl - Repository URL
+ * @param alias - Optional alias for the dependency
+ * @param isLocal - Whether to store in local config
+ */
+export async function addDependencyGeneric(
+    projectPath: string,
+    configPath: [string, string],
+    name: string,
+    repoUrl: string,
+    alias?: string,
+    isLocal: boolean = false
+): Promise<{ migrated: boolean }> {
+    const migration = await migrateLegacyToNew(projectPath);
+    const config = await readNewConfigForWrite(projectPath, isLocal);
+
+    const [topLevel, subLevel] = configPath;
+
+    // Initialize nested structure if needed
+    (config as any)[topLevel] ??= {};
+    (config as any)[topLevel][subLevel] ??= {};
+
+    const targetName = alias || name;
+    (config as any)[topLevel][subLevel][targetName] =
+        alias && alias !== name
+            ? { url: repoUrl, rule: name }
+            : repoUrl;
+
+    await writeNewConfig(projectPath, isLocal, config);
+    return migration;
+}
+
+/**
+ * Generic function to remove a dependency from project config
+ * This function works with any adapter by using the configPath
+ * @param projectPath - Path to the project
+ * @param configPath - Config path like ['cursor', 'rules'] or ['copilot', 'instructions']
+ * @param alias - Alias of the dependency to remove
+ */
+export async function removeDependencyGeneric(
+    projectPath: string,
+    configPath: [string, string],
+    alias: string
+): Promise<{ removedFrom: string[]; migrated: boolean }> {
+    const migration = await migrateLegacyToNew(projectPath);
     const removedFrom: string[] = [];
 
-    // Check main config
-    const mainConfigPath = path.join(projectPath, CONFIG_FILENAME);
-    const mainConfig = await readConfigFile(mainConfigPath);
-    if (mainConfig.rules && mainConfig.rules[alias]) {
-        delete mainConfig.rules[alias];
-        await fs.writeJson(mainConfigPath, mainConfig, { spaces: 2 });
+    const [topLevel, subLevel] = configPath;
+
+    const mainPath = path.join(projectPath, CONFIG_FILENAME);
+    const mainConfig = await readConfigFile<ProjectConfig>(mainPath);
+    if ((mainConfig as any)[topLevel]?.[subLevel]?.[alias]) {
+        delete (mainConfig as any)[topLevel][subLevel][alias];
+        await fs.writeJson(mainPath, mainConfig, { spaces: 2 });
         removedFrom.push(CONFIG_FILENAME);
     }
 
-    // Check local config
-    const localConfigPath = path.join(projectPath, LOCAL_CONFIG_FILENAME);
-    const localConfig = await readConfigFile(localConfigPath);
-    if (localConfig.rules && localConfig.rules[alias]) {
-        delete localConfig.rules[alias];
-        await fs.writeJson(localConfigPath, localConfig, { spaces: 2 });
+    const localPath = path.join(projectPath, LOCAL_CONFIG_FILENAME);
+    const localConfig = await readConfigFile<ProjectConfig>(localPath);
+    if ((localConfig as any)[topLevel]?.[subLevel]?.[alias]) {
+        delete (localConfig as any)[topLevel][subLevel][alias];
+        await fs.writeJson(localPath, localConfig, { spaces: 2 });
         removedFrom.push(LOCAL_CONFIG_FILENAME);
     }
 
+    return { removedFrom, migrated: migration.migrated };
+}
+
+export async function addCursorDependency(projectPath: string, ruleName: string, repoUrl: string, alias?: string, isLocal: boolean = false): Promise<{ migrated: boolean }> {
+    return addDependencyGeneric(projectPath, ['cursor', 'rules'], ruleName, repoUrl, alias, isLocal);
+}
+
+export async function removeCursorDependency(projectPath: string, alias: string): Promise<{ removedFrom: string[]; migrated: boolean }> {
+    return removeDependencyGeneric(projectPath, ['cursor', 'rules'], alias);
+}
+
+export async function addCopilotDependency(projectPath: string, ruleName: string, repoUrl: string, alias?: string, isLocal: boolean = false): Promise<{ migrated: boolean }> {
+    return addDependencyGeneric(projectPath, ['copilot', 'instructions'], ruleName, repoUrl, alias, isLocal);
+}
+
+export async function removeCopilotDependency(projectPath: string, alias: string): Promise<{ removedFrom: string[]; migrated: boolean }> {
+    return removeDependencyGeneric(projectPath, ['copilot', 'instructions'], alias);
+}
+
+// ============ Plans support ============
+
+export async function addPlanDependency(projectPath: string, planName: string, repoUrl: string, alias?: string, isLocal: boolean = false): Promise<{ migrated: boolean }> {
+    return addDependencyGeneric(projectPath, ['cursor', 'plans'], planName, repoUrl, alias, isLocal);
+}
+
+export async function removePlanDependency(projectPath: string, alias: string): Promise<{ removedFrom: string[]; migrated: boolean }> {
+    return removeDependencyGeneric(projectPath, ['cursor', 'plans'], alias);
+}
+
+// Backwards-compatible exports for existing code paths (Cursor only). These will be removed once CLI is migrated.
+export async function addDependency(projectPath: string, ruleName: string, repoUrl: string, alias?: string, isLocal: boolean = false) {
+    return addCursorDependency(projectPath, ruleName, repoUrl, alias, isLocal);
+}
+
+export async function removeDependency(projectPath: string, alias: string): Promise<string[]> {
+    const { removedFrom } = await removeCursorDependency(projectPath, alias);
     return removedFrom;
 }
