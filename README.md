@@ -27,6 +27,9 @@ AIS allows you to centrally manage rules in Git repositories and synchronize the
 | Cursor | Rules | `.cursor/rules/` | `.cursor/rules/` |
 | Cursor | Plans | `.cursor/plans/` | `.cursor/plans/` |
 | Copilot | Instructions | `.github/instructions/` | `.github/instructions/` |
+| Claude | Skills | `.claude/skills/` | `.claude/skills/` |
+| Claude | Agents | `.claude/agents/` | `.claude/agents/` |
+| Claude | Plugins | `plugins/` | `plugins/` |
 
 ## Install
 
@@ -53,6 +56,11 @@ You can customize these paths by adding an `ai-rules-sync.json` file to your rul
     },
     "copilot": {
       "instructions": ".github/instructions"
+    },
+    "claude": {
+      "skills": ".claude/skills",
+      "agents": ".claude/agents",
+      "plugins": "plugins"
     }
   }
 }
@@ -62,6 +70,9 @@ You can customize these paths by adding an `ai-rules-sync.json` file to your rul
 - `sourceDir.cursor.rules`: Source directory for Cursor rules (default: `.cursor/rules`)
 - `sourceDir.cursor.plans`: Source directory for Cursor plans (default: `.cursor/plans`)
 - `sourceDir.copilot.instructions`: Source directory for Copilot instructions (default: `.github/instructions`)
+- `sourceDir.claude.skills`: Source directory for Claude skills (default: `.claude/skills`)
+- `sourceDir.claude.agents`: Source directory for Claude agents (default: `.claude/agents`)
+- `sourceDir.claude.plugins`: Source directory for Claude plugins (default: `plugins`)
 
 > **Note**: The old flat format (`cursor.rules` as string) is still supported for backward compatibility.
 
@@ -162,6 +173,30 @@ Suffix matching:
 - If both `foo.md` and `foo.instructions.md` exist in the rules repo, AIS will error and you must specify the suffix explicitly.
 - If `alias` has no suffix, AIS preserves the source suffix (e.g. `ais copilot add foo y` may create `y.instructions.md`).
 
+### Sync Claude skills to project
+
+```bash
+ais claude skills add [skillName] [alias]
+```
+
+Default mapping: rules repo `.claude/skills/<skillName>` → project `.claude/skills/<alias|skillName>`.
+
+### Sync Claude agents to project
+
+```bash
+ais claude agents add [agentName] [alias]
+```
+
+Default mapping: rules repo `.claude/agents/<agentName>` → project `.claude/agents/<alias|agentName>`.
+
+### Sync Claude plugins to project
+
+```bash
+ais claude plugins add [pluginName] [alias]
+```
+
+Default mapping: rules repo `plugins/<pluginName>` → project `plugins/<alias|pluginName>`.
+
 ### Remove entries
 
 ```bash
@@ -173,6 +208,15 @@ ais cursor plans remove [alias]
 
 # Remove a Copilot instruction
 ais copilot remove [alias]
+
+# Remove a Claude skill
+ais claude skills remove [alias]
+
+# Remove a Claude agent
+ais claude agents remove [alias]
+
+# Remove a Claude plugin
+ais claude plugins remove [alias]
 ```
 
 This command removes the symbolic link, the ignore entry, and the dependency from `ai-rules-sync.json` (or `ai-rules-sync.local.json`).
@@ -196,6 +240,17 @@ The `ai-rules-sync.json` file stores Cursor rules, plans, and Copilot instructio
     "instructions": {
       "general": "https://github.com/user/repo.git"
     }
+  },
+  "claude": {
+    "skills": {
+      "code-review": "https://github.com/user/repo.git"
+    },
+    "agents": {
+      "debugger": "https://github.com/user/repo.git"
+    },
+    "plugins": {
+      "my-plugin": "https://github.com/user/repo.git"
+    }
   }
 }
 ```
@@ -215,7 +270,10 @@ ais cursor install
 # Install all Copilot instructions
 ais copilot install
 
-# Install everything (both Cursor and Copilot)
+# Install all Claude skills, agents, and plugins
+ais claude install
+
+# Install everything (Cursor, Copilot, and Claude)
 ais install
 ```
 
@@ -298,6 +356,9 @@ After enabling, you can use Tab to complete rule names:
 ais cursor add <Tab>         # Lists available rules
 ais cursor plans add <Tab>   # Lists available plans
 ais copilot add <Tab>        # Lists available instructions
+ais claude skills add <Tab>  # Lists available skills
+ais claude agents add <Tab>  # Lists available agents
+ais claude plugins add <Tab> # Lists available plugins
 ```
 
 **Note**: If you encounter `compdef: command not found` errors, ensure your shell has completion initialized. For zsh, add this to your `~/.zshrc` before the ais completion line:

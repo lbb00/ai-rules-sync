@@ -2,6 +2,9 @@ import { SyncAdapter, AdapterRegistry } from './types.js';
 import { cursorRulesAdapter } from './cursor-rules.js';
 import { cursorPlansAdapter } from './cursor-plans.js';
 import { copilotInstructionsAdapter } from './copilot-instructions.js';
+import { claudeSkillsAdapter } from './claude-skills.js';
+import { claudeAgentsAdapter } from './claude-agents.js';
+import { claudePluginsAdapter } from './claude-plugins.js';
 import { ProjectConfig } from '../project-config.js';
 
 // Re-export types and utilities
@@ -21,6 +24,9 @@ class DefaultAdapterRegistry implements AdapterRegistry {
         this.register(cursorRulesAdapter);
         this.register(cursorPlansAdapter);
         this.register(copilotInstructionsAdapter);
+        this.register(claudeSkillsAdapter);
+        this.register(claudeAgentsAdapter);
+        this.register(claudePluginsAdapter);
     }
 
     register(adapter: SyncAdapter): void {
@@ -101,6 +107,15 @@ export function findAdapterForAlias(
     }
     if (cfg.copilot?.instructions?.[alias]) {
         return { adapter: copilotInstructionsAdapter, section: 'copilot.instructions' };
+    }
+    if (cfg.claude?.skills?.[alias]) {
+        return { adapter: claudeSkillsAdapter, section: 'claude.skills' };
+    }
+    if (cfg.claude?.agents?.[alias]) {
+        return { adapter: claudeAgentsAdapter, section: 'claude.agents' };
+    }
+    if (cfg.claude?.plugins?.[alias]) {
+        return { adapter: claudePluginsAdapter, section: 'claude.plugins' };
     }
     return null;
 }
