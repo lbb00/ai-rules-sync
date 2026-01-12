@@ -25,6 +25,14 @@ export interface SourceDirConfig {
         // Source directory for copilot instructions, default: ".github/instructions"
         instructions?: string;
     };
+    claude?: {
+        // Source directory for claude skills, default: ".claude/skills"
+        skills?: string;
+        // Source directory for claude agents, default: ".claude/agents"
+        agents?: string;
+        // Source directory for claude plugins, default: "plugins"
+        plugins?: string;
+    };
 }
 
 /**
@@ -54,6 +62,12 @@ export interface ProjectConfig {
         // key is the local alias (target name), value is repo url OR object with url and original rule name
         instructions?: Record<string, RuleEntry>;
     };
+    claude?: {
+        // key is the local alias (target name), value is repo url OR object with url and original rule name
+        skills?: Record<string, RuleEntry>;
+        agents?: Record<string, RuleEntry>;
+        plugins?: Record<string, RuleEntry>;
+    };
 }
 
 /**
@@ -68,6 +82,11 @@ export interface RepoSourceConfig {
     };
     copilot?: {
         instructions?: string;
+    };
+    claude?: {
+        skills?: string;
+        agents?: string;
+        plugins?: string;
     };
 }
 
@@ -114,6 +133,11 @@ function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig
         },
         copilot: {
             instructions: { ...(main.copilot?.instructions || {}), ...(local.copilot?.instructions || {}) }
+        },
+        claude: {
+            skills: { ...(main.claude?.skills || {}), ...(local.claude?.skills || {}) },
+            agents: { ...(main.claude?.agents || {}), ...(local.claude?.agents || {}) },
+            plugins: { ...(main.claude?.plugins || {}), ...(local.claude?.plugins || {}) }
         }
     };
 }
@@ -139,7 +163,8 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
             return {
                 rootPath: config.rootPath,
                 cursor: config.sourceDir.cursor,
-                copilot: config.sourceDir.copilot
+                copilot: config.sourceDir.copilot,
+                claude: config.sourceDir.claude
             };
         }
 
@@ -153,9 +178,15 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
         const isCursorRulesString = typeof cursorRules === 'string';
         const isCursorPlansString = typeof cursorPlans === 'string';
         const isCopilotInstructionsString = typeof copilotInstructions === 'string';
+        const claudeSkills = config.claude?.skills;
+        const claudeAgents = config.claude?.agents;
+        const claudePlugins = config.claude?.plugins;
+        const isClaudeSkillsString = typeof claudeSkills === 'string';
+        const isClaudeAgentsString = typeof claudeAgents === 'string';
+        const isClaudePluginsString = typeof claudePlugins === 'string';
 
         // If any of these are strings, treat as legacy rules repo config
-        if (isCursorRulesString || isCursorPlansString || isCopilotInstructionsString) {
+        if (isCursorRulesString || isCursorPlansString || isCopilotInstructionsString || isClaudeSkillsString || isClaudeAgentsString || isClaudePluginsString) {
             return {
                 rootPath: config.rootPath,
                 cursor: {
@@ -164,6 +195,11 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
                 },
                 copilot: {
                     instructions: isCopilotInstructionsString ? copilotInstructions : undefined
+                },
+                claude: {
+                    skills: isClaudeSkillsString ? claudeSkills : undefined,
+                    agents: isClaudeAgentsString ? claudeAgents : undefined,
+                    plugins: isClaudePluginsString ? claudePlugins : undefined
                 }
             };
         }
@@ -177,8 +213,8 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
 /**
  * Get the source directory for a specific tool type from repo config.
  * @param repoConfig - The repo source configuration
- * @param tool - Tool name: 'cursor' or 'copilot'
- * @param subtype - Subtype: 'rules', 'plans', or 'instructions'
+ * @param tool - Tool name: 'cursor', 'copilot', or 'claude'
+ * @param subtype - Subtype: 'rules', 'plans', 'instructions', 'skills', 'agents', or 'plugins'
  * @param defaultDir - Default directory if not configured
  */
 export function getSourceDir(
@@ -199,6 +235,14 @@ export function getSourceDir(
     } else if (tool === 'copilot') {
         if (subtype === 'instructions') {
             toolDir = repoConfig.copilot?.instructions;
+        }
+    } else if (tool === 'claude') {
+        if (subtype === 'skills') {
+            toolDir = repoConfig.claude?.skills;
+        } else if (subtype === 'agents') {
+            toolDir = repoConfig.claude?.agents;
+        } else if (subtype === 'plugins') {
+            toolDir = repoConfig.claude?.plugins;
         }
     }
 
@@ -360,6 +404,32 @@ export async function addPlanDependency(projectPath: string, planName: string, r
 
 export async function removePlanDependency(projectPath: string, alias: string): Promise<{ removedFrom: string[]; migrated: boolean }> {
     return removeDependencyGeneric(projectPath, ['cursor', 'plans'], alias);
+}
+
+// ============ Claude support ============
+
+export async function addClaudeSkillDependency(projectPath: string, skillName: string, repoUrl: string, alias?: string, isLocal: boolean = false): Promise<{ migrated: boolean }> {
+    return addDependencyGeneric(projectPath, ['claude', 'skills'], skillName, repoUrl, alias, isLocal);
+}
+
+export async function removeClaudeSkillDependency(projectPath: string, alias: string): Promise<{ removedFrom: string[]; migrated: boolean }> {
+    return removeDependencyGeneric(projectPath, ['claude', 'skills'], alias);
+}
+
+export async function addClaudeAgentDependency(projectPath: string, agentName: string, repoUrl: string, alias?: string, isLocal: boolean = false): Promise<{ migrated: boolean }> {
+    return addDependencyGeneric(projectPath, ['claude', 'agents'], agentName, repoUrl, alias, isLocal);
+}
+
+export async function removeClaudeAgentDependency(projectPath: string, alias: string): Promise<{ removedFrom: string[]; migrated: boolean }> {
+    return removeDependencyGeneric(projectPath, ['claude', 'agents'], alias);
+}
+
+export async function addClaudePluginDependency(projectPath: string, pluginName: string, repoUrl: string, alias?: string, isLocal: boolean = false): Promise<{ migrated: boolean }> {
+    return addDependencyGeneric(projectPath, ['claude', 'plugins'], pluginName, repoUrl, alias, isLocal);
+}
+
+export async function removeClaudePluginDependency(projectPath: string, alias: string): Promise<{ removedFrom: string[]; migrated: boolean }> {
+    return removeDependencyGeneric(projectPath, ['claude', 'plugins'], alias);
 }
 
 // Backwards-compatible exports for existing code paths (Cursor only). These will be removed once CLI is migrated.
