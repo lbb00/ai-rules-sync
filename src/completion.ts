@@ -18,6 +18,7 @@ const LEGACY_PATTERNS = [
     'ais completion fish | source',
     'eval "$(ais completion)"',
     'ais completion > ~/.zsh/ais_completion.zsh',
+    'source ~/.zsh/ais_completion.zsh',
 ];
 
 /**
@@ -69,8 +70,8 @@ export function getCompletionSnippet(shell: ShellType): string {
   if (shell === 'fish') {
     content = 'ais completion fish | source';
   } else if (shell === 'zsh') {
-    // For zsh, save completion to file first, then source it
-    content = 'ais completion > ~/.zsh/ais_completion.zsh 2>/dev/null && source ~/.zsh/ais_completion.zsh';
+    // For zsh, use eval like bash to avoid directory creation issues
+    content = 'eval "$(ais completion zsh)"';
   } else {
     // bash uses eval
     content = 'eval "$(ais completion)"';
@@ -208,8 +209,7 @@ export async function checkAndPromptCompletion(): Promise<void> {
     console.log('  - Press TAB to see available subcommands');
     console.log('  - Press TAB to complete rule names from your repository');
     console.log('');
-    console.log(chalk.gray(`This will add the following line to ${configPath}:`));
-    console.log(chalk.gray(shell === 'fish' ? '  ais completion fish | source' : '  eval "$(ais completion)"'));
+    console.log(chalk.gray(`This will add completion code to ${configPath}`));
     console.log('');
 
     const answer2 = await promptUser(`Install completion? ${chalk.bold('[Y]es')} / ${chalk.gray('[n]o')}: `);
@@ -243,13 +243,11 @@ async function doInstall(shell: ShellType, configPath: string): Promise<void> {
       console.log(chalk.yellow(`  Restart your terminal or run: source ${configPath}`));
     } else {
       console.log(chalk.red('✗ Failed to install shell completion.'));
-      console.log(chalk.gray(`  You can manually add this to your shell config:`));
-      console.log(chalk.gray(shell === 'fish' ? '  ais completion fish | source' : '  eval "$(ais completion)"'));
+      console.log(chalk.gray(`  You can manually install with: ais completion install --force`));
     }
   } catch (error: any) {
     console.log(chalk.red(`✗ Error installing completion: ${error.message}`));
-    console.log(chalk.gray(`  You can manually add this to ${configPath}:`));
-    console.log(chalk.gray(shell === 'fish' ? '  ais completion fish | source' : '  eval "$(ais completion)"'));
+    console.log(chalk.gray(`  You can manually install with: ais completion install --force`));
   }
 }
 
@@ -293,9 +291,7 @@ export async function forceInstallCompletion(force: boolean = false): Promise<vo
 
   if (shell === 'unknown') {
     console.log(chalk.red('Could not detect your shell type.'));
-    console.log(chalk.gray('Please manually add completion to your shell config:'));
-    console.log(chalk.gray('  Bash/Zsh: eval "$(ais completion)"'));
-    console.log(chalk.gray('  Fish: ais completion fish | source'));
+    console.log(chalk.gray('Run "ais completion script" to see the completion script for your shell.'));
     return;
   }
 

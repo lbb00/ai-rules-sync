@@ -1980,14 +1980,7 @@ completionCmd
 
 // Check for first-run completion prompt before parsing
 async function main() {
-  // Only prompt if not running completion commands (to avoid interference)
-  const args = process.argv.slice(2);
-  const isCompletionCommand = args[0] === 'completion' || args[0] === '_complete';
-
-  if (!isCompletionCommand) {
-    await checkAndPromptCompletion();
-  }
-
+  // Completion prompt has been removed. Users can install manually with: ais completion install
   program.parse();
 }
 
