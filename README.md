@@ -7,7 +7,7 @@
 [English](./README.md) | [中文](./README_ZH.md)
 
 **AI Rules Sync (AIS)**
-*Synchronize, manage, and share your agent rules (Cursor rules, Cursor commands, Cursor skills, Copilot instructions, Claude skills and agents) with ease.*
+*Synchronize, manage, and share your agent rules (Cursor rules, Cursor commands, Cursor skills, Copilot instructions, Claude skills and agents, Trae rules and skills) with ease.*
 
 AIS allows you to centrally manage rules in Git repositories and synchronize them across projects using symbolic links. Say goodbye to copy-pasting `.mdc` files and drifting configurations.
 
@@ -30,6 +30,8 @@ AIS allows you to centrally manage rules in Git repositories and synchronize the
 | Copilot | Instructions | `.github/instructions/` | `.github/instructions/` |
 | Claude | Skills | `.claude/skills/` | `.claude/skills/` |
 | Claude | Agents | `.claude/agents/` | `.claude/agents/` |
+| Trae | Rules | `.trae/rules/` | `.trae/rules/` |
+| Trae | Skills | `.trae/skills/` | `.trae/skills/` |
 
 ## Install
 
@@ -46,6 +48,8 @@ By default, AIS looks for rules in the official tool configuration paths:
 - `.github/instructions/` for Copilot instructions
 - `.claude/skills/` for Claude skills
 - `.claude/agents/` for Claude agents
+- `.trae/rules/` for Trae rules
+- `.trae/skills/` for Trae skills
 
 You can customize these paths by adding an `ai-rules-sync.json` file to your rules repository:
 
@@ -64,6 +68,10 @@ You can customize these paths by adding an `ai-rules-sync.json` file to your rul
     "claude": {
       "skills": ".claude/skills",
       "agents": ".claude/agents"
+    },
+    "trae": {
+      "rules": ".trae/rules",
+      "skills": ".trae/skills"
     }
   }
 }
@@ -76,6 +84,8 @@ You can customize these paths by adding an `ai-rules-sync.json` file to your rul
 - `sourceDir.copilot.instructions`: Source directory for Copilot instructions (default: `.github/instructions`)
 - `sourceDir.claude.skills`: Source directory for Claude skills (default: `.claude/skills`)
 - `sourceDir.claude.agents`: Source directory for Claude agents (default: `.claude/agents`)
+- `sourceDir.trae.rules`: Source directory for Trae rules (default: `.trae/rules`)
+- `sourceDir.trae.skills`: Source directory for Trae skills (default: `.trae/skills`)
 
 > **Note**: The old flat format (`cursor.rules` as string) is still supported for backward compatibility.
 
@@ -214,6 +224,22 @@ ais claude agents add [agentName] [alias]
 
 Default mapping: rules repo `.claude/agents/<agentName>` → project `.claude/agents/<alias|agentName>`.
 
+### Sync Trae rules to project
+
+```bash
+ais trae rules add [ruleName] [alias]
+```
+
+Default mapping: rules repo `.trae/rules/<ruleName>` → project `.trae/rules/<alias|ruleName>`.
+
+### Sync Trae skills to project
+
+```bash
+ais trae skills add [skillName] [alias]
+```
+
+Default mapping: rules repo `.trae/skills/<skillName>` → project `.trae/skills/<alias|skillName>`.
+
 
 ### Remove entries
 
@@ -232,6 +258,12 @@ ais claude skills remove [alias]
 
 # Remove a Claude agent
 ais claude agents remove [alias]
+
+# Remove a Trae rule
+ais trae rules remove [alias]
+
+# Remove a Trae skill
+ais trae skills remove [alias]
 
 ```
 
@@ -258,6 +290,12 @@ ais import claude skills [name]
 
 # Import a Claude agent
 ais import claude agents [name]
+
+# Import a Trae rule
+ais import trae rules [name]
+
+# Import a Trae skill
+ais import trae skills [name]
 ```
 
 **Options:**
@@ -316,6 +354,14 @@ The `ai-rules-sync.json` file stores Cursor rules, commands, and Copilot instruc
     "agents": {
       "debugger": "https://github.com/user/repo.git"
     }
+  },
+  "trae": {
+    "rules": {
+      "project-rules": "https://github.com/user/repo.git"
+    },
+    "skills": {
+      "ai-rules-adapter-builder": "https://github.com/user/repo.git"
+    }
   }
 }
 ```
@@ -338,7 +384,10 @@ ais copilot install
 # Install all Claude skills and agents
 ais claude install
 
-# Install everything (Cursor, Copilot, and Claude)
+# Install all Trae rules and skills
+ais trae install
+
+# Install everything (Cursor, Copilot, Claude, and Trae)
 ais install
 ```
 
@@ -424,6 +473,8 @@ ais cursor skills add <Tab>  # Lists available skills
 ais copilot add <Tab>        # Lists available instructions
 ais claude skills add <Tab>  # Lists available skills
 ais claude agents add <Tab>  # Lists available agents
+ais trae rules add <Tab>     # Lists available rules
+ais trae skills add <Tab>    # Lists available skills
 ```
 
 **Note**: If you encounter `compdef: command not found` errors, ensure your shell has completion initialized. For zsh, add this to your `~/.zshrc` before the ais completion line:
@@ -451,7 +502,7 @@ Config Layer (ai-rules-sync.json via addDependencyGeneric, removeDependencyGener
 
 **Key Design Principles:**
 
-1. **Unified Interface**: All adapters (cursor-rules, cursor-commands, cursor-skills, copilot-instructions) implement the same operations
+1. **Unified Interface**: All adapters (cursor-rules, cursor-commands, cursor-skills, copilot-instructions, claude-skills, claude-agents, trae-rules, trae-skills) implement the same operations
 2. **Auto-Routing**: The `findAdapterForAlias()` function automatically finds the correct adapter based on where an alias is configured
 3. **Generic Functions**: `addDependencyGeneric()` and `removeDependencyGeneric()` work with any adapter via `configPath` property
 4. **Extensible**: Adding new AI tools only requires creating a new adapter and registering it in the adapter registry
@@ -500,4 +551,3 @@ export interface ProjectConfig {
 ```
 
 That's it! Your new adapter will automatically support `add`, `remove`, `link`, and `unlink` operations through the unified interface.
-
