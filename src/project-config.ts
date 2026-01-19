@@ -33,6 +33,12 @@ export interface SourceDirConfig {
         // Source directory for claude agents, default: ".claude/agents"
         agents?: string;
     };
+    trae?: {
+        // Source directory for trae rules, default: ".trae/rules"
+        rules?: string;
+        // Source directory for trae skills, default: ".trae/skills"
+        skills?: string;
+    };
 }
 
 /**
@@ -68,6 +74,10 @@ export interface ProjectConfig {
         skills?: Record<string, RuleEntry>;
         agents?: Record<string, RuleEntry>;
     };
+    trae?: {
+        rules?: Record<string, RuleEntry>;
+        skills?: Record<string, RuleEntry>;
+    };
 }
 
 /**
@@ -87,6 +97,10 @@ export interface RepoSourceConfig {
     claude?: {
         skills?: string;
         agents?: string;
+    };
+    trae?: {
+        rules?: string;
+        skills?: string;
     };
 }
 
@@ -138,6 +152,10 @@ function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig
         claude: {
             skills: { ...(main.claude?.skills || {}), ...(local.claude?.skills || {}) },
             agents: { ...(main.claude?.agents || {}), ...(local.claude?.agents || {}) }
+        },
+        trae: {
+            rules: { ...(main.trae?.rules || {}), ...(local.trae?.rules || {}) },
+            skills: { ...(main.trae?.skills || {}), ...(local.trae?.skills || {}) }
         }
     };
 }
@@ -164,7 +182,8 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
                 rootPath: config.rootPath,
                 cursor: config.sourceDir.cursor,
                 copilot: config.sourceDir.copilot,
-                claude: config.sourceDir.claude
+                claude: config.sourceDir.claude,
+                trae: config.sourceDir.trae
             };
         }
 
@@ -184,9 +203,13 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
         const claudeAgents = config.claude?.agents;
         const isClaudeSkillsString = typeof claudeSkills === 'string';
         const isClaudeAgentsString = typeof claudeAgents === 'string';
+        const traeRules = config.trae?.rules;
+        const traeSkills = config.trae?.skills;
+        const isTraeRulesString = typeof traeRules === 'string';
+        const isTraeSkillsString = typeof traeSkills === 'string';
 
         // If any of these are strings, treat as legacy rules repo config
-        if (isCursorRulesString || isCursorCommandsString || isCursorSkillsString || isCopilotInstructionsString || isClaudeSkillsString || isClaudeAgentsString) {
+        if (isCursorRulesString || isCursorCommandsString || isCursorSkillsString || isCopilotInstructionsString || isClaudeSkillsString || isClaudeAgentsString || isTraeRulesString || isTraeSkillsString) {
             return {
                 rootPath: config.rootPath,
                 cursor: {
@@ -200,6 +223,10 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
                 claude: {
                     skills: isClaudeSkillsString ? claudeSkills : undefined,
                     agents: isClaudeAgentsString ? claudeAgents : undefined
+                },
+                trae: {
+                    rules: isTraeRulesString ? traeRules : undefined,
+                    skills: isTraeSkillsString ? traeSkills : undefined
                 }
             };
         }
@@ -243,6 +270,12 @@ export function getSourceDir(
             toolDir = repoConfig.claude?.skills;
         } else if (subtype === 'agents') {
             toolDir = repoConfig.claude?.agents;
+        }
+    } else if (tool === 'trae') {
+        if (subtype === 'rules') {
+            toolDir = repoConfig.trae?.rules;
+        } else if (subtype === 'skills') {
+            toolDir = repoConfig.trae?.skills;
         }
     }
 

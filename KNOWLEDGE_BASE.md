@@ -1,12 +1,12 @@
 # Project Knowledge Base
 
 ## Project Overview
-**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Copilot instructions**, and **Claude Code skills/agents**, keeping projects up-to-date across teams.
+**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Copilot instructions**, **Claude Code skills/agents**, and **Trae rules/skills**, keeping projects up-to-date across teams.
 
 ## Core Concepts
-- **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/commands/`, `.cursor/skills/`, `.github/instructions/`, `.claude/skills/`, `.claude/agents/`).
+- **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/commands/`, `.cursor/skills/`, `.github/instructions/`, `.claude/skills/`, `.claude/agents/`, `.trae/rules/`, `.trae/skills/`).
 - **Symbolic Links**: Entries are linked from the local cache of the repo to project directories, avoiding file duplication and drift.
-- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills, Copilot instructions, Claude skills/agents).
+- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills, Copilot instructions, Claude skills/agents, Trae rules/skills).
 - **Privacy**: Supports private/local entries via `ai-rules-sync.local.json` and `.git/info/exclude`.
 
 ## Architecture
@@ -30,7 +30,9 @@ src/
 │   ├── cursor-skills.ts     # Cursor skills adapter
 │   ├── copilot-instructions.ts # Copilot instructions adapter
 │   ├── claude-skills.ts     # Claude skills adapter
-│   └── claude-agents.ts     # Claude agents adapter
+│   ├── claude-agents.ts     # Claude agents adapter
+│   ├── trae-rules.ts        # Trae rules adapter
+│   └── trae-skills.ts       # Trae skills adapter
 ├── cli/                     # CLI registration layer
 │   └── register.ts          # Declarative command registration (registerAdapterCommands)
 ├── commands/                # Command handlers
@@ -153,6 +155,10 @@ interface SourceDirConfig {
     skills?: string;      // Default: ".claude/skills"
     agents?: string;      // Default: ".claude/agents"
   };
+  trae?: {
+    rules?: string;       // Default: ".trae/rules"
+    skills?: string;      // Default: ".trae/skills"
+  };
 }
 ```
 
@@ -175,6 +181,10 @@ interface ProjectConfig {
   claude?: {
     skills?: Record<string, RuleEntry>;
     agents?: Record<string, RuleEntry>;
+  };
+  trae?: {
+    rules?: Record<string, RuleEntry>;
+    skills?: Record<string, RuleEntry>;
   };
 }
 ```
@@ -244,6 +254,7 @@ interface ProjectConfig {
 - `ais cursor install` - Install all Cursor rules, commands, and skills.
 - `ais copilot install` - Install all Copilot instructions.
 - `ais claude install` - Install all Claude skills and agents.
+- `ais trae install` - Install all Trae rules and skills.
 - `ais install` - Install everything.
 
 ### 10. Configuration Files
@@ -264,6 +275,10 @@ interface ProjectConfig {
     "claude": {
       "skills": ".claude/skills",
       "agents": ".claude/agents"
+    },
+    "trae": {
+      "rules": ".trae/rules",
+      "skills": ".trae/skills"
     }
   }
 }
@@ -283,6 +298,10 @@ interface ProjectConfig {
   "claude": {
     "skills": { "my-skill": "https://..." },
     "agents": { "debugger": "https://..." }
+  },
+  "trae": {
+    "rules": { "project-rules": "https://..." },
+    "skills": { "ai-rules-adapter-builder": "https://..." }
   }
 }
 ```
