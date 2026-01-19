@@ -70,7 +70,7 @@ export async function getTargetRepo(options: { target?: string }): Promise<RepoC
   return currentRepo;
 }
 
-export type DefaultMode = 'cursor' | 'copilot' | 'claude' | 'ambiguous' | 'none';
+export type DefaultMode = 'cursor' | 'copilot' | 'claude' | 'trae' | 'ambiguous' | 'none';
 
 /**
  * Infer the default mode based on project configuration
@@ -83,11 +83,14 @@ export async function inferDefaultMode(projectPath: string): Promise<DefaultMode
   const copilotCount = Object.keys(cfg.copilot?.instructions || {}).length;
   const claudeCount = Object.keys(cfg.claude?.skills || {}).length +
     Object.keys(cfg.claude?.agents || {}).length;
+  const traeCount = Object.keys(cfg.trae?.rules || {}).length +
+    Object.keys(cfg.trae?.skills || {}).length;
 
-  if (cursorCount > 0 && copilotCount === 0 && claudeCount === 0) return 'cursor';
-  if (copilotCount > 0 && cursorCount === 0 && claudeCount === 0) return 'copilot';
-  if (claudeCount > 0 && cursorCount === 0 && copilotCount === 0) return 'claude';
-  if (cursorCount === 0 && copilotCount === 0 && claudeCount === 0) return 'none';
+  if (cursorCount > 0 && copilotCount === 0 && claudeCount === 0 && traeCount === 0) return 'cursor';
+  if (copilotCount > 0 && cursorCount === 0 && claudeCount === 0 && traeCount === 0) return 'copilot';
+  if (claudeCount > 0 && cursorCount === 0 && copilotCount === 0 && traeCount === 0) return 'claude';
+  if (traeCount > 0 && cursorCount === 0 && copilotCount === 0 && claudeCount === 0) return 'trae';
+  if (cursorCount === 0 && copilotCount === 0 && claudeCount === 0 && traeCount === 0) return 'none';
   return 'ambiguous';
 }
 
@@ -96,9 +99,9 @@ export async function inferDefaultMode(projectPath: string): Promise<DefaultMode
  */
 export function requireExplicitMode(mode: DefaultMode): never {
   if (mode === 'ambiguous') {
-    throw new Error('Multiple tool configs exist in this project. Please use "ais cursor ...", "ais copilot ...", or "ais claude ..." explicitly.');
+    throw new Error('Multiple tool configs exist in this project. Please use "ais cursor ...", "ais copilot ...", "ais claude ...", or "ais trae ..." explicitly.');
   }
-  throw new Error('No default mode could be inferred. Please use "ais cursor ...", "ais copilot ...", or "ais claude ..." explicitly.');
+  throw new Error('No default mode could be inferred. Please use "ais cursor ...", "ais copilot ...", "ais claude ...", or "ais trae ..." explicitly.');
 }
 
 /**

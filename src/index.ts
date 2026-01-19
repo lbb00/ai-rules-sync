@@ -133,6 +133,8 @@ program
         await handleAdd(adapter, { projectPath, repo: currentRepo, isLocal: options.local || false }, name, alias);
       } else if (mode === 'claude') {
         throw new Error('For Claude components, please use "ais claude skills/agents add" explicitly.');
+      } else if (mode === 'trae') {
+        throw new Error('For Trae components, please use "ais trae rules/skills add" explicitly.');
       }
     } catch (error: any) {
       console.error(chalk.red('Error adding entry:'), error.message);
@@ -177,6 +179,13 @@ program
             await a.removeDependency(projectPath, alias);
           }
           return;
+        } else if (mode === 'trae') {
+          const traeAdapters = adapterRegistry.getForTool('trae');
+          for (const a of traeAdapters) {
+            await a.unlink(projectPath, alias);
+            await a.removeDependency(projectPath, alias);
+          }
+          return;
         } else {
           throw new Error(`Cannot determine which tool to use for alias "${alias}"`);
         }
@@ -191,7 +200,7 @@ program
 
 program
   .command('install')
-  .description('Install all entries from config (cursor + copilot + claude)')
+  .description('Install all entries from config (cursor + copilot + claude + trae)')
   .action(async () => {
     try {
       const projectPath = process.cwd();
@@ -210,6 +219,9 @@ program
       }
       if (mode === 'claude' || mode === 'ambiguous') {
         await installEntriesForTool(adapterRegistry.getForTool('claude'), projectPath);
+      }
+      if (mode === 'trae' || mode === 'ambiguous') {
+        await installEntriesForTool(adapterRegistry.getForTool('trae'), projectPath);
       }
     } catch (error: any) {
       console.error(chalk.red('Error installing entries:'), error.message);
@@ -446,6 +458,29 @@ registerAdapterCommands({ adapter: getAdapter('claude', 'skills'), parentCommand
 const claudeAgents = claude.command('agents').description('Manage Claude agents');
 registerAdapterCommands({ adapter: getAdapter('claude', 'agents'), parentCommand: claudeAgents, programOpts: () => program.opts() });
 
+// ============ Trae command group ============
+const trae = program
+  .command('trae')
+  .description('Manage Trae rules and skills in a project');
+
+trae
+  .command('install')
+  .description('Install all Trae rules and skills from config')
+  .action(async () => {
+    try {
+      await installEntriesForTool(adapterRegistry.getForTool('trae'), process.cwd());
+    } catch (error: any) {
+      console.error(chalk.red('Error installing Trae entries:'), error.message);
+      process.exit(1);
+    }
+  });
+
+const traeRules = trae.command('rules').description('Manage Trae rules');
+registerAdapterCommands({ adapter: getAdapter('trae', 'rules'), parentCommand: traeRules, programOpts: () => program.opts() });
+
+const traeSkills = trae.command('skills').description('Manage Trae skills');
+registerAdapterCommands({ adapter: getAdapter('trae', 'skills'), parentCommand: traeSkills, programOpts: () => program.opts() });
+
 // ============ Git command ============
 program
   .command('git')
@@ -465,7 +500,7 @@ program
 // ============ Internal _complete command ============
 program
   .command('_complete')
-  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, copilot, claude-skills, claude-agents')
+  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, copilot, claude-skills, claude-agents, trae-rules, trae-skills')
   .description('Internal command for shell completion')
   .action(async (type: string) => {
     try {
@@ -502,6 +537,12 @@ program
           break;
         case 'claude-agents':
           sourceDir = getSourceDir(repoConfig, 'claude', 'agents', '.claude/agents');
+          break;
+        case 'trae-rules':
+          sourceDir = getSourceDir(repoConfig, 'trae', 'rules', '.trae/rules');
+          break;
+        case 'trae-skills':
+          sourceDir = getSourceDir(repoConfig, 'trae', 'skills', '.trae/skills');
           break;
         default:
           process.exit(0);
