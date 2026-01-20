@@ -58,6 +58,12 @@ _ais_complete() {
     return 0
   fi
 
+  # cursor agents add
+  if [[ "\$ppprev" == "cursor" && "\$pprev" == "agents" && "\$prev" == "add" ]]; then
+    COMPREPLY=( $(compgen -W "$(ais _complete cursor-agents 2>/dev/null)" -- "\$cur") )
+    return 0
+  fi
+
   # cursor rules add
   if [[ "\$pprev" == "rules" && "\$prev" == "add" ]]; then
     COMPREPLY=( $(compgen -W "$(ais _complete cursor 2>/dev/null)" -- "\$cur") )
@@ -72,6 +78,12 @@ _ais_complete() {
 
   # cursor skills
   if [[ "\$pprev" == "cursor" && "\$prev" == "skills" ]]; then
+    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
+    return 0
+  fi
+
+  # cursor agents
+  if [[ "\$pprev" == "cursor" && "\$prev" == "agents" ]]; then
     COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
     return 0
   fi
@@ -107,7 +119,7 @@ _ais_complete() {
   fi
 
   if [[ "\$prev" == "cursor" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import rules commands skills" -- "\$cur") )
+    COMPREPLY=( $(compgen -W "add remove install import rules commands skills agents" -- "\$cur") )
     return 0
   fi
 
@@ -153,14 +165,15 @@ subcmds=(
     'completion:Output shell completion script'
   )
 
-  local -a cursor_subcmds copilot_subcmds claude_subcmds trae_subcmds cursor_rules_subcmds cursor_commands_subcmds cursor_skills_subcmds claude_skills_subcmds claude_agents_subcmds trae_rules_subcmds trae_skills_subcmds
-  cursor_subcmds=('add:Add a Cursor rule' 'remove:Remove a Cursor rule' 'install:Install all Cursor entries' 'import:Import entry to repository' 'rules:Manage rules explicitly' 'commands:Manage commands' 'skills:Manage skills')
+  local -a cursor_subcmds copilot_subcmds claude_subcmds trae_subcmds cursor_rules_subcmds cursor_commands_subcmds cursor_skills_subcmds cursor_agents_subcmds claude_skills_subcmds claude_agents_subcmds trae_rules_subcmds trae_skills_subcmds
+  cursor_subcmds=('add:Add a Cursor rule' 'remove:Remove a Cursor rule' 'install:Install all Cursor entries' 'import:Import entry to repository' 'rules:Manage rules explicitly' 'commands:Manage commands' 'skills:Manage skills' 'agents:Manage agents')
   copilot_subcmds=('add:Add a Copilot instruction' 'remove:Remove a Copilot instruction' 'install:Install all Copilot instructions' 'import:Import instruction to repository')
   claude_subcmds=('skills:Manage Claude skills' 'agents:Manage Claude agents' 'install:Install all Claude components')
   trae_subcmds=('rules:Manage Trae rules' 'skills:Manage Trae skills' 'install:Install all Trae entries')
   cursor_rules_subcmds=('add:Add a Cursor rule' 'remove:Remove a Cursor rule' 'install:Install all Cursor rules' 'import:Import rule to repository')
   cursor_commands_subcmds=('add:Add a Cursor command' 'remove:Remove a Cursor command' 'install:Install all Cursor commands' 'import:Import command to repository')
   cursor_skills_subcmds=('add:Add a Cursor skill' 'remove:Remove a Cursor skill' 'install:Install all Cursor skills' 'import:Import skill to repository')
+  cursor_agents_subcmds=('add:Add a Cursor agent' 'remove:Remove a Cursor agent' 'install:Install all Cursor agents' 'import:Import agent to repository')
   claude_skills_subcmds=('add:Add a Claude skill' 'remove:Remove a Claude skill' 'install:Install all Claude skills' 'import:Import skill to repository')
   claude_agents_subcmds=('add:Add a Claude agent' 'remove:Remove a Claude agent' 'install:Install all Claude agents' 'import:Import agent to repository')
   trae_rules_subcmds=('add:Add a Trae rule' 'remove:Remove a Trae rule' 'install:Install all Trae rules' 'import:Import rule to repository')
@@ -212,6 +225,9 @@ subcmds=(
               ;;
             skills)
               _describe 'subsubcommand' cursor_skills_subcmds
+              ;;
+            agents)
+              _describe 'subsubcommand' cursor_agents_subcmds
               ;;
             *)
               _describe 'subsubcommand' cursor_subcmds
@@ -300,6 +316,17 @@ subcmds=(
                   skills=(\${(f)\"$(ais _complete cursor-skills 2>/dev/null)\"})
                   if (( \$#skills )); then
                     compadd \"\$skills[@]\"
+                  fi
+                  ;;
+              esac
+              ;;
+            agents)
+              case \"\$words[4]\" in
+                add)
+                  local -a agents
+                  agents=(\${(f)\"$(ais _complete cursor-agents 2>/dev/null)\"})
+                  if (( \$#agents )); then
+                    compadd \"\$agents[@]\"
                   fi
                   ;;
               esac
@@ -400,13 +427,14 @@ complete -c ais -n "__fish_use_subcommand" -a "import" -d "Import entry to rules
 complete -c ais -n "__fish_use_subcommand" -a "completion" -d "Output shell completion script"
 
 # cursor subcommands
-complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills" -a "add" -d "Add a Cursor rule"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills" -a "remove" -d "Remove a Cursor rule"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills" -a "install" -d "Install all Cursor entries"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills" -a "import" -d "Import entry to repository"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills" -a "rules" -d "Manage rules explicitly"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills" -a "commands" -d "Manage commands"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills" -a "skills" -d "Manage skills"
+complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills agents" -a "add" -d "Add a Cursor rule"
+complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills agents" -a "remove" -d "Remove a Cursor rule"
+complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills agents" -a "install" -d "Install all Cursor entries"
+complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills agents" -a "import" -d "Import entry to repository"
+complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills agents" -a "rules" -d "Manage rules explicitly"
+complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills agents" -a "commands" -d "Manage commands"
+complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills agents" -a "skills" -d "Manage skills"
+complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills agents" -a "agents" -d "Manage agents"
 
 # cursor rules subcommands
 complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Cursor rule"
@@ -425,6 +453,12 @@ complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcomma
 complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Cursor skill"
 complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Cursor skills"
 complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import skill to repository"
+
+# cursor agents subcommands
+complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Cursor agent"
+complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Cursor agent"
+complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Cursor agents"
+complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import agent to repository"
 
 # copilot subcommands
 complete -c ais -n "__fish_seen_subcommand_from copilot; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Copilot instruction"
@@ -470,6 +504,7 @@ complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcomma
 complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from rules; and __fish_seen_subcommand_from add" -a "(ais _complete cursor 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from commands; and __fish_seen_subcommand_from add" -a "(ais _complete cursor-commands 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete cursor-skills 2>/dev/null)"
+complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from agents; and __fish_seen_subcommand_from add" -a "(ais _complete cursor-agents 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from add" -a "(ais _complete copilot 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete claude-skills 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from agents; and __fish_seen_subcommand_from add" -a "(ais _complete claude-agents 2>/dev/null)"

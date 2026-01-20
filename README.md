@@ -7,7 +7,7 @@
 [English](./README.md) | [中文](./README_ZH.md)
 
 **AI Rules Sync (AIS)**
-*Synchronize, manage, and share your agent rules (Cursor rules, Cursor commands, Cursor skills, Copilot instructions, Claude skills and agents, Trae rules and skills) with ease.*
+*Synchronize, manage, and share your agent rules (Cursor rules, Cursor commands, Cursor skills, Cursor agents, Copilot instructions, Claude skills and agents, Trae rules and skills) with ease.*
 
 AIS allows you to centrally manage rules in Git repositories and synchronize them across projects using symbolic links. Say goodbye to copy-pasting `.mdc` files and drifting configurations.
 
@@ -27,6 +27,7 @@ AIS allows you to centrally manage rules in Git repositories and synchronize the
 | Cursor | Rules | `.cursor/rules/` | `.cursor/rules/` |
 | Cursor | Commands | `.cursor/commands/` | `.cursor/commands/` |
 | Cursor | Skills | `.cursor/skills/` | `.cursor/skills/` |
+| Cursor | Agents | `.cursor/agents/` | `.cursor/agents/` |
 | Copilot | Instructions | `.github/instructions/` | `.github/instructions/` |
 | Claude | Skills | `.claude/skills/` | `.claude/skills/` |
 | Claude | Agents | `.claude/agents/` | `.claude/agents/` |
@@ -45,6 +46,7 @@ By default, AIS looks for rules in the official tool configuration paths:
 - `.cursor/rules/` for Cursor rules
 - `.cursor/commands/` for Cursor commands
 - `.cursor/skills/` for Cursor skills
+- `.cursor/agents/` for Cursor agents
 - `.github/instructions/` for Copilot instructions
 - `.claude/skills/` for Claude skills
 - `.claude/agents/` for Claude agents
@@ -60,7 +62,8 @@ You can customize these paths by adding an `ai-rules-sync.json` file to your rul
     "cursor": {
       "rules": ".cursor/rules",
       "commands": ".cursor/commands",
-      "skills": ".cursor/skills"
+      "skills": ".cursor/skills",
+      "agents": ".cursor/agents"
     },
     "copilot": {
       "instructions": ".github/instructions"
@@ -81,6 +84,7 @@ You can customize these paths by adding an `ai-rules-sync.json` file to your rul
 - `sourceDir.cursor.rules`: Source directory for Cursor rules (default: `.cursor/rules`)
 - `sourceDir.cursor.commands`: Source directory for Cursor commands (default: `.cursor/commands`)
 - `sourceDir.cursor.skills`: Source directory for Cursor skills (default: `.cursor/skills`)
+- `sourceDir.cursor.agents`: Source directory for Cursor agents (default: `.cursor/agents`)
 - `sourceDir.copilot.instructions`: Source directory for Copilot instructions (default: `.github/instructions`)
 - `sourceDir.claude.skills`: Source directory for Claude skills (default: `.claude/skills`)
 - `sourceDir.claude.agents`: Source directory for Claude agents (default: `.claude/agents`)
@@ -195,6 +199,28 @@ ais cursor skills remove my-review
 ais cursor skills install
 ```
 
+### Sync Cursor agents to project
+
+```bash
+ais cursor agents add [agent name] [alias]
+```
+
+This syncs agent directories from the rules repository `.cursor/agents/` directory to `.cursor/agents/` in your project. Cursor agents are subagents defined with Markdown files containing YAML frontmatter.
+
+```bash
+# Add 'code-analyzer' agent
+ais cursor agents add code-analyzer
+
+# Add agent with alias
+ais cursor agents add code-analyzer my-analyzer
+
+# Remove an agent
+ais cursor agents remove my-analyzer
+
+# Install all agents from config
+ais cursor agents install
+```
+
 ### Sync Copilot instructions to project
 
 ```bash
@@ -250,6 +276,12 @@ ais cursor remove [alias]
 # Remove a Cursor command
 ais cursor commands remove [alias]
 
+# Remove a Cursor skill
+ais cursor skills remove [alias]
+
+# Remove a Cursor agent
+ais cursor agents remove [alias]
+
 # Remove a Copilot instruction
 ais copilot remove [alias]
 
@@ -281,6 +313,12 @@ ais cursor rules import [name]
 
 # Import a Cursor command
 ais import cursor commands [name]
+
+# Import a Cursor skill
+ais import cursor skills [name]
+
+# Import a Cursor agent
+ais import cursor agents [name]
 
 # Import a Copilot instruction
 ais import copilot instructions [name]
@@ -340,6 +378,9 @@ The `ai-rules-sync.json` file stores Cursor rules, commands, and Copilot instruc
     },
     "skills": {
       "code-review": "https://github.com/user/repo.git"
+    },
+    "agents": {
+      "code-analyzer": "https://github.com/user/repo.git"
     }
   },
   "copilot": {
@@ -470,6 +511,7 @@ After enabling, you can use Tab to complete rule names:
 ais cursor add <Tab>         # Lists available rules
 ais cursor commands add <Tab>   # Lists available commands
 ais cursor skills add <Tab>  # Lists available skills
+ais cursor agents add <Tab>  # Lists available agents
 ais copilot add <Tab>        # Lists available instructions
 ais claude skills add <Tab>  # Lists available skills
 ais claude agents add <Tab>  # Lists available agents
@@ -502,7 +544,7 @@ Config Layer (ai-rules-sync.json via addDependencyGeneric, removeDependencyGener
 
 **Key Design Principles:**
 
-1. **Unified Interface**: All adapters (cursor-rules, cursor-commands, cursor-skills, copilot-instructions, claude-skills, claude-agents, trae-rules, trae-skills) implement the same operations
+1. **Unified Interface**: All adapters (cursor-rules, cursor-commands, cursor-skills, cursor-agents, copilot-instructions, claude-skills, claude-agents, trae-rules, trae-skills) implement the same operations
 2. **Auto-Routing**: The `findAdapterForAlias()` function automatically finds the correct adapter based on where an alias is configured
 3. **Generic Functions**: `addDependencyGeneric()` and `removeDependencyGeneric()` work with any adapter via `configPath` property
 4. **Extensible**: Adding new AI tools only requires creating a new adapter and registering it in the adapter registry

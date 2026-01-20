@@ -339,7 +339,7 @@ cursor
       }
 
       if (!foundAdapter) {
-        throw new Error(`Entry "${name}" not found in .cursor/rules, .cursor/commands, or .cursor/skills.`);
+        throw new Error(`Entry "${name}" not found in .cursor/rules, .cursor/commands, .cursor/skills, or .cursor/agents.`);
       }
 
       console.log(chalk.gray(`Detected ${foundAdapter.subtype}: ${name}`));
@@ -361,6 +361,10 @@ registerAdapterCommands({ adapter: getAdapter('cursor', 'commands'), parentComma
 // cursor skills subgroup
 const cursorSkills = cursor.command('skills').description('Manage Cursor skills');
 registerAdapterCommands({ adapter: getAdapter('cursor', 'skills'), parentCommand: cursorSkills, programOpts: () => program.opts() });
+
+// cursor agents subgroup
+const cursorAgents = cursor.command('agents').description('Manage Cursor agents');
+registerAdapterCommands({ adapter: getAdapter('cursor', 'agents'), parentCommand: cursorAgents, programOpts: () => program.opts() });
 
 // ============ Copilot command group ============
 const copilot = program
@@ -500,7 +504,7 @@ program
 // ============ Internal _complete command ============
 program
   .command('_complete')
-  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, copilot, claude-skills, claude-agents, trae-rules, trae-skills')
+  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, cursor-agents, copilot, claude-skills, claude-agents, trae-rules, trae-skills')
   .description('Internal command for shell completion')
   .action(async (type: string) => {
     try {
@@ -528,6 +532,9 @@ program
           break;
         case 'cursor-skills':
           sourceDir = getSourceDir(repoConfig, 'cursor', 'skills', '.cursor/skills');
+          break;
+        case 'cursor-agents':
+          sourceDir = getSourceDir(repoConfig, 'cursor', 'agents', '.cursor/agents');
           break;
         case 'copilot':
           sourceDir = getSourceDir(repoConfig, 'copilot', 'instructions', '.github/instructions');

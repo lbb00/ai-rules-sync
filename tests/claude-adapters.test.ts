@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { cursorSkillsAdapter } from '../src/adapters/cursor-skills.js';
+import { cursorAgentsAdapter } from '../src/adapters/cursor-agents.js';
 import { claudeSkillsAdapter } from '../src/adapters/claude-skills.js';
 import { claudeAgentsAdapter } from '../src/adapters/claude-agents.js';
 import { traeRulesAdapter } from '../src/adapters/trae-rules.js';
@@ -15,6 +16,18 @@ describe('AI Tool Adapters', () => {
       expect(cursorSkillsAdapter.defaultSourceDir).toBe('.cursor/skills');
       expect(cursorSkillsAdapter.targetDir).toBe('.cursor/skills');
       expect(cursorSkillsAdapter.mode).toBe('directory');
+    });
+  });
+
+  describe('cursorAgentsAdapter', () => {
+    it('should have correct adapter properties', () => {
+      expect(cursorAgentsAdapter.name).toBe('cursor-agents');
+      expect(cursorAgentsAdapter.tool).toBe('cursor');
+      expect(cursorAgentsAdapter.subtype).toBe('agents');
+      expect(cursorAgentsAdapter.configPath).toEqual(['cursor', 'agents']);
+      expect(cursorAgentsAdapter.defaultSourceDir).toBe('.cursor/agents');
+      expect(cursorAgentsAdapter.targetDir).toBe('.cursor/agents');
+      expect(cursorAgentsAdapter.mode).toBe('directory');
     });
   });
 
@@ -62,7 +75,7 @@ describe('AI Tool Adapters', () => {
       expect(traeSkillsAdapter.configPath).toEqual(['trae', 'skills']);
       expect(traeSkillsAdapter.defaultSourceDir).toBe('.trae/skills');
       expect(traeSkillsAdapter.targetDir).toBe('.trae/skills');
-      expect(traeSkillsAdapter.mode).toBe('file');
+      expect(traeSkillsAdapter.mode).toBe('directory');
     });
   });
 });

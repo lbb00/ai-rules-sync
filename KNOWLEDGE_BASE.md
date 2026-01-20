@@ -1,12 +1,12 @@
 # Project Knowledge Base
 
 ## Project Overview
-**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Copilot instructions**, **Claude Code skills/agents**, and **Trae rules/skills**, keeping projects up-to-date across teams.
+**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor agents**, **Copilot instructions**, **Claude Code skills/agents**, and **Trae rules/skills**, keeping projects up-to-date across teams.
 
 ## Core Concepts
-- **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/commands/`, `.cursor/skills/`, `.github/instructions/`, `.claude/skills/`, `.claude/agents/`, `.trae/rules/`, `.trae/skills/`).
+- **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/commands/`, `.cursor/skills/`, `.cursor/agents/`, `.github/instructions/`, `.claude/skills/`, `.claude/agents/`, `.trae/rules/`, `.trae/skills/`).
 - **Symbolic Links**: Entries are linked from the local cache of the repo to project directories, avoiding file duplication and drift.
-- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills, Copilot instructions, Claude skills/agents, Trae rules/skills).
+- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills/agents, Copilot instructions, Claude skills/agents, Trae rules/skills).
 - **Privacy**: Supports private/local entries via `ai-rules-sync.local.json` and `.git/info/exclude`.
 
 ## Architecture
@@ -28,6 +28,7 @@ src/
 │   ├── cursor-rules.ts      # Cursor rules adapter
 │   ├── cursor-commands.ts   # Cursor commands adapter
 │   ├── cursor-skills.ts     # Cursor skills adapter
+│   ├── cursor-agents.ts     # Cursor agents adapter
 │   ├── copilot-instructions.ts # Copilot instructions adapter
 │   ├── claude-skills.ts     # Claude skills adapter
 │   ├── claude-agents.ts     # Claude agents adapter
@@ -147,6 +148,7 @@ interface SourceDirConfig {
     rules?: string;       // Default: ".cursor/rules"
     commands?: string;    // Default: ".cursor/commands"
     skills?: string;      // Default: ".cursor/skills"
+    agents?: string;      // Default: ".cursor/agents"
   };
   copilot?: {
     instructions?: string; // Default: ".github/instructions"
@@ -174,6 +176,7 @@ interface ProjectConfig {
     rules?: Record<string, RuleEntry>;
     commands?: Record<string, RuleEntry>;
     skills?: Record<string, RuleEntry>;
+    agents?: Record<string, RuleEntry>;
   };
   copilot?: {
     instructions?: Record<string, RuleEntry>;
@@ -225,17 +228,32 @@ interface ProjectConfig {
 - Links `<repo>/.cursor/skills/<skillName>` to `.cursor/skills/<alias>`.
 - Directory-based synchronization.
 
-### 6. Claude Skill Synchronization
+### 6. Cursor Agent Synchronization
+- **Syntax**: `ais cursor agents add <agentName> [alias]`
+- Links `<repo>/.cursor/agents/<agentName>` to `.cursor/agents/<alias>`.
+- Directory-based synchronization for Cursor subagents (Markdown files with YAML frontmatter).
+
+### 7. Claude Skill Synchronization
 - **Syntax**: `ais claude skills add <skillName> [alias]`
 - Links `<repo>/.claude/skills/<skillName>` to `.claude/skills/<alias>`.
 - Directory-based synchronization.
 
-### 7. Claude Agent Synchronization
+### 8. Claude Agent Synchronization
 - **Syntax**: `ais claude agents add <agentName> [alias]`
 - Links `<repo>/.claude/agents/<agentName>` to `.claude/agents/<alias>`.
 - Directory-based synchronization.
 
-### 8. Import Command
+### 9. Trae Rule Synchronization
+- **Syntax**: `ais trae rules add <ruleName> [alias]`
+- Links `<repo>/.trae/rules/<ruleName>` to `.trae/rules/<alias>`.
+- File-based synchronization for Trae AI rules.
+
+### 10. Trae Skill Synchronization
+- **Syntax**: `ais trae skills add <skillName> [alias]`
+- Links `<repo>/.trae/skills/<skillName>` to `.trae/skills/<alias>`.
+- Directory-based synchronization for Trae AI skills.
+
+### 11. Import Command
 - **Syntax**: `ais import <tool> <subtype> <name>` or `ais <tool> <subtype> import <name>`
 - Copies entry from project to rules repository, commits, and creates symlink back.
 - **Options**:
@@ -250,14 +268,14 @@ interface ProjectConfig {
   ais import copilot instructions my-instruction -m "Add new instruction"
   ```
 
-### 9. Installation
-- `ais cursor install` - Install all Cursor rules, commands, and skills.
+### 12. Installation
+- `ais cursor install` - Install all Cursor rules, commands, skills, and agents.
 - `ais copilot install` - Install all Copilot instructions.
 - `ais claude install` - Install all Claude skills and agents.
 - `ais trae install` - Install all Trae rules and skills.
 - `ais install` - Install everything.
 
-### 10. Configuration Files
+### 13. Configuration Files
 
 **Rules Repository Config** (`ai-rules-sync.json` in the rules repo):
 ```json
@@ -267,7 +285,8 @@ interface ProjectConfig {
     "cursor": {
       "rules": ".cursor/rules",
       "commands": ".cursor/commands",
-      "skills": ".cursor/skills"
+      "skills": ".cursor/skills",
+      "agents": ".cursor/agents"
     },
     "copilot": {
       "instructions": ".github/instructions"
@@ -290,7 +309,8 @@ interface ProjectConfig {
   "cursor": {
     "rules": { "react": "https://..." },
     "commands": { "deploy-docs": "https://..." },
-    "skills": { "code-review": "https://..." }
+    "skills": { "code-review": "https://..." },
+    "agents": { "code-analyzer": "https://..." }
   },
   "copilot": {
     "instructions": { "general": "https://..." }
@@ -310,7 +330,7 @@ interface ProjectConfig {
 - **Legacy format**: Old configs with `cursor.rules` as string are still supported.
 - **Legacy files**: `cursor-rules*.json` are read-only compatible; write operations migrate to new format.
 
-### 11. Shell Completion
+### 14. Shell Completion
 - **Auto-Install**: On first run, AIS prompts to install shell completion automatically.
 - **Manual Install**: `ais completion install` - Installs completion to shell config file.
 - **Script Output**: `ais completion [bash|zsh|fish]` - Outputs raw completion script.

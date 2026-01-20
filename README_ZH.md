@@ -1,7 +1,7 @@
 # AI Rules Sync
 
 **AI Rules Sync (AIS)**
-*轻松同步、管理和共享你的 Agent 规则（支持 Cursor 规则、Cursor 命令、Cursor 技能、Copilot 指令、Claude 技能和代理）。*
+*轻松同步、管理和共享你的 Agent 规则（支持 Cursor 规则、Cursor 命令、Cursor 技能、Cursor 代理、Copilot 指令、Claude 技能和代理、Trae 规则和技能）。*
 
 AIS 允许你在 Git 仓库中集中管理规则，并通过软链接将其同步到任意数量的项目中。告别复制粘贴带来的配置漂移。
 
@@ -23,9 +23,12 @@ AIS 允许你在 Git 仓库中集中管理规则，并通过软链接将其同�
 | Cursor | Rules | `.cursor/rules/` | `.cursor/rules/` |
 | Cursor | Commands | `.cursor/commands/` | `.cursor/commands/` |
 | Cursor | Skills | `.cursor/skills/` | `.cursor/skills/` |
+| Cursor | Agents | `.cursor/agents/` | `.cursor/agents/` |
 | Copilot | Instructions | `.github/instructions/` | `.github/instructions/` |
 | Claude | Skills | `.claude/skills/` | `.claude/skills/` |
 | Claude | Agents | `.claude/agents/` | `.claude/agents/` |
+| Trae | Rules | `.trae/rules/` | `.trae/rules/` |
+| Trae | Skills | `.trae/skills/` | `.trae/skills/` |
 
 ## 安装
 
@@ -39,9 +42,12 @@ npm install -g ai-rules-sync
 - `.cursor/rules/` - Cursor 规则
 - `.cursor/commands/` - Cursor 命令
 - `.cursor/skills/` - Cursor 技能
+- `.cursor/agents/` - Cursor 代理
 - `.github/instructions/` - Copilot 指令
 - `.claude/skills/` - Claude 技能
 - `.claude/agents/` - Claude 代理
+- `.trae/rules/` - Trae 规则
+- `.trae/skills/` - Trae 技能
 
 你可以通过在规则仓库中添加 `ai-rules-sync.json` 文件来自定义这些路径：
 
@@ -52,7 +58,8 @@ npm install -g ai-rules-sync
     "cursor": {
       "rules": ".cursor/rules",
       "commands": ".cursor/commands",
-      "skills": ".cursor/skills"
+      "skills": ".cursor/skills",
+      "agents": ".cursor/agents"
     },
     "copilot": {
       "instructions": ".github/instructions"
@@ -60,6 +67,10 @@ npm install -g ai-rules-sync
     "claude": {
       "skills": ".claude/skills",
       "agents": ".claude/agents"
+    },
+    "trae": {
+      "rules": ".trae/rules",
+      "skills": ".trae/skills"
     }
   }
 }
@@ -69,9 +80,12 @@ npm install -g ai-rules-sync
 - `sourceDir.cursor.rules`: Cursor 规则的源目录（默认：`.cursor/rules`）
 - `sourceDir.cursor.commands`: Cursor 命令的源目录（默认：`.cursor/commands`）
 - `sourceDir.cursor.skills`: Cursor 技能的源目录（默认：`.cursor/skills`）
+- `sourceDir.cursor.agents`: Cursor 代理的源目录（默认：`.cursor/agents`）
 - `sourceDir.copilot.instructions`: Copilot 指令的源目录（默认：`.github/instructions`）
 - `sourceDir.claude.skills`: Claude 技能的源目录（默认：`.claude/skills`）
 - `sourceDir.claude.agents`: Claude 代理的源目录（默认：`.claude/agents`）
+- `sourceDir.trae.rules`: Trae 规则的源目录（默认：`.trae/rules`）
+- `sourceDir.trae.skills`: Trae 技能的源目录（默认：`.trae/skills`）
 
 > **注意**：旧的扁平格式（`cursor.rules` 为字符串）仍然支持向后兼容。
 
@@ -183,6 +197,28 @@ ais cursor skills remove my-review
 ais cursor skills install
 ```
 
+### 同步 Cursor 代理到项目（.cursor/agents）
+
+```bash
+ais cursor agents add [agent name] [alias]
+```
+
+该命令会将规则仓库 `.cursor/agents/` 目录下的代理目录同步到项目的 `.cursor/agents/` 目录。Cursor 代理是使用包含 YAML frontmatter 的 Markdown 文件定义的子代理。
+
+```bash
+# 添加 'code-analyzer' 代理
+ais cursor agents add code-analyzer
+
+# 添加代理并指定别名
+ais cursor agents add code-analyzer my-analyzer
+
+# 移除代理
+ais cursor agents remove my-analyzer
+
+# 从配置安装所有代理
+ais cursor agents install
+```
+
 ### 同步 Copilot 指令到项目（.github/instructions）
 
 ```bash
@@ -252,6 +288,9 @@ ais cursor commands remove [alias]
 # 移除 Cursor 技能
 ais cursor skills remove [alias]
 
+# 移除 Cursor 代理
+ais cursor agents remove [alias]
+
 # 移除 Copilot 指令
 ais copilot remove [alias]
 
@@ -260,6 +299,12 @@ ais claude skills remove [alias]
 
 # 移除 Claude 代理
 ais claude agents remove [alias]
+
+# 移除 Trae 规则
+ais trae rules remove [alias]
+
+# 移除 Trae 技能
+ais trae skills remove [alias]
 ```
 
 该命令会删除软链接、ignore 文件中的条目，并从 `ai-rules-sync.json`（或 `ai-rules-sync.local.json`）中移除依赖。
@@ -277,6 +322,12 @@ ais cursor rules import [name]
 # 导入 Cursor 命令
 ais import cursor commands [name]
 
+# 导入 Cursor 技能
+ais import cursor skills [name]
+
+# 导入 Cursor 代理
+ais import cursor agents [name]
+
 # 导入 Copilot 指令
 ais import copilot instructions [name]
 
@@ -285,6 +336,12 @@ ais import claude skills [name]
 
 # 导入 Claude 代理
 ais import claude agents [name]
+
+# 导入 Trae 规则
+ais import trae rules [name]
+
+# 导入 Trae 技能
+ais import trae skills [name]
 ```
 
 **选项：**
@@ -329,6 +386,9 @@ ais cursor rules import my-rule --force
     },
     "skills": {
       "code-review": "https://github.com/user/repo.git"
+    },
+    "agents": {
+      "code-analyzer": "https://github.com/user/repo.git"
     }
   },
   "copilot": {
@@ -342,6 +402,14 @@ ais cursor rules import my-rule --force
     },
     "agents": {
       "debugger": "https://github.com/user/repo.git"
+    }
+  },
+  "trae": {
+    "rules": {
+      "project-rules": "https://github.com/user/repo.git"
+    },
+    "skills": {
+      "ai-rules-adapter-builder": "https://github.com/user/repo.git"
     }
   }
 }
@@ -365,7 +433,10 @@ ais copilot install
 # 安装所有 Claude 技能和代理
 ais claude install
 
-# 安装全部（Cursor + Copilot + Claude）
+# 安装所有 Trae 规则和技能
+ais trae install
+
+# 安装全部（Cursor + Copilot + Claude + Trae）
 ais install
 ```
 
@@ -446,9 +517,12 @@ ais completion fish | source
 ais cursor add <Tab>            # 列出可用的规则
 ais cursor commands add <Tab>   # 列出可用的命令
 ais cursor skills add <Tab>     # 列出可用的技能
+ais cursor agents add <Tab>     # 列出可用的代理
 ais copilot add <Tab>           # 列出可用的指令
 ais claude skills add <Tab>     # 列出可用的 Claude 技能
 ais claude agents add <Tab>     # 列出可用的 Claude 代理
+ais trae rules add <Tab>        # 列出可用的 Trae 规则
+ais trae skills add <Tab>       # 列出可用的 Trae 技能
 ```
 
 **注意**：如果遇到 `compdef: command not found` 错误，请确保你的 shell 已初始化补全系统。对于 zsh，请在 `~/.zshrc` 中的 ais 补全行之前添加：
@@ -476,7 +550,7 @@ CLI 层
 
 **核心设计原则：**
 
-1. **统一接口**：所有适配器（cursor-rules、cursor-commands、cursor-skills、copilot-instructions）实现相同的操作
+1. **统一接口**：所有适配器（cursor-rules、cursor-commands、cursor-skills、cursor-agents、copilot-instructions、claude-skills、claude-agents、trae-rules、trae-skills）实现相同的操作
 2. **自动路由**：`findAdapterForAlias()` 函数根据别名的配置位置自动查找正确的适配器
 3. **通用函数**：`addDependencyGeneric()` 和 `removeDependencyGeneric()` 通过 `configPath` 属性与任何适配器配合工作
 4. **可扩展性**：添加新的 AI 工具只需创建新的适配器并在适配器注册表中注册它

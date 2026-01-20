@@ -22,6 +22,8 @@ export interface SourceDirConfig {
         commands?: string;
         // Source directory for cursor skills, default: ".cursor/skills"
         skills?: string;
+        // Source directory for cursor agents, default: ".cursor/agents"
+        agents?: string;
     };
     copilot?: {
         // Source directory for copilot instructions, default: ".github/instructions"
@@ -64,6 +66,7 @@ export interface ProjectConfig {
         rules?: Record<string, RuleEntry>;
         commands?: Record<string, RuleEntry>;
         skills?: Record<string, RuleEntry>;
+        agents?: Record<string, RuleEntry>;
     };
     copilot?: {
         // key is the local alias (target name), value is repo url OR object with url and original rule name
@@ -90,6 +93,7 @@ export interface RepoSourceConfig {
         rules?: string;
         skills?: string;
         commands?: string;
+        agents?: string;
     };
     copilot?: {
         instructions?: string;
@@ -144,7 +148,8 @@ function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig
         cursor: {
             rules: { ...(main.cursor?.rules || {}), ...(local.cursor?.rules || {}) },
             commands: { ...(main.cursor?.commands || {}), ...(local.cursor?.commands || {}) },
-            skills: { ...(main.cursor?.skills || {}), ...(local.cursor?.skills || {}) }
+            skills: { ...(main.cursor?.skills || {}), ...(local.cursor?.skills || {}) },
+            agents: { ...(main.cursor?.agents || {}), ...(local.cursor?.agents || {}) }
         },
         copilot: {
             instructions: { ...(main.copilot?.instructions || {}), ...(local.copilot?.instructions || {}) }
@@ -193,11 +198,13 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
         const cursorRules = config.cursor?.rules;
         const cursorCommands = config.cursor?.commands;
         const cursorSkills = config.cursor?.skills;
+        const cursorAgents = config.cursor?.agents;
         const copilotInstructions = config.copilot?.instructions;
 
         const isCursorRulesString = typeof cursorRules === 'string';
         const isCursorCommandsString = typeof cursorCommands === 'string';
         const isCursorSkillsString = typeof cursorSkills === 'string';
+        const isCursorAgentsString = typeof cursorAgents === 'string';
         const isCopilotInstructionsString = typeof copilotInstructions === 'string';
         const claudeSkills = config.claude?.skills;
         const claudeAgents = config.claude?.agents;
@@ -209,13 +216,14 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
         const isTraeSkillsString = typeof traeSkills === 'string';
 
         // If any of these are strings, treat as legacy rules repo config
-        if (isCursorRulesString || isCursorCommandsString || isCursorSkillsString || isCopilotInstructionsString || isClaudeSkillsString || isClaudeAgentsString || isTraeRulesString || isTraeSkillsString) {
+        if (isCursorRulesString || isCursorCommandsString || isCursorSkillsString || isCursorAgentsString || isCopilotInstructionsString || isClaudeSkillsString || isClaudeAgentsString || isTraeRulesString || isTraeSkillsString) {
             return {
                 rootPath: config.rootPath,
                 cursor: {
                     rules: isCursorRulesString ? cursorRules : undefined,
                     commands: isCursorCommandsString ? cursorCommands : undefined,
-                    skills: isCursorSkillsString ? cursorSkills : undefined
+                    skills: isCursorSkillsString ? cursorSkills : undefined,
+                    agents: isCursorAgentsString ? cursorAgents : undefined
                 },
                 copilot: {
                     instructions: isCopilotInstructionsString ? copilotInstructions : undefined
@@ -260,6 +268,8 @@ export function getSourceDir(
             toolDir = repoConfig.cursor?.commands;
         } else if (subtype === 'skills') {
             toolDir = repoConfig.cursor?.skills;
+        } else if (subtype === 'agents') {
+            toolDir = repoConfig.cursor?.agents;
         }
     } else if (tool === 'copilot') {
         if (subtype === 'instructions') {
