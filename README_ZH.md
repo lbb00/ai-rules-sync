@@ -108,8 +108,7 @@ npm install -g ai-rules-sync
 ais use [git repository url | name]
 ```
 
-- 如果提供了 Git 仓库 URL，工具会自动克隆并配置。
-- 如果提供了名称（name），工具会切换到该名称对应的已配置仓库。
+如果未提供 `[git repository url]`，该工具会在 `~/.config/ai-rules-sync/config.json` 文件中查找对应名称的仓库。
 
 ### 列出已配置的仓库
 

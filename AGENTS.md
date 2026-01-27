@@ -33,7 +33,7 @@ src/
 │   └── register.ts     # CLI registration
 ├── completion/
 │   └── scripts.ts      # Shell completion scripts
-├── config.ts           # Global config (~/.ai-rules-sync/)
+├── config.ts           # Global config (~/.config/ai-rules-sync/)
 ├── project-config.ts   # Project config (ai-rules-sync.json)
 ├── sync-engine.ts      # Symlink creation/removal
 ├── link.ts             # Link utilities

@@ -112,7 +112,7 @@ All commands support the following global options:
 ais use [git repository url | repo name]
 ```
 
-If `[git repository url]` is not provided, it will search the repo name in the `~/.ai-rules-sync/config.json` file.
+If `[git repository url]` is not provided, it will search the repo name in the `~/.config/ai-rules-sync/config.json` file.
 
 ### List all configured repositories
 

@@ -12,8 +12,8 @@
 ## Architecture
 - **Language**: TypeScript (Node.js).
 - **CLI Framework**: Commander.js.
-- **Config**: Stored in `~/.ai-rules-sync/config.json` (global) and project roots.
-- **Git Operations**: Uses `execa` to run git commands; stores repos in `~/.ai-rules-sync/repos/`.
+- **Config**: Stored in `~/.config/ai-rules-sync/config.json` (global) and project roots.
+- **Git Operations**: Uses `execa` to run git commands; stores repos in `~/.config/ai-rules-sync/repos/`.
 - **Plugin Architecture**: Modular adapter system for different AI tools.
 - **Modular CLI**: Declarative command registration using adapters.
 
@@ -401,3 +401,22 @@ interface ProjectConfig {
 - Use **directory** mode for tools that organize entries as folders (skills, agents)
 - Use **file** mode for tools with single files and consistent suffix (commands with `.md`)
 - Use **hybrid** mode when entries can be either files or directories (cursor-rules)
+
+## Recent Changes
+
+### Configuration Directory Migration (2026-01)
+
+**Changed global configuration location to follow XDG Base Directory specification:**
+- **Old**: `~/.ai-rules-sync/`
+- **New**: `~/.config/ai-rules-sync/`
+
+**Impact:**
+- Global config file: `~/.config/ai-rules-sync/config.json`
+- Repository cache: `~/.config/ai-rules-sync/repos/`
+- No automatic migration provided - users must manually move files if needed
+- Aligns with Linux/macOS standards for configuration file placement
+
+**Files Changed:**
+- `src/config.ts` - Updated `CONFIG_DIR` constant
+- `tests/config.test.ts` - Updated test fixtures
+- Documentation updated to reflect new paths
