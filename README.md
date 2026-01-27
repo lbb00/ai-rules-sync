@@ -7,7 +7,7 @@
 [English](./README.md) | [中文](./README_ZH.md)
 
 **AI Rules Sync (AIS)**
-*Synchronize, manage, and share your agent rules (Cursor rules, Cursor commands, Cursor skills, Cursor agents, Copilot instructions, Claude skills and agents, Trae rules and skills) with ease.*
+*Synchronize, manage, and share your agent rules (Cursor rules, Cursor commands, Cursor skills, Cursor agents, Copilot instructions, Claude skills and agents, Trae rules and skills, OpenCode rules, agents, skills, commands, and custom-tools) with ease.*
 
 AIS allows you to centrally manage rules in Git repositories and synchronize them across projects using symbolic links. Say goodbye to copy-pasting `.mdc` files and drifting configurations.
 
@@ -33,6 +33,11 @@ AIS allows you to centrally manage rules in Git repositories and synchronize the
 | Claude | Agents | directory | `.claude/agents/` | - |
 | Trae | Rules | file | `.trae/rules/` | `.md` |
 | Trae | Skills | directory | `.trae/skills/` | - |
+| OpenCode | Rules | file | `.opencode/rules/` | `.md` |
+| OpenCode | Agents | directory | `.opencode/agents/` | - |
+| OpenCode | Skills | directory | `.opencode/skills/` | - |
+| OpenCode | Commands | directory | `.opencode/commands/` | - |
+| OpenCode | Custom-tools | directory | `.opencode/custom-tools/` | - |
 
 **Modes:**
 - **directory**: Links entire directories (skills, agents)
@@ -57,6 +62,11 @@ By default, AIS looks for rules in the official tool configuration paths:
 - `.claude/agents/` for Claude agents
 - `.trae/rules/` for Trae rules
 - `.trae/skills/` for Trae skills
+- `.opencode/rules/` for OpenCode rules
+- `.opencode/agents/` for OpenCode agents
+- `.opencode/skills/` for OpenCode skills
+- `.opencode/commands/` for OpenCode commands
+- `.opencode/custom-tools/` for OpenCode custom-tools
 
 You can customize these paths by adding an `ai-rules-sync.json` file to your rules repository:
 
@@ -80,6 +90,13 @@ You can customize these paths by adding an `ai-rules-sync.json` file to your rul
     "trae": {
       "rules": ".trae/rules",
       "skills": ".trae/skills"
+    },
+    "opencode": {
+      "rules": ".opencode/rules",
+      "agents": ".opencode/agents",
+      "skills": ".opencode/skills",
+      "commands": ".opencode/commands",
+      "custom-tools": ".opencode/custom-tools"
     }
   }
 }
@@ -95,6 +112,11 @@ You can customize these paths by adding an `ai-rules-sync.json` file to your rul
 - `sourceDir.claude.agents`: Source directory for Claude agents (default: `.claude/agents`)
 - `sourceDir.trae.rules`: Source directory for Trae rules (default: `.trae/rules`)
 - `sourceDir.trae.skills`: Source directory for Trae skills (default: `.trae/skills`)
+- `sourceDir.opencode.rules`: Source directory for OpenCode rules (default: `.opencode/rules`)
+- `sourceDir.opencode.agents`: Source directory for OpenCode agents (default: `.opencode/agents`)
+- `sourceDir.opencode.skills`: Source directory for OpenCode skills (default: `.opencode/skills`)
+- `sourceDir.opencode.commands`: Source directory for OpenCode commands (default: `.opencode/commands`)
+- `sourceDir.opencode.custom-tools`: Source directory for OpenCode custom-tools (default: `.opencode/custom-tools`)
 
 > **Note**: The old flat format (`cursor.rules` as string) is still supported for backward compatibility.
 
@@ -285,6 +307,46 @@ ais trae skills add [skillName] [alias]
 
 Default mapping: rules repo `.trae/skills/<skillName>` → project `.trae/skills/<alias|skillName>`.
 
+### Sync OpenCode rules to project
+
+```bash
+ais opencode rules add [ruleName] [alias]
+```
+
+Default mapping: rules repo `.opencode/rules/<ruleName>` → project `.opencode/rules/<alias|ruleName>`.
+
+### Sync OpenCode agents to project
+
+```bash
+ais opencode agents add [agentName] [alias]
+```
+
+Default mapping: rules repo `.opencode/agents/<agentName>` → project `.opencode/agents/<alias|agentName>`.
+
+### Sync OpenCode skills to project
+
+```bash
+ais opencode skills add [skillName] [alias]
+```
+
+Default mapping: rules repo `.opencode/skills/<skillName>` → project `.opencode/skills/<alias|skillName>`.
+
+### Sync OpenCode commands to project
+
+```bash
+ais opencode commands add [commandName] [alias]
+```
+
+Default mapping: rules repo `.opencode/commands/<commandName>` → project `.opencode/commands/<alias|commandName>`.
+
+### Sync OpenCode custom-tools to project
+
+```bash
+ais opencode custom-tools add [toolName] [alias]
+```
+
+Default mapping: rules repo `.opencode/custom-tools/<toolName>` → project `.opencode/custom-tools/<alias|toolName>`.
+
 
 ### Remove entries
 
@@ -315,6 +377,21 @@ ais trae rules remove [alias]
 
 # Remove a Trae skill
 ais trae skills remove [alias]
+
+# Remove an OpenCode rule
+ais opencode rules remove [alias]
+
+# Remove an OpenCode agent
+ais opencode agents remove [alias]
+
+# Remove an OpenCode skill
+ais opencode skills remove [alias]
+
+# Remove an OpenCode command
+ais opencode commands remove [alias]
+
+# Remove an OpenCode custom-tool
+ais opencode custom-tools remove [alias]
 
 ```
 
@@ -353,6 +430,21 @@ ais import trae rules [name]
 
 # Import a Trae skill
 ais import trae skills [name]
+
+# Import an OpenCode rule
+ais import opencode rules [name]
+
+# Import an OpenCode agent
+ais import opencode agents [name]
+
+# Import an OpenCode skill
+ais import opencode skills [name]
+
+# Import an OpenCode command
+ais import opencode commands [name]
+
+# Import an OpenCode custom-tool
+ais import opencode custom-tools [name]
 ```
 
 **Options:**
@@ -422,6 +514,23 @@ The `ai-rules-sync.json` file stores Cursor rules, commands, and Copilot instruc
     "skills": {
       "ai-rules-adapter-builder": "https://github.com/user/repo.git"
     }
+  },
+  "opencode": {
+    "rules": {
+      "coding-standards": "https://github.com/user/repo.git"
+    },
+    "agents": {
+      "code-reviewer": "https://github.com/user/repo.git"
+    },
+    "skills": {
+      "refactor-helper": "https://github.com/user/repo.git"
+    },
+    "commands": {
+      "build-optimizer": "https://github.com/user/repo.git"
+    },
+    "custom-tools": {
+      "project-analyzer": "https://github.com/user/repo.git"
+    }
   }
 }
 ```
@@ -445,6 +554,12 @@ ais copilot install
 ais claude install
 
 # Install all Trae rules and skills
+ais trae install
+
+# Install all OpenCode rules, agents, skills, commands, and custom-tools
+ais opencode install
+
+# Install everything from all tools
 ais trae install
 
 # Install everything (Cursor, Copilot, Claude, and Trae)

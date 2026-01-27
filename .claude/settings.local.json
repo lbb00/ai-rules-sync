@@ -17,7 +17,11 @@
       "WebFetch(domain:claude.com)",
       "WebFetch(domain:www.builder.io)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:docs.cursor.com)"
+      "WebFetch(domain:docs.cursor.com)",
+      "Bash(ls:*)",
+      "Bash(pnpm build:*)",
+      "Bash(test:*)",
+      "Bash(pnpm test:*)"
     ]
   }
 }

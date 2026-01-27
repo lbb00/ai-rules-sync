@@ -8,6 +8,11 @@ import { cursorSkillsAdapter } from './cursor-skills.js';
 import { cursorAgentsAdapter } from './cursor-agents.js';
 import { traeRulesAdapter } from './trae-rules.js';
 import { traeSkillsAdapter } from './trae-skills.js';
+import { opencodeRulesAdapter } from './opencode-rules.js';
+import { opencodeAgentsAdapter } from './opencode-agents.js';
+import { opencodeSkillsAdapter } from './opencode-skills.js';
+import { opencodeCommandsAdapter } from './opencode-commands.js';
+import { opencodeCustomToolsAdapter } from './opencode-custom-tools.js';
 import { ProjectConfig } from '../project-config.js';
 
 // Re-export types and utilities
@@ -33,6 +38,11 @@ class DefaultAdapterRegistry implements AdapterRegistry {
         this.register(claudeAgentsAdapter);
         this.register(traeRulesAdapter);
         this.register(traeSkillsAdapter);
+        this.register(opencodeRulesAdapter);
+        this.register(opencodeAgentsAdapter);
+        this.register(opencodeSkillsAdapter);
+        this.register(opencodeCommandsAdapter);
+        this.register(opencodeCustomToolsAdapter);
     }
 
     register(adapter: SyncAdapter): void {
@@ -131,6 +141,21 @@ export function findAdapterForAlias(
     }
     if (cfg.trae?.skills?.[alias]) {
         return { adapter: traeSkillsAdapter, section: 'trae.skills' };
+    }
+    if (cfg.opencode?.rules?.[alias]) {
+        return { adapter: opencodeRulesAdapter, section: 'opencode.rules' };
+    }
+    if (cfg.opencode?.agents?.[alias]) {
+        return { adapter: opencodeAgentsAdapter, section: 'opencode.agents' };
+    }
+    if (cfg.opencode?.skills?.[alias]) {
+        return { adapter: opencodeSkillsAdapter, section: 'opencode.skills' };
+    }
+    if (cfg.opencode?.commands?.[alias]) {
+        return { adapter: opencodeCommandsAdapter, section: 'opencode.commands' };
+    }
+    if (cfg.opencode?.['custom-tools']?.[alias]) {
+        return { adapter: opencodeCustomToolsAdapter, section: 'opencode.custom-tools' };
     }
     return null;
 }

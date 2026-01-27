@@ -1,7 +1,7 @@
 # AI Rules Sync
 
 **AI Rules Sync (AIS)**
-*轻松同步、管理和共享你的 Agent 规则（支持 Cursor 规则、Cursor 命令、Cursor 技能、Cursor 代理、Copilot 指令、Claude 技能和代理、Trae 规则和技能）。*
+*轻松同步、管理和共享你的 Agent 规则（支持 Cursor 规则、Cursor 命令、Cursor 技能、Cursor 代理、Copilot 指令、Claude 技能和代理、Trae 规则和技能、OpenCode 规则、代理、技能、命令和自定义工具）。*
 
 AIS 允许你在 Git 仓库中集中管理规则，并通过软链接将其同步到任意数量的项目中。告别复制粘贴带来的配置漂移。
 
@@ -29,6 +29,11 @@ AIS 允许你在 Git 仓库中集中管理规则，并通过软链接将其同�
 | Claude | Agents | directory | `.claude/agents/` | - |
 | Trae | Rules | file | `.trae/rules/` | `.md` |
 | Trae | Skills | directory | `.trae/skills/` | - |
+| OpenCode | Rules | file | `.opencode/rules/` | `.md` |
+| OpenCode | Agents | directory | `.opencode/agents/` | - |
+| OpenCode | Skills | directory | `.opencode/skills/` | - |
+| OpenCode | Commands | directory | `.opencode/commands/` | - |
+| OpenCode | Custom-tools | directory | `.opencode/custom-tools/` | - |
 
 **模式说明：**
 - **directory**：链接整个目录（技能、代理）
@@ -53,6 +58,11 @@ npm install -g ai-rules-sync
 - `.claude/agents/` - Claude 代理
 - `.trae/rules/` - Trae 规则
 - `.trae/skills/` - Trae 技能
+- `.opencode/rules/` - OpenCode 规则
+- `.opencode/agents/` - OpenCode 代理
+- `.opencode/skills/` - OpenCode 技能
+- `.opencode/commands/` - OpenCode 命令
+- `.opencode/custom-tools/` - OpenCode 自定义工具
 
 你可以通过在规则仓库中添加 `ai-rules-sync.json` 文件来自定义这些路径：
 
@@ -76,6 +86,13 @@ npm install -g ai-rules-sync
     "trae": {
       "rules": ".trae/rules",
       "skills": ".trae/skills"
+    },
+    "opencode": {
+      "rules": ".opencode/rules",
+      "agents": ".opencode/agents",
+      "skills": ".opencode/skills",
+      "commands": ".opencode/commands",
+      "custom-tools": ".opencode/custom-tools"
     }
   }
 }
@@ -91,6 +108,11 @@ npm install -g ai-rules-sync
 - `sourceDir.claude.agents`: Claude 代理的源目录（默认：`.claude/agents`）
 - `sourceDir.trae.rules`: Trae 规则的源目录（默认：`.trae/rules`）
 - `sourceDir.trae.skills`: Trae 技能的源目录（默认：`.trae/skills`）
+- `sourceDir.opencode.rules`: OpenCode 规则的源目录（默认：`.opencode/rules`）
+- `sourceDir.opencode.agents`: OpenCode 代理的源目录（默认：`.opencode/agents`）
+- `sourceDir.opencode.skills`: OpenCode 技能的源目录（默认：`.opencode/skills`）
+- `sourceDir.opencode.commands`: OpenCode 命令的源目录（默认：`.opencode/commands`）
+- `sourceDir.opencode.custom-tools`: OpenCode 自定义工具的源目录（默认：`.opencode/custom-tools`）
 
 > **注意**：旧的扁平格式（`cursor.rules` 为字符串）仍然支持向后兼容。
 
@@ -294,6 +316,63 @@ ais claude agents remove my-debugger
 ais claude agents install
 ```
 
+### 同步 Trae 规则到项目（.trae/rules）
+
+```bash
+ais trae rules add [ruleName] [alias]
+```
+
+默认映射：规则仓库 `.trae/rules/<ruleName>` → 项目 `.trae/rules/<alias|ruleName>`。
+
+### 同步 Trae 技能到项目（.trae/skills）
+
+```bash
+ais trae skills add [skillName] [alias]
+```
+
+默认映射：规则仓库 `.trae/skills/<skillName>` → 项目 `.trae/skills/<alias|skillName>`。
+
+### 同步 OpenCode 规则到项目（.opencode/rules）
+
+```bash
+ais opencode rules add [ruleName] [alias]
+```
+
+默认映射：规则仓库 `.opencode/rules/<ruleName>` → 项目 `.opencode/rules/<alias|ruleName>`。
+
+### 同步 OpenCode 代理到项目（.opencode/agents）
+
+```bash
+ais opencode agents add [agentName] [alias]
+```
+
+默认映射：规则仓库 `.opencode/agents/<agentName>` → 项目 `.opencode/agents/<alias|agentName>`。
+
+### 同步 OpenCode 技能到项目（.opencode/skills）
+
+```bash
+ais opencode skills add [skillName] [alias]
+```
+
+默认映射：规则仓库 `.opencode/skills/<skillName>` → 项目 `.opencode/skills/<alias|skillName>`。
+
+### 同步 OpenCode 命令到项目（.opencode/commands）
+
+```bash
+ais opencode commands add [commandName] [alias]
+```
+
+默认映射：规则仓库 `.opencode/commands/<commandName>` → 项目 `.opencode/commands/<alias|commandName>`。
+
+### 同步 OpenCode 自定义工具到项目（.opencode/custom-tools）
+
+```bash
+ais opencode custom-tools add [toolName] [alias]
+```
+
+默认映射：规则仓库 `.opencode/custom-tools/<toolName>` → 项目 `.opencode/custom-tools/<alias|toolName>`。
+
+
 ### 移除条目
 
 ```bash
@@ -323,6 +402,22 @@ ais trae rules remove [alias]
 
 # 移除 Trae 技能
 ais trae skills remove [alias]
+
+# 移除 OpenCode 规则
+ais opencode rules remove [alias]
+
+# 移除 OpenCode 代理
+ais opencode agents remove [alias]
+
+# 移除 OpenCode 技能
+ais opencode skills remove [alias]
+
+# 移除 OpenCode 命令
+ais opencode commands remove [alias]
+
+# 移除 OpenCode 自定义工具
+ais opencode custom-tools remove [alias]
+
 ```
 
 该命令会删除软链接、ignore 文件中的条目，并从 `ai-rules-sync.json`（或 `ai-rules-sync.local.json`）中移除依赖。
@@ -360,6 +455,21 @@ ais import trae rules [name]
 
 # 导入 Trae 技能
 ais import trae skills [name]
+
+# 导入 OpenCode 规则
+ais import opencode rules [name]
+
+# 导入 OpenCode 代理
+ais import opencode agents [name]
+
+# 导入 OpenCode 技能
+ais import opencode skills [name]
+
+# 导入 OpenCode 命令
+ais import opencode commands [name]
+
+# 导入 OpenCode 自定义工具
+ais import opencode custom-tools [name]
 ```
 
 **选项：**
@@ -429,6 +539,23 @@ ais cursor rules import my-rule --force
     "skills": {
       "ai-rules-adapter-builder": "https://github.com/user/repo.git"
     }
+  },
+  "opencode": {
+    "rules": {
+      "coding-standards": "https://github.com/user/repo.git"
+    },
+    "agents": {
+      "code-reviewer": "https://github.com/user/repo.git"
+    },
+    "skills": {
+      "refactor-helper": "https://github.com/user/repo.git"
+    },
+    "commands": {
+      "build-optimizer": "https://github.com/user/repo.git"
+    },
+    "custom-tools": {
+      "project-analyzer": "https://github.com/user/repo.git"
+    }
   }
 }
 ```
@@ -454,7 +581,10 @@ ais claude install
 # 安装所有 Trae 规则和技能
 ais trae install
 
-# 安装全部（Cursor + Copilot + Claude + Trae）
+# 安装所有 OpenCode 规则、代理、技能、命令和自定义工具
+ais opencode install
+
+# 安装全部（Cursor + Copilot + Claude + Trae + OpenCode）
 ais install
 ```
 
@@ -541,6 +671,11 @@ ais claude skills add <Tab>     # 列出可用的 Claude 技能
 ais claude agents add <Tab>     # 列出可用的 Claude 代理
 ais trae rules add <Tab>        # 列出可用的 Trae 规则
 ais trae skills add <Tab>       # 列出可用的 Trae 技能
+ais opencode rules add <Tab>    # 列出可用的 OpenCode 规则
+ais opencode agents add <Tab>   # 列出可用的 OpenCode 代理
+ais opencode skills add <Tab>   # 列出可用的 OpenCode 技能
+ais opencode commands add <Tab> # 列出可用的 OpenCode 命令
+ais opencode custom-tools add <Tab> # 列出可用的 OpenCode 自定义工具
 ```
 
 **注意**：如果遇到 `compdef: command not found` 错误，请确保你的 shell 已初始化补全系统。对于 zsh，请在 `~/.zshrc` 中的 ais 补全行之前添加：

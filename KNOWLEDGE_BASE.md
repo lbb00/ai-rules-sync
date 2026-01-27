@@ -1,12 +1,12 @@
 # Project Knowledge Base
 
 ## Project Overview
-**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor agents**, **Copilot instructions**, **Claude Code skills/agents**, and **Trae rules/skills**, keeping projects up-to-date across teams.
+**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor agents**, **Copilot instructions**, **Claude Code skills/agents**, **Trae rules/skills**, and **OpenCode rules/agents/skills/commands/custom-tools**, keeping projects up-to-date across teams.
 
 ## Core Concepts
-- **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/commands/`, `.cursor/skills/`, `.cursor/agents/`, `.github/instructions/`, `.claude/skills/`, `.claude/agents/`, `.trae/rules/`, `.trae/skills/`).
+- **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/commands/`, `.cursor/skills/`, `.cursor/agents/`, `.github/instructions/`, `.claude/skills/`, `.claude/agents/`, `.trae/rules/`, `.trae/skills/`, `.opencode/rules/`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, `.opencode/custom-tools/`).
 - **Symbolic Links**: Entries are linked from the local cache of the repo to project directories, avoiding file duplication and drift.
-- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills/agents, Copilot instructions, Claude skills/agents, Trae rules/skills).
+- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills/agents, Copilot instructions, Claude skills/agents, Trae rules/skills, OpenCode rules/agents/skills/commands/custom-tools).
 - **Privacy**: Supports private/local entries via `ai-rules-sync.local.json` and `.git/info/exclude`.
 
 ## Architecture
@@ -33,7 +33,12 @@ src/
 │   ├── claude-skills.ts     # Claude skills adapter
 │   ├── claude-agents.ts     # Claude agents adapter
 │   ├── trae-rules.ts        # Trae rules adapter
-│   └── trae-skills.ts       # Trae skills adapter
+│   ├── trae-skills.ts       # Trae skills adapter
+│   ├── opencode-rules.ts    # OpenCode rules adapter
+│   ├── opencode-agents.ts   # OpenCode agents adapter
+│   ├── opencode-skills.ts   # OpenCode skills adapter
+│   ├── opencode-commands.ts # OpenCode commands adapter
+│   └── opencode-custom-tools.ts # OpenCode custom-tools adapter
 ├── cli/                     # CLI registration layer
 │   └── register.ts          # Declarative command registration (registerAdapterCommands)
 ├── commands/                # Command handlers
@@ -195,6 +200,13 @@ interface SourceDirConfig {
     rules?: string;       // Default: ".trae/rules"
     skills?: string;      // Default: ".trae/skills"
   };
+  opencode?: {
+    rules?: string;       // Default: ".opencode/rules"
+    agents?: string;      // Default: ".opencode/agents"
+    skills?: string;      // Default: ".opencode/skills"
+    commands?: string;    // Default: ".opencode/commands"
+    'custom-tools'?: string; // Default: ".opencode/custom-tools"
+  };
 }
 ```
 
@@ -222,6 +234,13 @@ interface ProjectConfig {
   trae?: {
     rules?: Record<string, RuleEntry>;
     skills?: Record<string, RuleEntry>;
+  };
+  opencode?: {
+    rules?: Record<string, RuleEntry>;
+    agents?: Record<string, RuleEntry>;
+    skills?: Record<string, RuleEntry>;
+    commands?: Record<string, RuleEntry>;
+    'custom-tools'?: Record<string, RuleEntry>;
   };
 }
 ```
@@ -288,7 +307,32 @@ interface ProjectConfig {
 - Links `<repo>/.trae/skills/<skillName>` to `.trae/skills/<alias>`.
 - Directory-based synchronization for Trae AI skills.
 
-### 11. Import Command
+### 11. OpenCode Rule Synchronization
+- **Syntax**: `ais opencode rules add <ruleName> [alias]`
+- Links `<repo>/.opencode/rules/<ruleName>` to `.opencode/rules/<alias>`.
+- File-based synchronization for OpenCode AI rules.
+
+### 12. OpenCode Agent Synchronization
+- **Syntax**: `ais opencode agents add <agentName> [alias]`
+- Links `<repo>/.opencode/agents/<agentName>` to `.opencode/agents/<alias>`.
+- Directory-based synchronization for OpenCode AI agents.
+
+### 13. OpenCode Skill Synchronization
+- **Syntax**: `ais opencode skills add <skillName> [alias]`
+- Links `<repo>/.opencode/skills/<skillName>` to `.opencode/skills/<alias>`.
+- Directory-based synchronization for OpenCode AI skills.
+
+### 14. OpenCode Command Synchronization
+- **Syntax**: `ais opencode commands add <commandName> [alias]`
+- Links `<repo>/.opencode/commands/<commandName>` to `.opencode/commands/<alias>`.
+- Directory-based synchronization for OpenCode AI commands.
+
+### 15. OpenCode Custom-tools Synchronization
+- **Syntax**: `ais opencode custom-tools add <toolName> [alias]`
+- Links `<repo>/.opencode/custom-tools/<toolName>` to `.opencode/custom-tools/<alias>`.
+- Directory-based synchronization for OpenCode AI custom-tools.
+
+### 16. Import Command
 - **Syntax**: `ais import <tool> <subtype> <name>` or `ais <tool> <subtype> import <name>`
 - Copies entry from project to rules repository, commits, and creates symlink back.
 - **Options**:
@@ -303,14 +347,15 @@ interface ProjectConfig {
   ais import copilot instructions my-instruction -m "Add new instruction"
   ```
 
-### 12. Installation
+### 17. Installation
 - `ais cursor install` - Install all Cursor rules, commands, skills, and agents.
 - `ais copilot install` - Install all Copilot instructions.
 - `ais claude install` - Install all Claude skills and agents.
 - `ais trae install` - Install all Trae rules and skills.
+- `ais opencode install` - Install all OpenCode rules, agents, skills, commands, and custom-tools.
 - `ais install` - Install everything.
 
-### 13. Configuration Files
+### 18. Configuration Files
 
 **Rules Repository Config** (`ai-rules-sync.json` in the rules repo):
 ```json
@@ -333,6 +378,13 @@ interface ProjectConfig {
     "trae": {
       "rules": ".trae/rules",
       "skills": ".trae/skills"
+    },
+    "opencode": {
+      "rules": ".opencode/rules",
+      "agents": ".opencode/agents",
+      "skills": ".opencode/skills",
+      "commands": ".opencode/commands",
+      "custom-tools": ".opencode/custom-tools"
     }
   }
 }
@@ -357,6 +409,13 @@ interface ProjectConfig {
   "trae": {
     "rules": { "project-rules": "https://..." },
     "skills": { "ai-rules-adapter-builder": "https://..." }
+  },
+  "opencode": {
+    "rules": { "coding-standards": "https://..." },
+    "agents": { "code-reviewer": "https://..." },
+    "skills": { "refactor-helper": "https://..." },
+    "commands": { "build-optimizer": "https://..." },
+    "custom-tools": { "project-analyzer": "https://..." }
   }
 }
 ```
@@ -365,7 +424,7 @@ interface ProjectConfig {
 - **Legacy format**: Old configs with `cursor.rules` as string are still supported.
 - **Legacy files**: `cursor-rules*.json` are read-only compatible; write operations migrate to new format.
 
-### 14. Shell Completion
+### 19. Shell Completion
 - **Auto-Install**: On first run, AIS prompts to install shell completion automatically.
 - **Manual Install**: `ais completion install` - Installs completion to shell config file.
 - **Script Output**: `ais completion [bash|zsh|fish]` - Outputs raw completion script.
@@ -385,6 +444,11 @@ interface ProjectConfig {
 | claude-agents | claude | agents | directory | .claude/agents | - |
 | trae-rules | trae | rules | file | .trae/rules | .md |
 | trae-skills | trae | skills | directory | .trae/skills | - |
+| opencode-rules | opencode | rules | file | .opencode/rules | .md |
+| opencode-agents | opencode | agents | directory | .opencode/agents | - |
+| opencode-skills | opencode | skills | directory | .opencode/skills | - |
+| opencode-commands | opencode | commands | directory | .opencode/commands | - |
+| opencode-custom-tools | opencode | custom-tools | directory | .opencode/custom-tools | - |
 
 ## Development Guidelines
 - **TypeScript**: Strict mode enabled.
@@ -420,3 +484,34 @@ interface ProjectConfig {
 - `src/config.ts` - Updated `CONFIG_DIR` constant
 - `tests/config.test.ts` - Updated test fixtures
 - Documentation updated to reflect new paths
+
+### OpenCode AI Support (2026-01)
+
+**Added complete support for OpenCode AI (https://opencode.ai) with 5 component types:**
+- **Rules** (`.opencode/rules/`) - File mode with `.md` suffix
+- **Agents** (`.opencode/agents/`) - Directory mode
+- **Skills** (`.opencode/skills/`) - Directory mode
+- **Commands** (`.opencode/commands/`) - Directory mode
+- **Custom-tools** (`.opencode/custom-tools/`) - Directory mode
+
+**Implementation:**
+- Created 5 new adapters following existing patterns
+- Extended `ProjectConfig` and `SourceDirConfig` interfaces
+- Added CLI commands: `ais opencode [rules|agents|skills|commands|custom-tools] [add|remove|install|import]`
+- Updated shell completion scripts (bash, zsh, fish)
+- Added `_complete` command support for all OpenCode types
+- Updated mode inference to recognize OpenCode projects
+
+**Files Changed:**
+- `src/adapters/opencode-rules.ts` - New adapter (file mode, .md)
+- `src/adapters/opencode-agents.ts` - New adapter (directory mode)
+- `src/adapters/opencode-skills.ts` - New adapter (directory mode)
+- `src/adapters/opencode-commands.ts` - New adapter (directory mode)
+- `src/adapters/opencode-custom-tools.ts` - New adapter (directory mode)
+- `src/adapters/index.ts` - Registered all 5 OpenCode adapters
+- `src/project-config.ts` - Extended configuration interfaces
+- `src/commands/helpers.ts` - Added 'opencode' mode type
+- `src/index.ts` - Added OpenCode CLI commands and completion
+- `src/completion/scripts.ts` - Added OpenCode to all shell completions
+- `README.md` - Documented OpenCode support
+- `KNOWLEDGE_BASE.md` - Updated architecture and feature documentation
