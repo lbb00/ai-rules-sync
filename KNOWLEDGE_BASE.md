@@ -66,8 +66,9 @@ interface SyncAdapter {
   configPath: [string, string]; // e.g. ['cursor', 'rules']
   defaultSourceDir: string; // e.g. ".cursor/rules"
   targetDir: string;      // e.g. ".cursor/rules"
-  mode: 'directory' | 'file';
-  fileSuffixes?: string[];
+  mode: 'directory' | 'file' | 'hybrid';  // NEW: hybrid supports both
+  fileSuffixes?: string[];                // For file mode
+  hybridFileSuffixes?: string[];          // NEW: For hybrid mode
 
   // Optional resolution hooks
   resolveSource?(...): Promise<ResolvedSource>;
@@ -86,6 +87,39 @@ interface SyncAdapter {
 - **No Hardcoding**: configPath allows generic functions to work with any adapter
 - **Automatic Routing**: findAdapterForAlias() finds the right adapter based on where alias is configured
 - **Reduced Duplication**: Single generic handler for all add/remove/install/import operations
+
+**Adapter Modes:**
+- **directory**: Links entire directories (skills, agents)
+- **file**: Links individual files with suffix resolution (commands)
+- **hybrid**: Links both files and directories (cursor-rules with `.mdc`/`.md` support)
+
+**Helper Functions (base.ts):**
+```typescript
+// For single-suffix file adapters (e.g., cursor-commands, trae-rules)
+createSingleSuffixResolver(suffix: string, entityName: string)
+
+// For hybrid adapters supporting multiple suffixes (e.g., cursor-rules)
+createMultiSuffixResolver(suffixes: string[], entityName: string)
+
+// Ensures target name has proper suffix
+createSuffixAwareTargetResolver(suffixes: string[])
+```
+
+**Example Simplified Adapter (cursor-commands.ts):**
+```typescript
+export const cursorCommandsAdapter = createBaseAdapter({
+  name: 'cursor-commands',
+  tool: 'cursor',
+  subtype: 'commands',
+  configPath: ['cursor', 'commands'],
+  defaultSourceDir: '.cursor/commands',
+  targetDir: '.cursor/commands',
+  mode: 'file',
+  fileSuffixes: ['.md'],
+  resolveSource: createSingleSuffixResolver('.md', 'Command'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md'])
+});
+```
 
 ### Modular CLI Architecture
 
@@ -211,6 +245,7 @@ interface ProjectConfig {
 ### 2. Cursor Rule Synchronization
 - **Syntax**: `ais cursor add <rule_name> [alias]` or `ais cursor rules add <rule_name> [alias]`
 - Links `<repo>/.cursor/rules/<rule_name>` to `.cursor/rules/<alias>`.
+- **Mode**: Hybrid - supports both files (`.mdc`, `.md`) and directories.
 - **Options**: `-t <repo>`, `--local` (`-l`)
 
 ### 3. Cursor Command Synchronization
@@ -337,6 +372,20 @@ interface ProjectConfig {
 - **Detection**: Automatically detects shell type from `$SHELL` environment variable.
 - **Shell scripts** stored in `src/completion/scripts.ts`.
 
+## Adapter Reference Table
+
+| Adapter | Tool | Subtype | Mode | Source Dir | File Suffixes |
+|---------|------|---------|------|------------|---------------|
+| cursor-rules | cursor | rules | hybrid | .cursor/rules | .mdc, .md |
+| cursor-commands | cursor | commands | file | .cursor/commands | .md |
+| cursor-skills | cursor | skills | directory | .cursor/skills | - |
+| cursor-agents | cursor | agents | directory | .cursor/agents | - |
+| copilot-instructions | copilot | instructions | file | .github/instructions | .instructions.md, .md |
+| claude-skills | claude | skills | directory | .claude/skills | - |
+| claude-agents | claude | agents | directory | .claude/agents | - |
+| trae-rules | trae | rules | file | .trae/rules | .md |
+| trae-skills | trae | skills | directory | .trae/skills | - |
+
 ## Development Guidelines
 - **TypeScript**: Strict mode enabled.
 - **Testing**: Vitest for unit tests.
@@ -346,3 +395,9 @@ interface ProjectConfig {
   2. Register in `src/adapters/index.ts`
   3. Add CLI commands in `src/index.ts` using `registerAdapterCommands()`
   4. Update `ProjectConfig` interface in `src/project-config.ts`
+
+### Choosing Adapter Mode
+
+- Use **directory** mode for tools that organize entries as folders (skills, agents)
+- Use **file** mode for tools with single files and consistent suffix (commands with `.md`)
+- Use **hybrid** mode when entries can be either files or directories (cursor-rules)

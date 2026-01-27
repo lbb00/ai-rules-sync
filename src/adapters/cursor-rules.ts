@@ -1,11 +1,11 @@
-import fs from 'fs-extra';
-import path from 'path';
-import { SyncAdapter, ResolvedSource } from './types.js';
-import { createBaseAdapter } from './base.js';
+import { SyncAdapter } from './types.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
+
+const SUFFIXES = ['.mdc', '.md'];
 
 /**
  * Adapter for Cursor Rules (.cursor/rules/)
- * Mode: directory - links entire rule directories
+ * Mode: hybrid - links both directories and files (.mdc, .md)
  */
 export const cursorRulesAdapter: SyncAdapter = createBaseAdapter({
     name: 'cursor-rules',
@@ -14,23 +14,9 @@ export const cursorRulesAdapter: SyncAdapter = createBaseAdapter({
     configPath: ['cursor', 'rules'],
     defaultSourceDir: '.cursor/rules',
     targetDir: '.cursor/rules',
-    mode: 'directory',
+    mode: 'hybrid',
+    hybridFileSuffixes: SUFFIXES,
 
-    async resolveSource(repoDir: string, rootPath: string, name: string): Promise<ResolvedSource> {
-        const sourcePath = path.join(repoDir, rootPath, name);
-
-        if (!await fs.pathExists(sourcePath)) {
-            throw new Error(`Rule "${name}" not found in repository.`);
-        }
-
-        return {
-            sourceName: name,
-            sourcePath,
-            suffix: undefined
-        };
-    },
-
-    resolveTargetName(name: string, alias?: string): string {
-        return alias || name;
-    }
+    resolveSource: createMultiSuffixResolver(SUFFIXES, 'Rule'),
+    resolveTargetName: createSuffixAwareTargetResolver(SUFFIXES)
 });

@@ -24,6 +24,7 @@ describe('Sync Engine - source directory behavior', () => {
         vi.mocked(fs.ensureDir).mockResolvedValue(undefined);
         vi.mocked(fs.ensureSymlink).mockResolvedValue(undefined);
         vi.mocked(fs.lstat).mockResolvedValue({ isSymbolicLink: () => true } as any);
+        vi.mocked(fs.stat).mockResolvedValue({ isDirectory: () => true } as any);
         vi.mocked(fs.remove).mockResolvedValue(undefined);
         vi.mocked(utilsModule.addIgnoreEntry).mockResolvedValue(true);
     });
@@ -146,6 +147,7 @@ describe('Sync Engine - new sourceDir format', () => {
         vi.mocked(fs.ensureDir).mockResolvedValue(undefined);
         vi.mocked(fs.ensureSymlink).mockResolvedValue(undefined);
         vi.mocked(fs.lstat).mockResolvedValue({ isSymbolicLink: () => true } as any);
+        vi.mocked(fs.stat).mockResolvedValue({ isDirectory: () => true } as any);
         vi.mocked(fs.remove).mockResolvedValue(undefined);
         vi.mocked(utilsModule.addIgnoreEntry).mockResolvedValue(true);
     });

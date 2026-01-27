@@ -18,17 +18,22 @@ AIS 允许你在 Git 仓库中集中管理规则，并通过软链接将其同�
 
 ## 支持的同步类型
 
-| 工具 | 类型 | 默认源目录 | 目标目录 |
-|------|------|------------|----------|
-| Cursor | Rules | `.cursor/rules/` | `.cursor/rules/` |
-| Cursor | Commands | `.cursor/commands/` | `.cursor/commands/` |
-| Cursor | Skills | `.cursor/skills/` | `.cursor/skills/` |
-| Cursor | Agents | `.cursor/agents/` | `.cursor/agents/` |
-| Copilot | Instructions | `.github/instructions/` | `.github/instructions/` |
-| Claude | Skills | `.claude/skills/` | `.claude/skills/` |
-| Claude | Agents | `.claude/agents/` | `.claude/agents/` |
-| Trae | Rules | `.trae/rules/` | `.trae/rules/` |
-| Trae | Skills | `.trae/skills/` | `.trae/skills/` |
+| 工具 | 类型 | 模式 | 默认源目录 | 文件后缀 |
+|------|------|------|------------|----------|
+| Cursor | Rules | hybrid | `.cursor/rules/` | `.mdc`, `.md` |
+| Cursor | Commands | file | `.cursor/commands/` | `.md` |
+| Cursor | Skills | directory | `.cursor/skills/` | - |
+| Cursor | Agents | directory | `.cursor/agents/` | - |
+| Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` |
+| Claude | Skills | directory | `.claude/skills/` | - |
+| Claude | Agents | directory | `.claude/agents/` | - |
+| Trae | Rules | file | `.trae/rules/` | `.md` |
+| Trae | Skills | directory | `.trae/skills/` | - |
+
+**模式说明：**
+- **directory**：链接整个目录（技能、代理）
+- **file**：链接单个文件，自动处理后缀解析
+- **hybrid**：同时支持文件和目录（例如 Cursor 规则可以是 `.mdc` 文件或规则目录）
 
 ## 安装
 
@@ -124,9 +129,23 @@ ais cursor rules add [rule name] [alias]
 
 **注意**：此命令必须在项目的根目录下运行。
 
+Cursor 规则支持 **混合模式（hybrid）** - 你可以同步单个规则文件（`.mdc`、`.md`）或规则目录：
+
+```bash
+# 同步规则目录
+ais cursor add my-rule-dir
+
+# 同步 .mdc 文件（可带或不带扩展名）
+ais cursor add coding-standards
+ais cursor add coding-standards.mdc
+
+# 同步 .md 文件
+ais cursor add readme.md
+```
+
 该命令会在项目的 `.cursor/rules/` 目录下创建一个指向规则仓库中 `.cursor/rules/[rule name]` 的软链接。
 
-- `[rule name]`: 规则仓库中的规则文件夹名称。
+- `[rule name]`: 规则仓库中的规则文件或目录名称。
 - `[alias]`: （可选）在本地项目中使用的名称。如果指定，规则将被链接为 `.cursor/rules/[alias]`。
 
 **添加私有规则：**
@@ -564,19 +583,38 @@ CLI 层
 1. **创建新的适配器文件** (`src/adapters/my-tool.ts`)：
 
 ```typescript
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createSingleSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
-export const myToolAdapter = createBaseAdapter({
-  name: 'my-tool',
+// 目录模式（技能、代理）：
+export const myToolSkillsAdapter = createBaseAdapter({
+  name: 'my-tool-skills',
   tool: 'my-tool',
-  subtype: 'configs',
-  configPath: ['myTool', 'configs'],
-  defaultSourceDir: '.my-tool/configs',
-  targetDir: '.my-tool/configs',
+  subtype: 'skills',
+  configPath: ['myTool', 'skills'],
+  defaultSourceDir: '.my-tool/skills',
+  targetDir: '.my-tool/skills',
   mode: 'directory',
-  // 可选：覆盖 resolveSource 和 resolveTargetName
+});
+
+// 文件模式（单一后缀）：
+export const myToolRulesAdapter = createBaseAdapter({
+  name: 'my-tool-rules',
+  tool: 'my-tool',
+  subtype: 'rules',
+  configPath: ['myTool', 'rules'],
+  defaultSourceDir: '.my-tool/rules',
+  targetDir: '.my-tool/rules',
+  mode: 'file',
+  fileSuffixes: ['.md'],
+  resolveSource: createSingleSuffixResolver('.md', 'Rule'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
 });
 ```
+
+**可用的辅助函数：**
+- `createSingleSuffixResolver(suffix, entityName)` - 用于单一后缀的文件适配器
+- `createMultiSuffixResolver(suffixes, entityName)` - 用于多后缀的混合适配器
+- `createSuffixAwareTargetResolver(suffixes)` - 确保目标名称具有正确的后缀
 
 1. **在 `src/adapters/index.ts` 中注册适配器**：
 

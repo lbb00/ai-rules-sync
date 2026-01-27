@@ -22,17 +22,22 @@ AIS allows you to centrally manage rules in Git repositories and synchronize the
 
 ## Supported Sync Types
 
-| Tool | Type | Default Source Directory | Target Directory |
-|------|------|--------------------------|------------------|
-| Cursor | Rules | `.cursor/rules/` | `.cursor/rules/` |
-| Cursor | Commands | `.cursor/commands/` | `.cursor/commands/` |
-| Cursor | Skills | `.cursor/skills/` | `.cursor/skills/` |
-| Cursor | Agents | `.cursor/agents/` | `.cursor/agents/` |
-| Copilot | Instructions | `.github/instructions/` | `.github/instructions/` |
-| Claude | Skills | `.claude/skills/` | `.claude/skills/` |
-| Claude | Agents | `.claude/agents/` | `.claude/agents/` |
-| Trae | Rules | `.trae/rules/` | `.trae/rules/` |
-| Trae | Skills | `.trae/skills/` | `.trae/skills/` |
+| Tool | Type | Mode | Default Source Directory | File Suffixes |
+|------|------|------|--------------------------|---------------|
+| Cursor | Rules | hybrid | `.cursor/rules/` | `.mdc`, `.md` |
+| Cursor | Commands | file | `.cursor/commands/` | `.md` |
+| Cursor | Skills | directory | `.cursor/skills/` | - |
+| Cursor | Agents | directory | `.cursor/agents/` | - |
+| Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` |
+| Claude | Skills | directory | `.claude/skills/` | - |
+| Claude | Agents | directory | `.claude/agents/` | - |
+| Trae | Rules | file | `.trae/rules/` | `.md` |
+| Trae | Skills | directory | `.trae/skills/` | - |
+
+**Modes:**
+- **directory**: Links entire directories (skills, agents)
+- **file**: Links individual files with automatic suffix resolution
+- **hybrid**: Links both files and directories (e.g., Cursor rules can be `.mdc` files or rule directories)
 
 ## Install
 
@@ -125,7 +130,21 @@ ais cursor rules add [rule name] [alias]
 
 This command must be run in the root of your project.
 
-It will generate a symbolic link from the rules git repository `.cursor/rules/[rule name]` folder to the project `.cursor/rules/[rule name]` folder.
+Cursor rules support **hybrid mode** - you can sync both individual rule files (`.mdc`, `.md`) and rule directories:
+
+```bash
+# Sync a rule directory
+ais cursor add my-rule-dir
+
+# Sync a .mdc file (with or without extension)
+ais cursor add coding-standards
+ais cursor add coding-standards.mdc
+
+# Sync a .md file
+ais cursor add readme.md
+```
+
+It will generate a symbolic link from the rules git repository `.cursor/rules/[rule name]` to the project `.cursor/rules/[rule name]`.
 
 If you provide an `[alias]`, it will be linked to `.cursor/rules/[alias]`. This is useful for renaming rules or handling conflicts.
 
@@ -558,19 +577,38 @@ To add support for a new AI tool, follow these steps:
 1. **Create a new adapter file** (`src/adapters/my-tool.ts`):
 
 ```typescript
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createSingleSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
-export const myToolAdapter = createBaseAdapter({
-  name: 'my-tool',
+// For directory mode (skills, agents):
+export const myToolSkillsAdapter = createBaseAdapter({
+  name: 'my-tool-skills',
   tool: 'my-tool',
-  subtype: 'configs',
-  configPath: ['myTool', 'configs'],
-  defaultSourceDir: '.my-tool/configs',
-  targetDir: '.my-tool/configs',
+  subtype: 'skills',
+  configPath: ['myTool', 'skills'],
+  defaultSourceDir: '.my-tool/skills',
+  targetDir: '.my-tool/skills',
   mode: 'directory',
-  // Optionally override resolveSource and resolveTargetName
+});
+
+// For file mode (single suffix):
+export const myToolRulesAdapter = createBaseAdapter({
+  name: 'my-tool-rules',
+  tool: 'my-tool',
+  subtype: 'rules',
+  configPath: ['myTool', 'rules'],
+  defaultSourceDir: '.my-tool/rules',
+  targetDir: '.my-tool/rules',
+  mode: 'file',
+  fileSuffixes: ['.md'],
+  resolveSource: createSingleSuffixResolver('.md', 'Rule'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
 });
 ```
+
+**Available helper functions:**
+- `createSingleSuffixResolver(suffix, entityName)` - For file adapters with one suffix
+- `createMultiSuffixResolver(suffixes, entityName)` - For hybrid adapters with multiple suffixes
+- `createSuffixAwareTargetResolver(suffixes)` - Ensures target names have proper suffixes
 
 1. **Register the adapter** in `src/adapters/index.ts`:
 

@@ -11,7 +11,13 @@
       "Bash(git checkout:*)",
       "Bash(git rebase:*)",
       "Bash(git push:*)",
-      "WebFetch(domain:cursor.com)"
+      "WebFetch(domain:cursor.com)",
+      "Bash(wc:*)",
+      "WebSearch",
+      "WebFetch(domain:claude.com)",
+      "WebFetch(domain:www.builder.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.cursor.com)"
     ]
   }
 }
