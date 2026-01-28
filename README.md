@@ -7,7 +7,7 @@
 [English](./README.md) | [中文](./README_ZH.md)
 
 **AI Rules Sync (AIS)**
-*Synchronize, manage, and share your agent rules (Cursor rules, Cursor commands, Cursor skills, Cursor agents, Copilot instructions, Claude skills and agents, Trae rules and skills, OpenCode rules, agents, skills, commands, and custom-tools) with ease.*
+*Synchronize, manage, and share your agent rules (Cursor rules, Cursor commands, Cursor skills, Cursor agents, Copilot instructions, Claude skills and agents, Trae rules and skills, OpenCode agents, skills, commands, and tools, plus universal AGENTS.md support) with ease.*
 
 AIS allows you to centrally manage rules in Git repositories and synchronize them across projects using symbolic links. Say goodbye to copy-pasting `.mdc` files and drifting configurations.
 
@@ -22,22 +22,22 @@ AIS allows you to centrally manage rules in Git repositories and synchronize the
 
 ## Supported Sync Types
 
-| Tool | Type | Mode | Default Source Directory | File Suffixes |
-|------|------|------|--------------------------|---------------|
-| Cursor | Rules | hybrid | `.cursor/rules/` | `.mdc`, `.md` |
-| Cursor | Commands | file | `.cursor/commands/` | `.md` |
-| Cursor | Skills | directory | `.cursor/skills/` | - |
-| Cursor | Agents | directory | `.cursor/agents/` | - |
-| Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` |
-| Claude | Skills | directory | `.claude/skills/` | - |
-| Claude | Agents | directory | `.claude/agents/` | - |
-| Trae | Rules | file | `.trae/rules/` | `.md` |
-| Trae | Skills | directory | `.trae/skills/` | - |
-| OpenCode | Rules | file | `.opencode/rules/` | `.md` |
-| OpenCode | Agents | directory | `.opencode/agents/` | - |
-| OpenCode | Skills | directory | `.opencode/skills/` | - |
-| OpenCode | Commands | directory | `.opencode/commands/` | - |
-| OpenCode | Custom-tools | directory | `.opencode/custom-tools/` | - |
+| Tool | Type | Mode | Default Source Directory | File Suffixes | Links |
+|------|------|------|--------------------------|---------------|-------|
+| Cursor | Rules | hybrid | `.cursor/rules/` | `.mdc`, `.md` | [Cursor Rules](https://docs.cursor.com/context/rules-for-ai) |
+| Cursor | Commands | file | `.cursor/commands/` | `.md` | [Cursor Commands](https://docs.cursor.com/context/rules-for-ai#commands) |
+| Cursor | Skills | directory | `.cursor/skills/` | - | [Cursor Skills](https://docs.cursor.com/context/rules-for-ai#skills) |
+| Cursor | Agents | directory | `.cursor/agents/` | - | [Cursor Agents](https://docs.cursor.com/context/rules-for-ai#agents) |
+| Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [Copilot Instructions](https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot) |
+| Claude | Skills | directory | `.claude/skills/` | - | [Claude Code Skills](https://docs.anthropic.com/en/docs/agents/claude-code) |
+| Claude | Agents | directory | `.claude/agents/` | - | [Claude Code Agents](https://docs.anthropic.com/en/docs/agents/claude-code) |
+| Trae | Rules | file | `.trae/rules/` | `.md` | [Trae AI](https://trae.ai/) |
+| Trae | Skills | directory | `.trae/skills/` | - | [Trae AI](https://trae.ai/) |
+| OpenCode | Agents | file | `.opencode/agents/` | `.md` | [OpenCode](https://opencode.ing/) |
+| OpenCode | Skills | directory | `.opencode/skills/` | - | [OpenCode](https://opencode.ing/) |
+| OpenCode | Commands | file | `.opencode/commands/` | `.md` | [OpenCode](https://opencode.ing/) |
+| OpenCode | Tools | file | `.opencode/tools/` | `.ts`, `.js` | [OpenCode](https://opencode.ing/) |
+| **Universal** | **AGENTS.md** | file | `.` (root) | `.md` | [agents.md standard](https://agents.md/) |
 
 **Modes:**
 - **directory**: Links entire directories (skills, agents)
@@ -62,11 +62,11 @@ By default, AIS looks for rules in the official tool configuration paths:
 - `.claude/agents/` for Claude agents
 - `.trae/rules/` for Trae rules
 - `.trae/skills/` for Trae skills
-- `.opencode/rules/` for OpenCode rules
 - `.opencode/agents/` for OpenCode agents
 - `.opencode/skills/` for OpenCode skills
 - `.opencode/commands/` for OpenCode commands
-- `.opencode/custom-tools/` for OpenCode custom-tools
+- `.opencode/tools/` for OpenCode tools
+- Repository root (`.`) for AGENTS.md files (universal)
 
 You can customize these paths by adding an `ai-rules-sync.json` file to your rules repository:
 
@@ -92,11 +92,13 @@ You can customize these paths by adding an `ai-rules-sync.json` file to your rul
       "skills": ".trae/skills"
     },
     "opencode": {
-      "rules": ".opencode/rules",
       "agents": ".opencode/agents",
       "skills": ".opencode/skills",
       "commands": ".opencode/commands",
-      "custom-tools": ".opencode/custom-tools"
+      "tools": ".opencode/tools"
+    },
+    "agentsMd": {
+      "file": "agents-md"
     }
   }
 }
@@ -112,11 +114,11 @@ You can customize these paths by adding an `ai-rules-sync.json` file to your rul
 - `sourceDir.claude.agents`: Source directory for Claude agents (default: `.claude/agents`)
 - `sourceDir.trae.rules`: Source directory for Trae rules (default: `.trae/rules`)
 - `sourceDir.trae.skills`: Source directory for Trae skills (default: `.trae/skills`)
-- `sourceDir.opencode.rules`: Source directory for OpenCode rules (default: `.opencode/rules`)
 - `sourceDir.opencode.agents`: Source directory for OpenCode agents (default: `.opencode/agents`)
 - `sourceDir.opencode.skills`: Source directory for OpenCode skills (default: `.opencode/skills`)
 - `sourceDir.opencode.commands`: Source directory for OpenCode commands (default: `.opencode/commands`)
-- `sourceDir.opencode.custom-tools`: Source directory for OpenCode custom-tools (default: `.opencode/custom-tools`)
+- `sourceDir.opencode.tools`: Source directory for OpenCode tools (default: `.opencode/tools`)
+- `sourceDir.agentsMd.file`: Source directory for AGENTS.md files (default: `.` - repository root)
 
 > **Note**: The old flat format (`cursor.rules` as string) is still supported for backward compatibility.
 
@@ -307,13 +309,25 @@ ais trae skills add [skillName] [alias]
 
 Default mapping: rules repo `.trae/skills/<skillName>` → project `.trae/skills/<alias|skillName>`.
 
-### Sync OpenCode rules to project
+### Sync AGENTS.md to project
 
 ```bash
-ais opencode rules add [ruleName] [alias]
+ais agents-md add [name] [alias]
 ```
 
-Default mapping: rules repo `.opencode/rules/<ruleName>` → project `.opencode/rules/<alias|ruleName>`.
+**Universal AGENTS.md support** following the [agents.md standard](https://agents.md/). This adapter is tool-agnostic and syncs AGENTS.md files from your repository to the project root, making agent definitions available to any AI coding tool that supports the agents.md format.
+
+**Flexible path resolution** - supports multiple patterns:
+- **Root level**: `ais agents-md add .` or `ais agents-md add AGENTS` → links `repo/AGENTS.md`
+- **Directory**: `ais agents-md add frontend` → links `repo/frontend/AGENTS.md`
+- **Nested path**: `ais agents-md add docs/team` → links `repo/docs/team/AGENTS.md`
+- **Explicit file**: `ais agents-md add backend/AGENTS.md` → links `repo/backend/AGENTS.md`
+
+All patterns link to project `AGENTS.md`. Use aliases to distinguish multiple AGENTS.md files:
+```bash
+ais agents-md add frontend fe-agents
+ais agents-md add backend be-agents
+```
 
 ### Sync OpenCode agents to project
 
@@ -339,13 +353,13 @@ ais opencode commands add [commandName] [alias]
 
 Default mapping: rules repo `.opencode/commands/<commandName>` → project `.opencode/commands/<alias|commandName>`.
 
-### Sync OpenCode custom-tools to project
+### Sync OpenCode tools to project
 
 ```bash
-ais opencode custom-tools add [toolName] [alias]
+ais opencode tools add [toolName] [alias]
 ```
 
-Default mapping: rules repo `.opencode/custom-tools/<toolName>` → project `.opencode/custom-tools/<alias|toolName>`.
+Default mapping: rules repo `.opencode/tools/<toolName>` → project `.opencode/tools/<alias|toolName>`.
 
 
 ### Remove entries
@@ -378,8 +392,8 @@ ais trae rules remove [alias]
 # Remove a Trae skill
 ais trae skills remove [alias]
 
-# Remove an OpenCode rule
-ais opencode rules remove [alias]
+# Remove an AGENTS.md file
+ais agents-md remove [alias]
 
 # Remove an OpenCode agent
 ais opencode agents remove [alias]
@@ -390,8 +404,8 @@ ais opencode skills remove [alias]
 # Remove an OpenCode command
 ais opencode commands remove [alias]
 
-# Remove an OpenCode custom-tool
-ais opencode custom-tools remove [alias]
+# Remove an OpenCode tool
+ais opencode tools remove [alias]
 
 ```
 
@@ -431,8 +445,8 @@ ais import trae rules [name]
 # Import a Trae skill
 ais import trae skills [name]
 
-# Import an OpenCode rule
-ais import opencode rules [name]
+# Import an AGENTS.md file
+ais import agents-md [name]
 
 # Import an OpenCode agent
 ais import opencode agents [name]
@@ -443,8 +457,8 @@ ais import opencode skills [name]
 # Import an OpenCode command
 ais import opencode commands [name]
 
-# Import an OpenCode custom-tool
-ais import opencode custom-tools [name]
+# Import an OpenCode tool
+ais import opencode tools [name]
 ```
 
 **Options:**
@@ -556,11 +570,14 @@ ais claude install
 # Install all Trae rules and skills
 ais trae install
 
-# Install all OpenCode rules, agents, skills, commands, and custom-tools
+# Install AGENTS.md files
+ais agents-md install
+
+# Install all OpenCode agents, skills, commands, and tools
 ais opencode install
 
-# Install everything from all tools
-ais trae install
+# Install everything from all tools (smart dispatch)
+ais install
 
 # Install everything (Cursor, Copilot, Claude, and Trae)
 ais install
