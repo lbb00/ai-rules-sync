@@ -48,7 +48,8 @@ export async function handleAdd(
     isLocal: ctx.isLocal
   });
 
-  const depAlias = result.targetName === result.sourceName ? undefined : result.targetName;
+  // Use the provided alias if given, otherwise use targetName if different from sourceName
+  const depAlias = alias || (result.targetName === result.sourceName ? undefined : result.targetName);
   const { migrated } = await adapter.addDependency(
     ctx.projectPath,
     result.sourceName,

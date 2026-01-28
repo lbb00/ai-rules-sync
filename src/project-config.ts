@@ -42,16 +42,18 @@ export interface SourceDirConfig {
         skills?: string;
     };
     opencode?: {
-        // Source directory for opencode rules, default: ".opencode/rules"
-        rules?: string;
         // Source directory for opencode agents, default: ".opencode/agents"
         agents?: string;
         // Source directory for opencode skills, default: ".opencode/skills"
         skills?: string;
         // Source directory for opencode commands, default: ".opencode/commands"
         commands?: string;
-        // Source directory for opencode custom-tools, default: ".opencode/custom-tools"
-        'custom-tools'?: string;
+        // Source directory for opencode tools, default: ".opencode/tools"
+        tools?: string;
+    };
+    agentsMd?: {
+        // Source directory for AGENTS.md files, default: "." (repository root)
+        file?: string;
     };
 }
 
@@ -95,12 +97,13 @@ export interface ProjectConfig {
     };
     opencode?: {
         // key is the local alias (target name), value is repo url OR object with url and original rule name
-        rules?: Record<string, RuleEntry>;
         agents?: Record<string, RuleEntry>;
         skills?: Record<string, RuleEntry>;
         commands?: Record<string, RuleEntry>;
-        'custom-tools'?: Record<string, RuleEntry>;
+        tools?: Record<string, RuleEntry>;
     };
+    // Universal AGENTS.md support (tool-agnostic)
+    agentsMd?: Record<string, RuleEntry>;
 }
 
 /**
@@ -127,11 +130,13 @@ export interface RepoSourceConfig {
         skills?: string;
     };
     opencode?: {
-        rules?: string;
         agents?: string;
         skills?: string;
         commands?: string;
-        'custom-tools'?: string;
+        tools?: string;
+    };
+    agentsMd?: {
+        file?: string;
     };
 }
 
@@ -190,12 +195,12 @@ function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig
             skills: { ...(main.trae?.skills || {}), ...(local.trae?.skills || {}) }
         },
         opencode: {
-            rules: { ...(main.opencode?.rules || {}), ...(local.opencode?.rules || {}) },
             agents: { ...(main.opencode?.agents || {}), ...(local.opencode?.agents || {}) },
             skills: { ...(main.opencode?.skills || {}), ...(local.opencode?.skills || {}) },
             commands: { ...(main.opencode?.commands || {}), ...(local.opencode?.commands || {}) },
-            'custom-tools': { ...(main.opencode?.['custom-tools'] || {}), ...(local.opencode?.['custom-tools'] || {}) }
-        }
+            tools: { ...(main.opencode?.tools || {}), ...(local.opencode?.tools || {}) }
+        },
+        agentsMd: { ...(main.agentsMd || {}), ...(local.agentsMd || {}) }
     };
 }
 
@@ -248,19 +253,19 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
         const traeSkills = config.trae?.skills;
         const isTraeRulesString = typeof traeRules === 'string';
         const isTraeSkillsString = typeof traeSkills === 'string';
-        const opencodeRules = config.opencode?.rules;
         const opencodeAgents = config.opencode?.agents;
         const opencodeSkills = config.opencode?.skills;
         const opencodeCommands = config.opencode?.commands;
-        const opencodeCustomTools = config.opencode?.['custom-tools'];
-        const isOpencodeRulesString = typeof opencodeRules === 'string';
+        const opencodeTools = config.opencode?.tools;
         const isOpencodeAgentsString = typeof opencodeAgents === 'string';
         const isOpencodeSkillsString = typeof opencodeSkills === 'string';
         const isOpencodeCommandsString = typeof opencodeCommands === 'string';
-        const isOpencodeCustomToolsString = typeof opencodeCustomTools === 'string';
+        const isOpencodeToolsString = typeof opencodeTools === 'string';
+        const agentsMdFile = config.agentsMd?.file;
+        const isAgentsMdFileString = typeof agentsMdFile === 'string';
 
         // If any of these are strings, treat as legacy rules repo config
-        if (isCursorRulesString || isCursorCommandsString || isCursorSkillsString || isCursorAgentsString || isCopilotInstructionsString || isClaudeSkillsString || isClaudeAgentsString || isTraeRulesString || isTraeSkillsString || isOpencodeRulesString || isOpencodeAgentsString || isOpencodeSkillsString || isOpencodeCommandsString || isOpencodeCustomToolsString) {
+        if (isCursorRulesString || isCursorCommandsString || isCursorSkillsString || isCursorAgentsString || isCopilotInstructionsString || isClaudeSkillsString || isClaudeAgentsString || isTraeRulesString || isTraeSkillsString || isOpencodeAgentsString || isOpencodeSkillsString || isOpencodeCommandsString || isOpencodeToolsString || isAgentsMdFileString) {
             return {
                 rootPath: config.rootPath,
                 cursor: {
@@ -281,11 +286,13 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
                     skills: isTraeSkillsString ? traeSkills : undefined
                 },
                 opencode: {
-                    rules: isOpencodeRulesString ? opencodeRules : undefined,
                     agents: isOpencodeAgentsString ? opencodeAgents : undefined,
                     skills: isOpencodeSkillsString ? opencodeSkills : undefined,
                     commands: isOpencodeCommandsString ? opencodeCommands : undefined,
-                    'custom-tools': isOpencodeCustomToolsString ? opencodeCustomTools : undefined
+                    tools: isOpencodeToolsString ? opencodeTools : undefined
+                },
+                agentsMd: {
+                    file: isAgentsMdFileString ? agentsMdFile : undefined
                 }
             };
         }
@@ -339,16 +346,18 @@ export function getSourceDir(
             toolDir = repoConfig.trae?.skills;
         }
     } else if (tool === 'opencode') {
-        if (subtype === 'rules') {
-            toolDir = repoConfig.opencode?.rules;
-        } else if (subtype === 'agents') {
+        if (subtype === 'agents') {
             toolDir = repoConfig.opencode?.agents;
         } else if (subtype === 'skills') {
             toolDir = repoConfig.opencode?.skills;
         } else if (subtype === 'commands') {
             toolDir = repoConfig.opencode?.commands;
-        } else if (subtype === 'custom-tools') {
-            toolDir = repoConfig.opencode?.['custom-tools'];
+        } else if (subtype === 'tools') {
+            toolDir = repoConfig.opencode?.tools;
+        }
+    } else if (tool === 'agents-md') {
+        if (subtype === 'file') {
+            toolDir = repoConfig.agentsMd?.file;
         }
     }
 
