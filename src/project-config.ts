@@ -316,16 +316,28 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
  * @param tool - Tool name: 'cursor', 'copilot', or 'claude'
  * @param subtype - Subtype: 'rules', 'plans', 'instructions', 'skills', 'agents', or 'plugins'
  * @param defaultDir - Default directory if not configured
+ * @param globalOverride - Optional override from CLI or global config (highest priority)
  */
 export function getSourceDir(
     repoConfig: RepoSourceConfig,
     tool: string,
     subtype: string,
-    defaultDir: string
+    defaultDir: string,
+    globalOverride?: SourceDirConfig
 ): string {
     const rootPath = repoConfig.rootPath || '';
     let toolDir: string | undefined;
 
+    // 1. Check globalOverride first (CLI or global config - highest priority)
+    if (globalOverride) {
+        const toolConfig = (globalOverride as any)[tool];
+        if (toolConfig && toolConfig[subtype]) {
+            // globalOverride paths are relative to repo root, so no rootPath prefix
+            return toolConfig[subtype];
+        }
+    }
+
+    // 2. Check repoConfig (from repo's ai-rules-sync.json)
     if (tool === 'cursor') {
         if (subtype === 'rules') {
             toolDir = repoConfig.cursor?.rules;
@@ -368,6 +380,7 @@ export function getSourceDir(
         }
     }
 
+    // 3. Apply rootPath and default
     const dir = toolDir ?? defaultDir;
     return rootPath ? path.join(rootPath, dir) : dir;
 }

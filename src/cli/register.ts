@@ -11,6 +11,7 @@ import { installEntriesForAdapter } from '../commands/install.js';
 import { getTargetRepo } from '../commands/helpers.js';
 import { handleAddAll } from '../commands/add-all.js';
 import { adapterRegistry } from '../adapters/index.js';
+import { parseSourceDirParams } from './source-dir-parser.js';
 
 /**
  * Options for registering commands for an adapter
@@ -19,6 +20,13 @@ export interface RegisterCommandsOptions {
   adapter: SyncAdapter;
   parentCommand: Command;
   programOpts: () => { target?: string };
+}
+
+/**
+ * Collector function for commander to accumulate multiple option values
+ */
+function collect(value: string, previous: string[]): string[] {
+  return previous ? previous.concat([value]) : [value];
 }
 
 /**
@@ -87,10 +95,22 @@ export function registerAdapterCommands(options: RegisterCommandsOptions): void 
     .option('-l, --local', 'Add to ai-rules-sync.local.json')
     .option('--skip-existing', 'Skip entries already in config')
     .option('--quiet', 'Minimal output')
-    .action(async (cmdOptions: { dryRun?: boolean; force?: boolean; interactive?: boolean; local?: boolean; skipExisting?: boolean; quiet?: boolean }) => {
+    .option('-s, --source-dir <path>', 'Custom source directory (can be repeated)', collect)
+    .action(async (cmdOptions: { dryRun?: boolean; force?: boolean; interactive?: boolean; local?: boolean; skipExisting?: boolean; quiet?: boolean; sourceDir?: string[] }) => {
       try {
         const projectPath = process.cwd();
         const repo = await getTargetRepo(programOpts());
+
+        // Parse source-dir overrides with adapter context
+        let sourceDirOverrides;
+        if (cmdOptions.sourceDir && cmdOptions.sourceDir.length > 0) {
+          try {
+            sourceDirOverrides = parseSourceDirParams(cmdOptions.sourceDir, adapter.tool, adapter.subtype);
+          } catch (error: any) {
+            console.error(chalk.red('Error parsing --source-dir:'), error.message);
+            process.exit(1);
+          }
+        }
 
         const result = await handleAddAll(
           projectPath,
@@ -103,7 +123,8 @@ export function registerAdapterCommands(options: RegisterCommandsOptions): void 
             interactive: cmdOptions.interactive,
             isLocal: cmdOptions.local,
             skipExisting: cmdOptions.skipExisting,
-            quiet: cmdOptions.quiet
+            quiet: cmdOptions.quiet,
+            sourceDirOverrides
           }
         );
 

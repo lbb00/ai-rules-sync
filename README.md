@@ -122,6 +122,167 @@ You can customize these paths by adding an `ai-rules-sync.json` file to your rul
 
 > **Note**: The old flat format (`cursor.rules` as string) is still supported for backward compatibility.
 
+## Custom Source Directories for Third-Party Repositories
+
+When using third-party rules repositories that don't have `ai-rules-sync.json` or use custom directory structures, you can override the source directories using:
+
+1. **CLI Parameters** (temporary, for one-time use)
+2. **Global Configuration** (persistent, stored in `~/.config/ai-rules-sync/config.json`)
+
+### Priority System
+
+The source directory resolution follows this 4-layer priority:
+
+```
+CLI Parameters > Global Config > Repository Config > Adapter Defaults
+```
+
+### CLI Parameters
+
+Use the `-s` or `--source-dir` option with `add-all` commands:
+
+**Simple format** (when tool/subtype is clear from context):
+```bash
+# In cursor rules context
+ais cursor rules add-all -s custom/rules
+
+# In cursor context (requires subtype)
+ais cursor add-all -s rules=custom/rules -s commands=custom/cmds
+```
+
+**Dot notation format** (explicit tool.subtype):
+```bash
+# Top-level add-all (requires full tool.subtype)
+ais add-all -s cursor.rules=custom/rules -s cursor.commands=custom/cmds
+
+# Multiple tools
+ais add-all \
+  -s cursor.rules=rules/cursor \
+  -s cursor.commands=commands \
+  -s claude.skills=claude/skills
+```
+
+**Options:**
+- Can be repeated multiple times: `-s cursor.rules=r1 -s cursor.commands=r2`
+- Last value wins if the same path is specified multiple times
+- Paths are relative to the repository root
+
+**Examples:**
+
+```bash
+# Preview what would be installed from custom directory
+ais cursor rules add-all -s custom/rules --dry-run
+
+# Install all Cursor rules from custom directory
+ais cursor rules add-all -s custom/rules
+
+# Install from multiple custom directories
+ais cursor add-all -s rules=r1 -s commands=r2 -s skills=r3
+
+# Install everything from a repository with non-standard structure
+ais add-all \
+  -s cursor.rules=rules/cursor \
+  -s cursor.commands=commands/cursor \
+  -s claude.skills=claude/skills
+```
+
+### Global Configuration
+
+For persistent configuration, use the `config` commands:
+
+**Set custom source directory:**
+```bash
+ais config repo set-source <repoName> <tool.subtype> <path>
+
+# Examples:
+ais config repo set-source third-party cursor.rules custom/rules
+ais config repo set-source company-rules cursor.commands commands
+ais config repo set-source open-source claude.skills claude/skills
+```
+
+**View repository configuration:**
+```bash
+ais config repo show <repoName>
+```
+
+**Clear source directory:**
+```bash
+# Clear specific tool.subtype
+ais config repo clear-source <repoName> <tool.subtype>
+
+# Clear all source directories for a repo
+ais config repo clear-source <repoName>
+```
+
+**List all repositories:**
+```bash
+ais config repo list
+```
+
+**Configuration example** (`~/.config/ai-rules-sync/config.json`):
+```json
+{
+  "currentRepo": "third-party-rules",
+  "repos": {
+    "third-party-rules": {
+      "name": "third-party-rules",
+      "url": "https://github.com/someone/rules",
+      "path": "/Users/user/.config/ai-rules-sync/repos/third-party-rules",
+      "sourceDir": {
+        "cursor": {
+          "rules": "rules/cursor",
+          "commands": "commands/cursor"
+        },
+        "claude": {
+          "skills": "claude/skills"
+        }
+      }
+    }
+  }
+}
+```
+
+### Use Cases
+
+**Scenario 1: One-time exploration**
+```bash
+# Try out a repository with non-standard structure
+ais cursor rules add-all -s custom/rules --dry-run
+```
+
+**Scenario 2: Regular use of third-party repository**
+```bash
+# Configure once
+ais config repo set-source my-third-party cursor.rules custom/rules
+ais config repo set-source my-third-party cursor.commands custom/commands
+
+# Use normally (sourceDir automatically applied)
+ais cursor add-all
+```
+
+**Scenario 3: Override existing configuration**
+```bash
+# Global config has cursor.rules=global/rules
+# But you want to try a different directory temporarily
+ais cursor rules add-all -s experimental/rules
+# CLI parameter takes precedence
+```
+
+### Error Handling
+
+If the specified source directory doesn't exist:
+```
+Discovering entries from repository...
+  cursor-rules: 0 entries
+
+No entries found in repository.
+```
+
+**Tip**: Use `--dry-run` to preview before installation:
+```bash
+ais cursor rules add-all -s custom/rules --dry-run
+```
+
 ## Global Options
 
 All commands support the following global options:

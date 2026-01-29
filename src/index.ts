@@ -22,8 +22,17 @@ import {
 import { handleAdd, handleRemove, handleImport } from './commands/handlers.js';
 import { installEntriesForAdapter, installEntriesForTool } from './commands/install.js';
 import { handleAddAll } from './commands/add-all.js';
+import { parseSourceDirParams } from './cli/source-dir-parser.js';
+import { setRepoSourceDir, clearRepoSourceDir, showRepoConfig, listRepos } from './commands/config.js';
 
 const program = new Command();
+
+/**
+ * Collector function for commander to accumulate multiple option values
+ */
+function collect(value: string, previous: string[]): string[] {
+  return previous ? previous.concat([value]) : [value];
+}
 
 program.name('ais').description('AI Rules Sync - Sync agent rules from git repository').version('1.0.0')
     .option('-t, --target <repoName>', 'Specify target rule repository (name or URL)');
@@ -258,11 +267,23 @@ program
   .option('-l, --local', 'Add to ai-rules-sync.local.json')
   .option('--skip-existing', 'Skip entries already in config')
   .option('--quiet', 'Minimal output')
+  .option('-s, --source-dir <path>', 'Custom source directory in format tool.subtype=path (can be repeated)', collect)
   .action(async (options) => {
     try {
       const projectPath = process.cwd();
       const opts = program.opts();
       const currentRepo = await getTargetRepo(opts);
+
+      // Parse source-dir overrides (no context, requires full tool.subtype=path format)
+      let sourceDirOverrides;
+      if (options.sourceDir && options.sourceDir.length > 0) {
+        try {
+          sourceDirOverrides = parseSourceDirParams(options.sourceDir);
+        } catch (error: any) {
+          console.error(chalk.red('Error parsing --source-dir:'), error.message);
+          process.exit(1);
+        }
+      }
 
       const result = await handleAddAll(
         projectPath,
@@ -277,7 +298,8 @@ program
           interactive: options.interactive,
           isLocal: options.local,
           skipExisting: options.skipExisting,
-          quiet: options.quiet
+          quiet: options.quiet,
+          sourceDirOverrides
         }
       );
 
@@ -405,11 +427,23 @@ cursor
   .option('-l, --local', 'Add to ai-rules-sync.local.json')
   .option('--skip-existing', 'Skip entries already in config')
   .option('--quiet', 'Minimal output')
+  .option('-s, --source-dir <path>', 'Custom source directory (can be repeated)', collect)
   .action(async (options) => {
     try {
       const projectPath = process.cwd();
       const opts = program.opts();
       const currentRepo = await getTargetRepo(opts);
+
+      // Parse source-dir overrides with cursor as context tool
+      let sourceDirOverrides;
+      if (options.sourceDir && options.sourceDir.length > 0) {
+        try {
+          sourceDirOverrides = parseSourceDirParams(options.sourceDir, 'cursor');
+        } catch (error: any) {
+          console.error(chalk.red('Error parsing --source-dir:'), error.message);
+          process.exit(1);
+        }
+      }
 
       const result = await handleAddAll(
         projectPath,
@@ -423,7 +457,8 @@ cursor
           interactive: options.interactive,
           isLocal: options.local,
           skipExisting: options.skipExisting,
-          quiet: options.quiet
+          quiet: options.quiet,
+          sourceDirOverrides
         }
       );
 
@@ -566,11 +601,23 @@ copilot
   .option('-l, --local', 'Add to ai-rules-sync.local.json')
   .option('--skip-existing', 'Skip entries already in config')
   .option('--quiet', 'Minimal output')
+  .option('-s, --source-dir <path>', 'Custom source directory (can be repeated)', collect)
   .action(async (options) => {
     try {
       const projectPath = process.cwd();
       const opts = program.opts();
       const currentRepo = await getTargetRepo(opts);
+
+      // Parse source-dir overrides with copilot as context tool
+      let sourceDirOverrides;
+      if (options.sourceDir && options.sourceDir.length > 0) {
+        try {
+          sourceDirOverrides = parseSourceDirParams(options.sourceDir, 'copilot');
+        } catch (error: any) {
+          console.error(chalk.red('Error parsing --source-dir:'), error.message);
+          process.exit(1);
+        }
+      }
 
       const result = await handleAddAll(
         projectPath,
@@ -584,7 +631,8 @@ copilot
           interactive: options.interactive,
           isLocal: options.local,
           skipExisting: options.skipExisting,
-          quiet: options.quiet
+          quiet: options.quiet,
+          sourceDirOverrides
         }
       );
 
@@ -658,11 +706,23 @@ claude
   .option('-l, --local', 'Add to ai-rules-sync.local.json')
   .option('--skip-existing', 'Skip entries already in config')
   .option('--quiet', 'Minimal output')
+  .option('-s, --source-dir <path>', 'Custom source directory (can be repeated)', collect)
   .action(async (options) => {
     try {
       const projectPath = process.cwd();
       const opts = program.opts();
       const currentRepo = await getTargetRepo(opts);
+
+      // Parse source-dir overrides with claude as context tool
+      let sourceDirOverrides;
+      if (options.sourceDir && options.sourceDir.length > 0) {
+        try {
+          sourceDirOverrides = parseSourceDirParams(options.sourceDir, 'claude');
+        } catch (error: any) {
+          console.error(chalk.red('Error parsing --source-dir:'), error.message);
+          process.exit(1);
+        }
+      }
 
       const result = await handleAddAll(
         projectPath,
@@ -676,7 +736,8 @@ claude
           interactive: options.interactive,
           isLocal: options.local,
           skipExisting: options.skipExisting,
-          quiet: options.quiet
+          quiet: options.quiet,
+          sourceDirOverrides
         }
       );
 
@@ -738,11 +799,23 @@ trae
   .option('-l, --local', 'Add to ai-rules-sync.local.json')
   .option('--skip-existing', 'Skip entries already in config')
   .option('--quiet', 'Minimal output')
+  .option('-s, --source-dir <path>', 'Custom source directory (can be repeated)', collect)
   .action(async (options) => {
     try {
       const projectPath = process.cwd();
       const opts = program.opts();
       const currentRepo = await getTargetRepo(opts);
+
+      // Parse source-dir overrides with trae as context tool
+      let sourceDirOverrides;
+      if (options.sourceDir && options.sourceDir.length > 0) {
+        try {
+          sourceDirOverrides = parseSourceDirParams(options.sourceDir, 'trae');
+        } catch (error: any) {
+          console.error(chalk.red('Error parsing --source-dir:'), error.message);
+          process.exit(1);
+        }
+      }
 
       const result = await handleAddAll(
         projectPath,
@@ -756,7 +829,8 @@ trae
           interactive: options.interactive,
           isLocal: options.local,
           skipExisting: options.skipExisting,
-          quiet: options.quiet
+          quiet: options.quiet,
+          sourceDirOverrides
         }
       );
 
@@ -823,11 +897,23 @@ opencode
   .option('-l, --local', 'Add to ai-rules-sync.local.json')
   .option('--skip-existing', 'Skip entries already in config')
   .option('--quiet', 'Minimal output')
+  .option('-s, --source-dir <path>', 'Custom source directory (can be repeated)', collect)
   .action(async (options) => {
     try {
       const projectPath = process.cwd();
       const opts = program.opts();
       const currentRepo = await getTargetRepo(opts);
+
+      // Parse source-dir overrides with opencode as context tool
+      let sourceDirOverrides;
+      if (options.sourceDir && options.sourceDir.length > 0) {
+        try {
+          sourceDirOverrides = parseSourceDirParams(options.sourceDir, 'opencode');
+        } catch (error: any) {
+          console.error(chalk.red('Error parsing --source-dir:'), error.message);
+          process.exit(1);
+        }
+      }
 
       const result = await handleAddAll(
         projectPath,
@@ -841,7 +927,8 @@ opencode
           interactive: options.interactive,
           isLocal: options.local,
           skipExisting: options.skipExisting,
-          quiet: options.quiet
+          quiet: options.quiet,
+          sourceDirOverrides
         }
       );
 
@@ -1044,6 +1131,64 @@ completionCmd
       await forceInstallCompletion(options.force || false);
     } catch (error: any) {
       console.error(chalk.red('Error installing completion:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// ============ Config command group ============
+const configCmd = program
+  .command('config')
+  .description('Manage repository configuration');
+
+// config repo <name> set-source
+const configRepo = configCmd
+  .command('repo')
+  .description('Manage repository settings');
+
+configRepo
+  .command('set-source <repoName> <toolSubtype> <path>')
+  .description('Set custom source directory for a repository (format: tool.subtype, e.g., cursor.rules)')
+  .action(async (repoName: string, toolSubtype: string, sourcePath: string) => {
+    try {
+      await setRepoSourceDir(repoName, toolSubtype, sourcePath);
+    } catch (error: any) {
+      console.error(chalk.red('Error setting source directory:'), error.message);
+      process.exit(1);
+    }
+  });
+
+configRepo
+  .command('clear-source <repoName> [toolSubtype]')
+  .description('Clear source directory configuration (if toolSubtype omitted, clears all)')
+  .action(async (repoName: string, toolSubtype?: string) => {
+    try {
+      await clearRepoSourceDir(repoName, toolSubtype);
+    } catch (error: any) {
+      console.error(chalk.red('Error clearing source directory:'), error.message);
+      process.exit(1);
+    }
+  });
+
+configRepo
+  .command('show <repoName>')
+  .description('Show repository configuration')
+  .action(async (repoName: string) => {
+    try {
+      await showRepoConfig(repoName);
+    } catch (error: any) {
+      console.error(chalk.red('Error showing repository config:'), error.message);
+      process.exit(1);
+    }
+  });
+
+configRepo
+  .command('list')
+  .description('List all repositories')
+  .action(async () => {
+    try {
+      await listRepos();
+    } catch (error: any) {
+      console.error(chalk.red('Error listing repositories:'), error.message);
       process.exit(1);
     }
   });

@@ -56,6 +56,7 @@ export interface AddAllOptions {
     isLocal?: boolean;
     skipExisting?: boolean;
     quiet?: boolean;
+    sourceDirOverrides?: import('../project-config.js').SourceDirConfig;
 }
 
 /**
@@ -73,14 +74,23 @@ export interface AddAllResult {
 export async function discoverEntriesForAdapter(
     adapter: SyncAdapter,
     repo: RepoConfig,
-    projectPath: string
+    projectPath: string,
+    sourceDirOverrides?: import('../project-config.js').SourceDirConfig
 ): Promise<DiscoveredEntry[]> {
     const repoDir = repo.path;
     const entries: DiscoveredEntry[] = [];
 
+    // Merge overrides: CLI > global config
+    let effectiveOverride: import('../project-config.js').SourceDirConfig | undefined;
+    if (sourceDirOverrides) {
+        effectiveOverride = sourceDirOverrides;
+    } else if (repo.sourceDir) {
+        effectiveOverride = repo.sourceDir;
+    }
+
     // Get source directory from repo config
     const repoConfig = await getRepoSourceConfig(repoDir);
-    const sourceDir = getSourceDir(repoConfig, adapter.tool, adapter.subtype, adapter.defaultSourceDir);
+    const sourceDir = getSourceDir(repoConfig, adapter.tool, adapter.subtype, adapter.defaultSourceDir, effectiveOverride);
     const sourceDirPath = path.join(repoDir, sourceDir);
 
     // Check if source directory exists
@@ -237,7 +247,7 @@ export async function discoverAllEntries(
     projectPath: string,
     repo: RepoConfig,
     adapterRegistry: AdapterRegistry,
-    options?: { tools?: string[], adapters?: string[] }
+    options?: { tools?: string[], adapters?: string[], sourceDirOverrides?: import('../project-config.js').SourceDirConfig }
 ): Promise<DiscoveredEntry[]> {
     const allEntries: DiscoveredEntry[] = [];
 
@@ -262,7 +272,7 @@ export async function discoverAllEntries(
 
     // Discover entries for each adapter
     for (const adapter of adapters) {
-        const entries = await discoverEntriesForAdapter(adapter, repo, projectPath);
+        const entries = await discoverEntriesForAdapter(adapter, repo, projectPath, options?.sourceDirOverrides);
         allEntries.push(...entries);
     }
 
@@ -385,7 +395,8 @@ export async function handleAddAll(
 
     const entries = await discoverAllEntries(projectPath, repo, adapterRegistry, {
         tools: options.tools,
-        adapters: options.adapters
+        adapters: options.adapters,
+        sourceDirOverrides: options.sourceDirOverrides
     });
 
     if (entries.length === 0) {

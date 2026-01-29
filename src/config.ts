@@ -10,6 +10,7 @@ export interface RepoConfig {
   url: string;
   name: string;
   path: string;
+  sourceDir?: import('./project-config.js').SourceDirConfig;
 }
 
 export interface Config {
