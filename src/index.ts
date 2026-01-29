@@ -21,6 +21,7 @@ import {
 } from './commands/helpers.js';
 import { handleAdd, handleRemove, handleImport } from './commands/handlers.js';
 import { installEntriesForAdapter, installEntriesForTool } from './commands/install.js';
+import { handleAddAll } from './commands/add-all.js';
 
 const program = new Command();
 
@@ -245,6 +246,65 @@ program
     }
   });
 
+// Top-level add-all command
+program
+  .command('add-all')
+  .description('Discover and install all configurations from rules repository')
+  .option('--tools <tools>', 'Filter by tools (comma-separated): cursor,copilot,claude,trae,opencode,agents-md')
+  .option('--adapters <adapters>', 'Filter by adapters (comma-separated)')
+  .option('--dry-run', 'Preview without making changes')
+  .option('-f, --force', 'Overwrite existing entries')
+  .option('-i, --interactive', 'Prompt for each entry')
+  .option('-l, --local', 'Add to ai-rules-sync.local.json')
+  .option('--skip-existing', 'Skip entries already in config')
+  .option('--quiet', 'Minimal output')
+  .action(async (options) => {
+    try {
+      const projectPath = process.cwd();
+      const opts = program.opts();
+      const currentRepo = await getTargetRepo(opts);
+
+      const result = await handleAddAll(
+        projectPath,
+        currentRepo,
+        adapterRegistry,
+        {
+          target: opts.target,
+          tools: options.tools?.split(','),
+          adapters: options.adapters?.split(','),
+          dryRun: options.dryRun,
+          force: options.force,
+          interactive: options.interactive,
+          isLocal: options.local,
+          skipExisting: options.skipExisting,
+          quiet: options.quiet
+        }
+      );
+
+      // Print summary
+      if (!options.quiet) {
+        console.log(chalk.bold('\nSummary:'));
+        console.log(chalk.green(`  Installed: ${result.installed}`));
+        if (result.skipped > 0) {
+          console.log(chalk.yellow(`  Skipped: ${result.skipped}`));
+        }
+        if (result.errors.length > 0) {
+          console.log(chalk.red(`  Errors: ${result.errors.length}`));
+          result.errors.forEach(e => {
+            console.log(chalk.red(`    - ${e.entry}: ${e.error}`));
+          });
+        }
+      }
+
+      if (result.errors.length > 0) {
+        process.exit(1);
+      }
+    } catch (error: any) {
+      console.error(chalk.red('Error in add-all:'), error.message);
+      process.exit(1);
+    }
+  });
+
 // Top-level import command (auto-detect)
 program
   .command('import <name>')
@@ -331,6 +391,61 @@ cursor
       await installEntriesForTool(adapterRegistry.getForTool('cursor'), process.cwd());
     } catch (error: any) {
       console.error(chalk.red('Error installing Cursor entries:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// cursor add-all
+cursor
+  .command('add-all')
+  .description('Add all Cursor entries from repository')
+  .option('--dry-run', 'Preview without making changes')
+  .option('-f, --force', 'Overwrite existing entries')
+  .option('-i, --interactive', 'Prompt for each entry')
+  .option('-l, --local', 'Add to ai-rules-sync.local.json')
+  .option('--skip-existing', 'Skip entries already in config')
+  .option('--quiet', 'Minimal output')
+  .action(async (options) => {
+    try {
+      const projectPath = process.cwd();
+      const opts = program.opts();
+      const currentRepo = await getTargetRepo(opts);
+
+      const result = await handleAddAll(
+        projectPath,
+        currentRepo,
+        adapterRegistry,
+        {
+          target: opts.target,
+          tools: ['cursor'],
+          dryRun: options.dryRun,
+          force: options.force,
+          interactive: options.interactive,
+          isLocal: options.local,
+          skipExisting: options.skipExisting,
+          quiet: options.quiet
+        }
+      );
+
+      if (!options.quiet) {
+        console.log(chalk.bold('\nSummary:'));
+        console.log(chalk.green(`  Installed: ${result.installed}`));
+        if (result.skipped > 0) {
+          console.log(chalk.yellow(`  Skipped: ${result.skipped}`));
+        }
+        if (result.errors.length > 0) {
+          console.log(chalk.red(`  Errors: ${result.errors.length}`));
+          result.errors.forEach(e => {
+            console.log(chalk.red(`    - ${e.entry}: ${e.error}`));
+          });
+        }
+      }
+
+      if (result.errors.length > 0) {
+        process.exit(1);
+      }
+    } catch (error: any) {
+      console.error(chalk.red('Error in cursor add-all:'), error.message);
       process.exit(1);
     }
   });
@@ -441,6 +556,61 @@ copilot
     }
   });
 
+// copilot add-all
+copilot
+  .command('add-all')
+  .description('Add all Copilot instructions from repository')
+  .option('--dry-run', 'Preview without making changes')
+  .option('-f, --force', 'Overwrite existing entries')
+  .option('-i, --interactive', 'Prompt for each entry')
+  .option('-l, --local', 'Add to ai-rules-sync.local.json')
+  .option('--skip-existing', 'Skip entries already in config')
+  .option('--quiet', 'Minimal output')
+  .action(async (options) => {
+    try {
+      const projectPath = process.cwd();
+      const opts = program.opts();
+      const currentRepo = await getTargetRepo(opts);
+
+      const result = await handleAddAll(
+        projectPath,
+        currentRepo,
+        adapterRegistry,
+        {
+          target: opts.target,
+          tools: ['copilot'],
+          dryRun: options.dryRun,
+          force: options.force,
+          interactive: options.interactive,
+          isLocal: options.local,
+          skipExisting: options.skipExisting,
+          quiet: options.quiet
+        }
+      );
+
+      if (!options.quiet) {
+        console.log(chalk.bold('\nSummary:'));
+        console.log(chalk.green(`  Installed: ${result.installed}`));
+        if (result.skipped > 0) {
+          console.log(chalk.yellow(`  Skipped: ${result.skipped}`));
+        }
+        if (result.errors.length > 0) {
+          console.log(chalk.red(`  Errors: ${result.errors.length}`));
+          result.errors.forEach(e => {
+            console.log(chalk.red(`    - ${e.entry}: ${e.error}`));
+          });
+        }
+      }
+
+      if (result.errors.length > 0) {
+        process.exit(1);
+      }
+    } catch (error: any) {
+      console.error(chalk.red('Error in copilot add-all:'), error.message);
+      process.exit(1);
+    }
+  });
+
 // copilot import
 copilot
   .command('import <name>')
@@ -478,6 +648,61 @@ claude
     }
   });
 
+// claude add-all
+claude
+  .command('add-all')
+  .description('Add all Claude entries from repository')
+  .option('--dry-run', 'Preview without making changes')
+  .option('-f, --force', 'Overwrite existing entries')
+  .option('-i, --interactive', 'Prompt for each entry')
+  .option('-l, --local', 'Add to ai-rules-sync.local.json')
+  .option('--skip-existing', 'Skip entries already in config')
+  .option('--quiet', 'Minimal output')
+  .action(async (options) => {
+    try {
+      const projectPath = process.cwd();
+      const opts = program.opts();
+      const currentRepo = await getTargetRepo(opts);
+
+      const result = await handleAddAll(
+        projectPath,
+        currentRepo,
+        adapterRegistry,
+        {
+          target: opts.target,
+          tools: ['claude'],
+          dryRun: options.dryRun,
+          force: options.force,
+          interactive: options.interactive,
+          isLocal: options.local,
+          skipExisting: options.skipExisting,
+          quiet: options.quiet
+        }
+      );
+
+      if (!options.quiet) {
+        console.log(chalk.bold('\nSummary:'));
+        console.log(chalk.green(`  Installed: ${result.installed}`));
+        if (result.skipped > 0) {
+          console.log(chalk.yellow(`  Skipped: ${result.skipped}`));
+        }
+        if (result.errors.length > 0) {
+          console.log(chalk.red(`  Errors: ${result.errors.length}`));
+          result.errors.forEach(e => {
+            console.log(chalk.red(`    - ${e.entry}: ${e.error}`));
+          });
+        }
+      }
+
+      if (result.errors.length > 0) {
+        process.exit(1);
+      }
+    } catch (error: any) {
+      console.error(chalk.red('Error in claude add-all:'), error.message);
+      process.exit(1);
+    }
+  });
+
 // claude skills subgroup
 const claudeSkills = claude.command('skills').description('Manage Claude skills');
 registerAdapterCommands({ adapter: getAdapter('claude', 'skills'), parentCommand: claudeSkills, programOpts: () => program.opts() });
@@ -499,6 +724,61 @@ trae
       await installEntriesForTool(adapterRegistry.getForTool('trae'), process.cwd());
     } catch (error: any) {
       console.error(chalk.red('Error installing Trae entries:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// trae add-all
+trae
+  .command('add-all')
+  .description('Add all Trae entries from repository')
+  .option('--dry-run', 'Preview without making changes')
+  .option('-f, --force', 'Overwrite existing entries')
+  .option('-i, --interactive', 'Prompt for each entry')
+  .option('-l, --local', 'Add to ai-rules-sync.local.json')
+  .option('--skip-existing', 'Skip entries already in config')
+  .option('--quiet', 'Minimal output')
+  .action(async (options) => {
+    try {
+      const projectPath = process.cwd();
+      const opts = program.opts();
+      const currentRepo = await getTargetRepo(opts);
+
+      const result = await handleAddAll(
+        projectPath,
+        currentRepo,
+        adapterRegistry,
+        {
+          target: opts.target,
+          tools: ['trae'],
+          dryRun: options.dryRun,
+          force: options.force,
+          interactive: options.interactive,
+          isLocal: options.local,
+          skipExisting: options.skipExisting,
+          quiet: options.quiet
+        }
+      );
+
+      if (!options.quiet) {
+        console.log(chalk.bold('\nSummary:'));
+        console.log(chalk.green(`  Installed: ${result.installed}`));
+        if (result.skipped > 0) {
+          console.log(chalk.yellow(`  Skipped: ${result.skipped}`));
+        }
+        if (result.errors.length > 0) {
+          console.log(chalk.red(`  Errors: ${result.errors.length}`));
+          result.errors.forEach(e => {
+            console.log(chalk.red(`    - ${e.entry}: ${e.error}`));
+          });
+        }
+      }
+
+      if (result.errors.length > 0) {
+        process.exit(1);
+      }
+    } catch (error: any) {
+      console.error(chalk.red('Error in trae add-all:'), error.message);
       process.exit(1);
     }
   });
@@ -529,6 +809,61 @@ opencode
       await installEntriesForTool(adapterRegistry.getForTool('opencode'), process.cwd());
     } catch (error: any) {
       console.error(chalk.red('Error installing OpenCode entries:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// opencode add-all
+opencode
+  .command('add-all')
+  .description('Add all OpenCode entries from repository')
+  .option('--dry-run', 'Preview without making changes')
+  .option('-f, --force', 'Overwrite existing entries')
+  .option('-i, --interactive', 'Prompt for each entry')
+  .option('-l, --local', 'Add to ai-rules-sync.local.json')
+  .option('--skip-existing', 'Skip entries already in config')
+  .option('--quiet', 'Minimal output')
+  .action(async (options) => {
+    try {
+      const projectPath = process.cwd();
+      const opts = program.opts();
+      const currentRepo = await getTargetRepo(opts);
+
+      const result = await handleAddAll(
+        projectPath,
+        currentRepo,
+        adapterRegistry,
+        {
+          target: opts.target,
+          tools: ['opencode'],
+          dryRun: options.dryRun,
+          force: options.force,
+          interactive: options.interactive,
+          isLocal: options.local,
+          skipExisting: options.skipExisting,
+          quiet: options.quiet
+        }
+      );
+
+      if (!options.quiet) {
+        console.log(chalk.bold('\nSummary:'));
+        console.log(chalk.green(`  Installed: ${result.installed}`));
+        if (result.skipped > 0) {
+          console.log(chalk.yellow(`  Skipped: ${result.skipped}`));
+        }
+        if (result.errors.length > 0) {
+          console.log(chalk.red(`  Errors: ${result.errors.length}`));
+          result.errors.forEach(e => {
+            console.log(chalk.red(`    - ${e.entry}: ${e.error}`));
+          });
+        }
+      }
+
+      if (result.errors.length > 0) {
+        process.exit(1);
+      }
+    } catch (error: any) {
+      console.error(chalk.red('Error in opencode add-all:'), error.message);
       process.exit(1);
     }
   });

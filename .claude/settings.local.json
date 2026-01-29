@@ -21,7 +21,10 @@
       "Bash(ls:*)",
       "Bash(pnpm build:*)",
       "Bash(test:*)",
-      "Bash(pnpm test:*)"
+      "Bash(pnpm test:*)",
+      "WebFetch(domain:opencode.ai)",
+      "WebFetch(domain:agents.md)",
+      "Bash(git reset:*)"
     ]
   }
 }

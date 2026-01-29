@@ -45,6 +45,7 @@ src/
 │   ├── handlers.ts          # Generic add/remove/import handlers
 │   ├── helpers.ts           # Helper functions (getTargetRepo, parseConfigEntry, etc.)
 │   ├── install.ts           # Generic install function
+│   ├── add-all.ts           # Discover and install all entries from repository
 │   └── index.ts             # Module exports
 ├── completion/              # Shell completion
 │   └── scripts.ts           # Shell completion scripts (bash, zsh, fish)
@@ -322,27 +323,31 @@ interface ProjectConfig {
 - File-based synchronization with `.md` suffix.
 - **Config structure**: Uses flat `agentsMd` record (not nested like other tools)
 
-### 13. OpenCode Agent Synchronization
+### 12. OpenCode Synchronization
+
+OpenCode AI is supported with four different entry types:
+
+### 12.1. OpenCode Agent Synchronization
 - **Syntax**: `ais opencode agents add <agentName> [alias]`
 - Links `<repo>/.opencode/agents/<agentName>` to `.opencode/agents/<alias>`.
 - File-based synchronization with `.md` suffix for OpenCode AI agents.
 
-### 14. OpenCode Skill Synchronization
+### 12.2. OpenCode Skill Synchronization
 - **Syntax**: `ais opencode skills add <skillName> [alias]`
 - Links `<repo>/.opencode/skills/<skillName>` to `.opencode/skills/<alias>`.
 - Directory-based synchronization for OpenCode AI skills (SKILL.md inside).
 
-### 15. OpenCode Command Synchronization
+### 12.3. OpenCode Command Synchronization
 - **Syntax**: `ais opencode commands add <commandName> [alias]`
 - Links `<repo>/.opencode/commands/<commandName>` to `.opencode/commands/<alias>`.
 - File-based synchronization with `.md` suffix for OpenCode AI commands.
 
-### 16. OpenCode Tools Synchronization
+### 12.4. OpenCode Tools Synchronization
 - **Syntax**: `ais opencode tools add <toolName> [alias]`
 - Links `<repo>/.opencode/tools/<toolName>` to `.opencode/tools/<alias>`.
 - File-based synchronization with `.ts`/`.js` suffixes for OpenCode AI tools.
 
-### 17. Import Command
+### 13. Import Command
 - **Syntax**: `ais import <tool> <subtype> <name>` or `ais <tool> <subtype> import <name>`
 - Copies entry from project to rules repository, commits, and creates symlink back.
 - **Options**:
@@ -357,7 +362,7 @@ interface ProjectConfig {
   ais import copilot instructions my-instruction -m "Add new instruction"
   ```
 
-### 18. Installation
+### 14. Installation
 - `ais cursor install` - Install all Cursor rules, commands, skills, and agents.
 - `ais copilot install` - Install all Copilot instructions.
 - `ais claude install` - Install all Claude skills and agents.
@@ -366,7 +371,88 @@ interface ProjectConfig {
 - `ais opencode install` - Install all OpenCode agents, skills, commands, and tools.
 - `ais install` - Install everything (smart dispatch).
 
-### 19. Configuration Files
+### 15. Bulk Discovery and Installation (add-all)
+
+The `add-all` command automatically **discovers and installs all available entries** from the rules repository by scanning the filesystem, unlike `install` which reads from config files.
+
+**Core Implementation** (`src/commands/add-all.ts`):
+- `discoverEntriesForAdapter()` - Scans repository directory for a single adapter
+- `discoverAllEntries()` - Discovers across all/filtered adapters
+- `installDiscoveredEntries()` - Batch installs discovered entries
+- `handleAddAll()` - Main orchestrator
+
+**Command Hierarchy**:
+- **Top-level**: `ais add-all` - All tools, supports `--tools` and `--adapters` filters
+- **Tool-level**: `ais cursor add-all`, `ais copilot add-all`, etc. - Filters to specific tool
+- **Subtype-level**: `ais cursor rules add-all`, `ais cursor commands add-all`, etc. - Filters to specific adapter
+
+**Discovery Algorithm**:
+1. Get source directory from repo config using `getRepoSourceConfig()` and `getSourceDir()`
+2. Scan filesystem with `fs.readdir()` filtering hidden files (starting with `.`)
+3. Apply adapter mode filters:
+   - **file mode**: Include files matching `fileSuffixes` (e.g., `.md`)
+   - **directory mode**: Include only directories
+   - **hybrid mode**: Include files matching `hybridFileSuffixes` AND directories
+4. Extract entry names by stripping suffixes for files
+5. Check existing config to mark already-configured entries
+
+**Options**:
+- `--dry-run` - Preview without making changes
+- `--force` - Overwrite existing entries (re-link and update config)
+- `--interactive` - Prompt for each entry using readline
+- `--local` - Store in `ai-rules-sync.local.json`
+- `--skip-existing` - Skip entries already in config (default behavior)
+- `--quiet` - Minimal output
+- `--tools <tools>` - Filter by comma-separated tool names (top-level only)
+- `--adapters <adapters>` - Filter by comma-separated adapter names (top-level only)
+
+**Examples**:
+```bash
+# Preview all Cursor rules
+ais cursor rules add-all --dry-run
+
+# Install all Cursor entries (rules, commands, skills, agents)
+ais cursor add-all
+
+# Install all entries from all tools
+ais add-all
+
+# Install only from specific tools
+ais add-all --tools cursor,copilot
+
+# Interactive confirmation
+ais cursor add-all --interactive
+
+# Install as private entries
+ais cursor rules add-all --local
+```
+
+**Output Format**:
+```
+Discovering entries from repository...
+  cursor-rules: 5 entries
+  cursor-commands: 3 entries
+Total: 8 entries discovered
+
+Installing entries:
+[1/8] cursor-rules/react → .cursor/rules/react ✓
+[2/8] cursor-rules/testing → .cursor/rules/testing ✓
+[3/8] cursor-commands/deploy → .cursor/commands/deploy ⊘ (already configured)
+...
+
+Summary:
+  Installed: 7
+  Skipped: 1 (already configured)
+  Errors: 0
+```
+
+**Integration**:
+- Uses existing adapter system and `addDependency()`/`link()` methods
+- Works with all adapter modes (file/directory/hybrid)
+- Respects repository source directory configuration
+- Compatible with `ais install` (discovered entries are added to config)
+
+### 16. Configuration Files
 
 **Rules Repository Config** (`ai-rules-sync.json` in the rules repo):
 ```json
@@ -446,7 +532,7 @@ interface ProjectConfig {
 - **Legacy format**: Old configs with `cursor.rules` as string are still supported.
 - **Legacy files**: `cursor-rules*.json` are read-only compatible; write operations migrate to new format.
 
-### 20. Shell Completion
+### 17. Shell Completion
 - **Auto-Install**: On first run, AIS prompts to install shell completion automatically.
 - **Manual Install**: `ais completion install` - Installs completion to shell config file.
 - **Script Output**: `ais completion [bash|zsh|fish]` - Outputs raw completion script.

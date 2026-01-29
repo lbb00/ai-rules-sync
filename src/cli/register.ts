@@ -9,6 +9,8 @@ import { SyncAdapter } from '../adapters/types.js';
 import { handleAdd, handleRemove, handleImport, ImportCommandOptions } from '../commands/handlers.js';
 import { installEntriesForAdapter } from '../commands/install.js';
 import { getTargetRepo } from '../commands/helpers.js';
+import { handleAddAll } from '../commands/add-all.js';
+import { adapterRegistry } from '../adapters/index.js';
 
 /**
  * Options for registering commands for an adapter
@@ -71,6 +73,59 @@ export function registerAdapterCommands(options: RegisterCommandsOptions): void 
         await installEntriesForAdapter(adapter, process.cwd());
       } catch (error: any) {
         console.error(chalk.red(`Error installing ${adapter.tool} ${adapter.subtype}:`), error.message);
+        process.exit(1);
+      }
+    });
+
+  // Add-all command
+  parentCommand
+    .command('add-all')
+    .description(`Add all ${adapter.tool} ${adapter.subtype} from repository`)
+    .option('--dry-run', 'Preview without making changes')
+    .option('-f, --force', 'Overwrite existing entries')
+    .option('-i, --interactive', 'Prompt for each entry')
+    .option('-l, --local', 'Add to ai-rules-sync.local.json')
+    .option('--skip-existing', 'Skip entries already in config')
+    .option('--quiet', 'Minimal output')
+    .action(async (cmdOptions: { dryRun?: boolean; force?: boolean; interactive?: boolean; local?: boolean; skipExisting?: boolean; quiet?: boolean }) => {
+      try {
+        const projectPath = process.cwd();
+        const repo = await getTargetRepo(programOpts());
+
+        const result = await handleAddAll(
+          projectPath,
+          repo,
+          adapterRegistry,
+          {
+            adapters: [adapter.name],
+            dryRun: cmdOptions.dryRun,
+            force: cmdOptions.force,
+            interactive: cmdOptions.interactive,
+            isLocal: cmdOptions.local,
+            skipExisting: cmdOptions.skipExisting,
+            quiet: cmdOptions.quiet
+          }
+        );
+
+        if (!cmdOptions.quiet) {
+          console.log(chalk.bold('\nSummary:'));
+          console.log(chalk.green(`  Installed: ${result.installed}`));
+          if (result.skipped > 0) {
+            console.log(chalk.yellow(`  Skipped: ${result.skipped}`));
+          }
+          if (result.errors.length > 0) {
+            console.log(chalk.red(`  Errors: ${result.errors.length}`));
+            result.errors.forEach(e => {
+              console.log(chalk.red(`    - ${e.entry}: ${e.error}`));
+            });
+          }
+        }
+
+        if (result.errors.length > 0) {
+          process.exit(1);
+        }
+      } catch (error: any) {
+        console.error(chalk.red(`Error in ${adapter.tool} ${adapter.subtype} add-all:`), error.message);
         process.exit(1);
       }
     });

@@ -593,6 +593,108 @@ ais remove <alias>
 
 This will automatically configure repositories and link entries.
 
+### Discover and Install All Entries
+
+The `add-all` command automatically discovers and installs **all available configurations** from your rules repository. Unlike `ais install` which reads from config, `add-all` scans the repository filesystem to find all entries.
+
+**Basic Usage:**
+
+```bash
+# Install everything from configured repository (all tools)
+ais add-all
+
+# Install all entries for a specific tool
+ais cursor add-all
+ais copilot add-all
+ais claude add-all
+ais trae add-all
+ais opencode add-all
+
+# Install all entries for a specific subtype
+ais cursor rules add-all
+ais cursor commands add-all
+ais cursor skills add-all
+```
+
+**Options:**
+
+```bash
+# Preview without making changes
+ais add-all --dry-run
+
+# Filter by tool(s) - only for top-level add-all
+ais add-all --tools cursor,copilot
+
+# Filter by adapter(s) - only for top-level add-all
+ais add-all --adapters cursor-rules,cursor-commands
+
+# Force overwrite existing entries
+ais add-all --force
+
+# Interactive mode - confirm each entry
+ais cursor add-all --interactive
+
+# Store in local config (private)
+ais cursor add-all --local
+
+# Skip entries already in config
+ais add-all --skip-existing
+
+# Minimal output
+ais add-all --quiet
+
+# Use specific repository
+ais add-all -t company-rules
+```
+
+**Examples:**
+
+```bash
+# Preview all available Cursor rules
+ais cursor rules add-all --dry-run
+
+# Install all Cursor entries (rules, commands, skills, agents)
+ais cursor add-all
+
+# Install all entries from all tools
+ais add-all
+
+# Install only Cursor and Copilot entries
+ais add-all --tools cursor,copilot
+
+# Interactive installation with confirmation for each entry
+ais cursor add-all --interactive
+
+# Install all as private (local) entries
+ais cursor rules add-all --local
+```
+
+**How it works:**
+
+1. **Discovery**: Scans the repository's source directories for all available entries
+2. **Filtering**: Applies adapter mode rules (file/directory/hybrid) and filters
+3. **Installation**: Creates symlinks and updates config for each discovered entry
+4. **Smart handling**: Respects existing configurations unless `--force` is used
+
+**Output format:**
+
+```
+Discovering entries from repository...
+  cursor-rules: 5 entries
+  cursor-commands: 3 entries
+Total: 8 entries discovered
+
+Installing entries:
+[1/8] cursor-rules/react → .cursor/rules/react ✓
+[2/8] cursor-rules/testing → .cursor/rules/testing ✓
+[3/8] cursor-commands/deploy → .cursor/commands/deploy ✓
+...
+
+Summary:
+  Installed: 7
+  Skipped: 1 (already configured)
+```
+
 ### Git Commands
 
 Use git commands to manage the rules git repository.

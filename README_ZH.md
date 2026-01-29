@@ -613,6 +613,108 @@ ais add <name>
 ais remove <alias>
 ```
 
+### 发现并安装所有条目
+
+`add-all` 命令会自动发现并安装规则仓库中的**所有可用配置**。与读取配置文件的 `ais install` 不同，`add-all` 会扫描仓库文件系统来查找所有条目。
+
+**基本用法：**
+
+```bash
+# 从已配置的仓库安装所有内容（所有工具）
+ais add-all
+
+# 安装特定工具的所有条目
+ais cursor add-all
+ais copilot add-all
+ais claude add-all
+ais trae add-all
+ais opencode add-all
+
+# 安装特定子类型的所有条目
+ais cursor rules add-all
+ais cursor commands add-all
+ais cursor skills add-all
+```
+
+**选项：**
+
+```bash
+# 预览而不做更改
+ais add-all --dry-run
+
+# 按工具过滤 - 仅适用于顶级 add-all
+ais add-all --tools cursor,copilot
+
+# 按适配器过滤 - 仅适用于顶级 add-all
+ais add-all --adapters cursor-rules,cursor-commands
+
+# 强制覆盖已存在的条目
+ais add-all --force
+
+# 交互模式 - 逐个确认
+ais cursor add-all --interactive
+
+# 保存到本地配置（私有）
+ais cursor add-all --local
+
+# 跳过已在配置中的条目
+ais add-all --skip-existing
+
+# 最小化输出
+ais add-all --quiet
+
+# 使用特定仓库
+ais add-all -t company-rules
+```
+
+**示例：**
+
+```bash
+# 预览所有可用的 Cursor 规则
+ais cursor rules add-all --dry-run
+
+# 安装所有 Cursor 条目（规则、命令、技能、代理）
+ais cursor add-all
+
+# 安装所有工具的所有条目
+ais add-all
+
+# 仅安装 Cursor 和 Copilot 条目
+ais add-all --tools cursor,copilot
+
+# 交互式安装，逐个确认
+ais cursor add-all --interactive
+
+# 将所有条目安装为私有（本地）条目
+ais cursor rules add-all --local
+```
+
+**工作原理：**
+
+1. **发现**：扫描仓库的源目录以查找所有可用条目
+2. **过滤**：应用适配器模式规则（file/directory/hybrid）和过滤器
+3. **安装**：为每个发现的条目创建软链接并更新配置
+4. **智能处理**：尊重现有配置，除非使用 `--force`
+
+**输出格式：**
+
+```
+Discovering entries from repository...
+  cursor-rules: 5 entries
+  cursor-commands: 3 entries
+Total: 8 entries discovered
+
+Installing entries:
+[1/8] cursor-rules/react → .cursor/rules/react ✓
+[2/8] cursor-rules/testing → .cursor/rules/testing ✓
+[3/8] cursor-commands/deploy → .cursor/commands/deploy ✓
+...
+
+Summary:
+  Installed: 7
+  Skipped: 1 (already configured)
+```
+
 ### Git 命令代理
 
 你可以在不进入规则仓库目录的情况下，直接对规则仓库执行 Git 命令。
