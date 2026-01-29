@@ -31,14 +31,18 @@ export function registerAdapterCommands(options: RegisterCommandsOptions): void 
     .command('add <name> [alias]')
     .description(`Sync ${adapter.tool} ${entityName} to project`)
     .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
-    .action(async (name: string, alias: string | undefined, cmdOptions: { local?: boolean }) => {
+    .option('-d, --target-dir <dir>', 'Custom target directory for this entry')
+    .action(async (name: string, alias: string | undefined, cmdOptions: { local?: boolean; targetDir?: string }) => {
       try {
         const repo = await getTargetRepo(programOpts());
         await handleAdd(adapter, {
           projectPath: process.cwd(),
           repo,
           isLocal: cmdOptions.local || false
-        }, name, alias);
+        }, name, alias, {
+          local: cmdOptions.local,
+          targetDir: cmdOptions.targetDir
+        });
       } catch (error: any) {
         console.error(chalk.red(`Error adding ${adapter.tool} ${entityName}:`), error.message);
         process.exit(1);

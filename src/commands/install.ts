@@ -121,12 +121,16 @@ export async function installEntriesForAdapter(
         const repoConfig = await findOrCreateRepo(repos, repoUrl, entryName);
         const isLocal = Object.prototype.hasOwnProperty.call(localEntries, key);
 
+        // Extract targetDir from config entry if it exists
+        const targetDir = typeof value === 'object' && value.targetDir ? value.targetDir : undefined;
+
         await adapter.link({
             projectPath,
             name: entryName,
             repo: repoConfig,
             alias,
-            isLocal
+            isLocal,
+            targetDir
         });
     }
 

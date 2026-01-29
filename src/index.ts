@@ -116,6 +116,7 @@ program
   .argument('<name>', 'Rule/Instruction name in the rules repo')
   .argument('[alias]', 'Alias in the project')
   .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
+  .option('-d, --target-dir <dir>', 'Custom target directory for this entry')
   .action(async (name, alias, options) => {
     try {
       const projectPath = process.cwd();
@@ -125,18 +126,25 @@ program
       const opts = program.opts();
       const currentRepo = await getTargetRepo(opts);
 
+      const addOptions = {
+        local: options.local,
+        targetDir: options.targetDir
+      };
+
       if (mode === 'cursor') {
         const adapter = getAdapter('cursor', 'rules');
-        await handleAdd(adapter, { projectPath, repo: currentRepo, isLocal: options.local || false }, name, alias);
+        await handleAdd(adapter, { projectPath, repo: currentRepo, isLocal: options.local || false }, name, alias, addOptions);
       } else if (mode === 'copilot') {
         const adapter = getAdapter('copilot', 'instructions');
-        await handleAdd(adapter, { projectPath, repo: currentRepo, isLocal: options.local || false }, name, alias);
+        await handleAdd(adapter, { projectPath, repo: currentRepo, isLocal: options.local || false }, name, alias, addOptions);
       } else if (mode === 'claude') {
         throw new Error('For Claude components, please use "ais claude skills/agents add" explicitly.');
       } else if (mode === 'trae') {
         throw new Error('For Trae components, please use "ais trae rules/skills add" explicitly.');
       } else if (mode === 'opencode') {
-        throw new Error('For OpenCode components, please use "ais opencode rules/agents/skills/commands/custom-tools add" explicitly.');
+        throw new Error('For OpenCode components, please use "ais opencode agents/skills/commands/tools add" explicitly.');
+      } else if (mode === 'agents-md') {
+        throw new Error('For AGENTS.md files, please use "ais agents-md add" explicitly.');
       }
     } catch (error: any) {
       console.error(chalk.red('Error adding entry:'), error.message);
@@ -228,6 +236,9 @@ program
       if (mode === 'opencode' || mode === 'ambiguous') {
         await installEntriesForTool(adapterRegistry.getForTool('opencode'), projectPath);
       }
+      if (mode === 'agents-md' || mode === 'ambiguous') {
+        await installEntriesForTool(adapterRegistry.getForTool('agents-md'), projectPath);
+      }
     } catch (error: any) {
       console.error(chalk.red('Error installing entries:'), error.message);
       process.exit(1);
@@ -282,11 +293,15 @@ cursor
   .command('add <name> [alias]')
   .description('Sync Cursor rules to project (.cursor/rules/...)')
   .option('-l, --local', 'Add to ai-rules-sync.local.json (private rule)')
+  .option('-d, --target-dir <dir>', 'Custom target directory for this entry')
   .action(async (name, alias, options) => {
     try {
       const repo = await getTargetRepo(program.opts());
       const adapter = getAdapter('cursor', 'rules');
-      await handleAdd(adapter, { projectPath: process.cwd(), repo, isLocal: options.local || false }, name, alias);
+      await handleAdd(adapter, { projectPath: process.cwd(), repo, isLocal: options.local || false }, name, alias, {
+        local: options.local,
+        targetDir: options.targetDir
+      });
     } catch (error: any) {
       console.error(chalk.red('Error adding Cursor rule:'), error.message);
       process.exit(1);
@@ -381,11 +396,15 @@ copilot
   .command('add <name> [alias]')
   .description('Sync Copilot instruction to project (.github/instructions/...)')
   .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
+  .option('-d, --target-dir <dir>', 'Custom target directory for this entry')
   .action(async (name, alias, options) => {
     try {
       const repo = await getTargetRepo(program.opts());
       const adapter = getAdapter('copilot', 'instructions');
-      await handleAdd(adapter, { projectPath: process.cwd(), repo, isLocal: options.local || false }, name, alias);
+      await handleAdd(adapter, { projectPath: process.cwd(), repo, isLocal: options.local || false }, name, alias, {
+        local: options.local,
+        targetDir: options.targetDir
+      });
     } catch (error: any) {
       console.error(chalk.red('Error adding Copilot instruction:'), error.message);
       process.exit(1);
@@ -490,14 +509,21 @@ registerAdapterCommands({ adapter: getAdapter('trae', 'rules'), parentCommand: t
 const traeSkills = trae.command('skills').description('Manage Trae skills');
 registerAdapterCommands({ adapter: getAdapter('trae', 'skills'), parentCommand: traeSkills, programOpts: () => program.opts() });
 
+// ============ AGENTS.md command group ============
+const agentsMd = program
+  .command('agents-md')
+  .description('Manage AGENTS.md files (agents.md standard)');
+
+registerAdapterCommands({ adapter: getAdapter('agents-md', 'file'), parentCommand: agentsMd, programOpts: () => program.opts() });
+
 // ============ OpenCode command group ============
 const opencode = program
   .command('opencode')
-  .description('Manage OpenCode rules, agents, skills, commands, and custom-tools in a project');
+  .description('Manage OpenCode agents, skills, commands, and tools in a project');
 
 opencode
   .command('install')
-  .description('Install all OpenCode rules, agents, skills, commands, and custom-tools from config')
+  .description('Install all OpenCode agents, skills, commands, and tools from config')
   .action(async () => {
     try {
       await installEntriesForTool(adapterRegistry.getForTool('opencode'), process.cwd());
@@ -510,7 +536,7 @@ opencode
 // opencode import
 opencode
   .command('import <name>')
-  .description('Import OpenCode rule/agent/skill/command/custom-tool from project to repository (auto-detects subtype)')
+  .description('Import OpenCode agent/skill/command/tool from project to repository (auto-detects subtype)')
   .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
   .option('-m, --message <message>', 'Custom git commit message')
   .option('-f, --force', 'Overwrite if entry already exists in repository')
@@ -531,7 +557,7 @@ opencode
       }
 
       if (!foundAdapter) {
-        throw new Error(`Entry "${name}" not found in .opencode/rules, .opencode/agents, .opencode/skills, .opencode/commands, or .opencode/custom-tools.`);
+        throw new Error(`Entry "${name}" not found in .opencode/agents, .opencode/skills, .opencode/commands, or .opencode/tools.`);
       }
 
       console.log(chalk.gray(`Detected ${foundAdapter.subtype}: ${name}`));
@@ -542,9 +568,6 @@ opencode
     }
   });
 
-const opencodeRules = opencode.command('rules').description('Manage OpenCode rules');
-registerAdapterCommands({ adapter: getAdapter('opencode', 'rules'), parentCommand: opencodeRules, programOpts: () => program.opts() });
-
 const opencodeAgents = opencode.command('agents').description('Manage OpenCode agents');
 registerAdapterCommands({ adapter: getAdapter('opencode', 'agents'), parentCommand: opencodeAgents, programOpts: () => program.opts() });
 
@@ -554,8 +577,8 @@ registerAdapterCommands({ adapter: getAdapter('opencode', 'skills'), parentComma
 const opencodeCommands = opencode.command('commands').description('Manage OpenCode commands');
 registerAdapterCommands({ adapter: getAdapter('opencode', 'commands'), parentCommand: opencodeCommands, programOpts: () => program.opts() });
 
-const opencodeCustomTools = opencode.command('custom-tools').description('Manage OpenCode custom-tools');
-registerAdapterCommands({ adapter: getAdapter('opencode', 'custom-tools'), parentCommand: opencodeCustomTools, programOpts: () => program.opts() });
+const opencodeTools = opencode.command('tools').description('Manage OpenCode tools');
+registerAdapterCommands({ adapter: getAdapter('opencode', 'tools'), parentCommand: opencodeTools, programOpts: () => program.opts() });
 
 // ============ Git command ============
 program
@@ -576,7 +599,7 @@ program
 // ============ Internal _complete command ============
 program
   .command('_complete')
-  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, cursor-agents, copilot, claude-skills, claude-agents, trae-rules, trae-skills, opencode-rules, opencode-agents, opencode-skills, opencode-commands, opencode-custom-tools')
+  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, cursor-agents, copilot, claude-skills, claude-agents, trae-rules, trae-skills, opencode-agents, opencode-skills, opencode-commands, opencode-tools, agents-md')
   .description('Internal command for shell completion')
   .action(async (type: string) => {
     try {
@@ -623,9 +646,6 @@ program
         case 'trae-skills':
           sourceDir = getSourceDir(repoConfig, 'trae', 'skills', '.trae/skills');
           break;
-        case 'opencode-rules':
-          sourceDir = getSourceDir(repoConfig, 'opencode', 'rules', '.opencode/rules');
-          break;
         case 'opencode-agents':
           sourceDir = getSourceDir(repoConfig, 'opencode', 'agents', '.opencode/agents');
           break;
@@ -635,8 +655,11 @@ program
         case 'opencode-commands':
           sourceDir = getSourceDir(repoConfig, 'opencode', 'commands', '.opencode/commands');
           break;
-        case 'opencode-custom-tools':
-          sourceDir = getSourceDir(repoConfig, 'opencode', 'custom-tools', '.opencode/custom-tools');
+        case 'opencode-tools':
+          sourceDir = getSourceDir(repoConfig, 'opencode', 'tools', '.opencode/tools');
+          break;
+        case 'agents-md':
+          sourceDir = getSourceDir(repoConfig, 'agents-md', 'file', 'agents-md');
           break;
         default:
           process.exit(0);

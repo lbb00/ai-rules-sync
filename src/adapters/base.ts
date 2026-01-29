@@ -39,8 +39,8 @@ export function createBaseAdapter(config: AdapterConfig): SyncAdapter {
         resolveSource: config.resolveSource,
         resolveTargetName: config.resolveTargetName,
 
-        async addDependency(projectPath, name, repoUrl, alias, isLocal = false) {
-            return addDependencyGeneric(projectPath, config.configPath, name, repoUrl, alias, isLocal);
+        async addDependency(projectPath, name, repoUrl, alias, isLocal = false, targetDir) {
+            return addDependencyGeneric(projectPath, config.configPath, name, repoUrl, alias, isLocal, targetDir);
         },
 
         async removeDependency(projectPath, alias) {

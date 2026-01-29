@@ -702,6 +702,110 @@ ais opencode tools add <Tab>    # 列出可用的 OpenCode 工具
 autoload -Uz compinit && compinit
 ```
 
+## 自定义目标目录
+
+默认情况下，AIS 会将规则同步到标准工具目录（例如 `.cursor/rules/`、`.github/instructions/` 等）。你可以为每个条目自定义目标目录，以不同方式组织规则。
+
+### 使用场景
+
+- **文档项目**：将所有 AI 配置组织在 `docs/ai/` 下
+- **Monorepo**：为不同的包使用不同的目录
+- **自定义组织**：遵循团队的目录结构规范
+
+### CLI 使用
+
+添加条目时使用 `-d` 或 `--target-dir` 选项：
+
+```bash
+# 将规则添加到自定义目录
+ais cursor add my-rule -d docs/ai/rules
+
+# 将 Copilot 指令添加到自定义目录
+ais copilot add coding-style -d docs/copilot
+
+# Monorepo：不同的包使用不同的位置
+ais cursor add react-rules frontend-rules -d packages/frontend/.cursor/rules
+ais cursor add node-rules backend-rules -d packages/backend/.cursor/rules
+```
+
+### 将同一规则添加到多个位置
+
+要将同一个源规则添加到多个位置，你**必须使用别名**以避免配置键冲突：
+
+```bash
+# 第一个位置（无需别名）
+ais cursor add auth-rules -d packages/frontend/.cursor/rules
+
+# 第二个位置（需要别名）
+ais cursor add auth-rules backend-auth -d packages/backend/.cursor/rules
+
+# 第三个位置（需要别名）
+ais cursor add auth-rules mobile-auth -d packages/mobile/.cursor/rules
+```
+
+如果不使用别名，AIS 会检测到冲突并显示错误：
+```
+Error: Entry "auth-rules.mdc" already exists in configuration (target: packages/frontend/.cursor/rules).
+To add the same rule to a different location, use an alias:
+  ais cursor add auth-rules <alias> -d packages/backend/.cursor/rules
+```
+
+### 配置格式
+
+当你使用自定义目标目录时，配置会使用对象格式：
+
+```json
+{
+  "cursor": {
+    "rules": {
+      "standard-rule": "https://github.com/company/rules",
+
+      "docs-rule": {
+        "url": "https://github.com/company/rules",
+        "targetDir": "docs/ai/rules"
+      },
+
+      "frontend-auth": {
+        "url": "https://github.com/company/rules",
+        "rule": "auth-rules",
+        "targetDir": "packages/frontend/.cursor/rules"
+      },
+      "backend-auth": {
+        "url": "https://github.com/company/rules",
+        "rule": "auth-rules",
+        "targetDir": "packages/backend/.cursor/rules"
+      }
+    }
+  }
+}
+```
+
+**关键点：**
+- 没有 `targetDir` 的条目使用默认工具目录
+- 使用别名时，`rule` 字段指定实际的源文件名
+- 每个条目都是独立的，可以单独删除
+
+### Install 命令
+
+`install` 命令会遵循配置中的自定义目标目录：
+
+```bash
+# 删除所有软链接并在其配置的位置重新创建它们
+ais cursor install
+```
+
+### 删除条目
+
+使用配置键（可能是别名）删除条目：
+
+```bash
+# 通过配置键删除
+ais cursor remove frontend-auth
+ais cursor remove backend-auth
+
+# 源规则不受影响，只删除特定的软链接
+```
+
 ## 架构
 
 AIS 使用基于插件的适配器架构，具有统一的操作接口：

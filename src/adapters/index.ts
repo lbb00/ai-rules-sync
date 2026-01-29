@@ -8,11 +8,11 @@ import { cursorSkillsAdapter } from './cursor-skills.js';
 import { cursorAgentsAdapter } from './cursor-agents.js';
 import { traeRulesAdapter } from './trae-rules.js';
 import { traeSkillsAdapter } from './trae-skills.js';
-import { opencodeRulesAdapter } from './opencode-rules.js';
 import { opencodeAgentsAdapter } from './opencode-agents.js';
 import { opencodeSkillsAdapter } from './opencode-skills.js';
 import { opencodeCommandsAdapter } from './opencode-commands.js';
-import { opencodeCustomToolsAdapter } from './opencode-custom-tools.js';
+import { opencodeToolsAdapter } from './opencode-tools.js';
+import { agentsMdAdapter } from './agents-md.js';
 import { ProjectConfig } from '../project-config.js';
 
 // Re-export types and utilities
@@ -38,11 +38,11 @@ class DefaultAdapterRegistry implements AdapterRegistry {
         this.register(claudeAgentsAdapter);
         this.register(traeRulesAdapter);
         this.register(traeSkillsAdapter);
-        this.register(opencodeRulesAdapter);
         this.register(opencodeAgentsAdapter);
         this.register(opencodeSkillsAdapter);
         this.register(opencodeCommandsAdapter);
-        this.register(opencodeCustomToolsAdapter);
+        this.register(opencodeToolsAdapter);
+        this.register(agentsMdAdapter);
     }
 
     register(adapter: SyncAdapter): void {
@@ -142,9 +142,6 @@ export function findAdapterForAlias(
     if (cfg.trae?.skills?.[alias]) {
         return { adapter: traeSkillsAdapter, section: 'trae.skills' };
     }
-    if (cfg.opencode?.rules?.[alias]) {
-        return { adapter: opencodeRulesAdapter, section: 'opencode.rules' };
-    }
     if (cfg.opencode?.agents?.[alias]) {
         return { adapter: opencodeAgentsAdapter, section: 'opencode.agents' };
     }
@@ -154,8 +151,11 @@ export function findAdapterForAlias(
     if (cfg.opencode?.commands?.[alias]) {
         return { adapter: opencodeCommandsAdapter, section: 'opencode.commands' };
     }
-    if (cfg.opencode?.['custom-tools']?.[alias]) {
-        return { adapter: opencodeCustomToolsAdapter, section: 'opencode.custom-tools' };
+    if (cfg.opencode?.tools?.[alias]) {
+        return { adapter: opencodeToolsAdapter, section: 'opencode.tools' };
+    }
+    if (cfg.agentsMd?.[alias]) {
+        return { adapter: agentsMdAdapter, section: 'agentsMd' };
     }
     return null;
 }

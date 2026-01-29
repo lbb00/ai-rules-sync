@@ -677,6 +677,110 @@ ais trae skills add <Tab>    # Lists available skills
 autoload -Uz compinit && compinit
 ```
 
+## Custom Target Directories
+
+By default, AIS syncs rules to standard tool directories (e.g., `.cursor/rules/`, `.github/instructions/`). You can customize the target directory for each entry to organize rules differently.
+
+### Use Cases
+
+- **Documentation projects**: Organize all AI configs under `docs/ai/`
+- **Monorepos**: Use different directories for different packages
+- **Custom organization**: Follow your team's directory structure
+
+### CLI Usage
+
+Use the `-d` or `--target-dir` option when adding entries:
+
+```bash
+# Add rule to custom directory
+ais cursor add my-rule -d docs/ai/rules
+
+# Add Copilot instruction to custom directory
+ais copilot add coding-style -d docs/copilot
+
+# Monorepo: Different packages with different locations
+ais cursor add react-rules frontend-rules -d packages/frontend/.cursor/rules
+ais cursor add node-rules backend-rules -d packages/backend/.cursor/rules
+```
+
+### Adding Same Rule to Multiple Locations
+
+To add the same source rule to multiple locations, you **must use an alias** to avoid configuration key conflicts:
+
+```bash
+# First location (no alias needed)
+ais cursor add auth-rules -d packages/frontend/.cursor/rules
+
+# Second location (alias required)
+ais cursor add auth-rules backend-auth -d packages/backend/.cursor/rules
+
+# Third location (alias required)
+ais cursor add auth-rules mobile-auth -d packages/mobile/.cursor/rules
+```
+
+Without an alias, AIS will detect the conflict and show an error:
+```
+Error: Entry "auth-rules.mdc" already exists in configuration (target: packages/frontend/.cursor/rules).
+To add the same rule to a different location, use an alias:
+  ais cursor add auth-rules <alias> -d packages/backend/.cursor/rules
+```
+
+### Configuration Format
+
+When you use custom target directories, the configuration uses an object format:
+
+```json
+{
+  "cursor": {
+    "rules": {
+      "standard-rule": "https://github.com/company/rules",
+
+      "docs-rule": {
+        "url": "https://github.com/company/rules",
+        "targetDir": "docs/ai/rules"
+      },
+
+      "frontend-auth": {
+        "url": "https://github.com/company/rules",
+        "rule": "auth-rules",
+        "targetDir": "packages/frontend/.cursor/rules"
+      },
+      "backend-auth": {
+        "url": "https://github.com/company/rules",
+        "rule": "auth-rules",
+        "targetDir": "packages/backend/.cursor/rules"
+      }
+    }
+  }
+}
+```
+
+**Key points:**
+- Entries without `targetDir` use the default tool directory
+- The `rule` field specifies the actual source file name when using an alias
+- Each entry is independent and can be removed separately
+
+### Install Command
+
+The `install` command respects custom target directories from your configuration:
+
+```bash
+# Removes all symlinks and recreates them in their configured locations
+ais cursor install
+```
+
+### Removing Entries
+
+Remove entries using their configuration key (which may be the alias):
+
+```bash
+# Remove by config key
+ais cursor remove frontend-auth
+ais cursor remove backend-auth
+
+# The source rule is not affected, only the specific symlink
+```
+
 ## Architecture
 
 AIS uses a plugin-based adapter architecture with unified operations:

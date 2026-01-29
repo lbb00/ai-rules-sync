@@ -8,7 +8,14 @@ const LOCAL_CONFIG_FILENAME = 'ai-rules-sync.local.json';
 const LEGACY_CONFIG_FILENAME = 'cursor-rules.json';
 const LEGACY_LOCAL_CONFIG_FILENAME = 'cursor-rules.local.json';
 
-export type RuleEntry = string | { url: string; rule?: string };
+/**
+ * Extended rule entry with optional targetDir
+ */
+export type RuleEntry = string | {
+    url: string;
+    rule?: string;
+    targetDir?: string;  // Entry-level custom target directory
+};
 
 /**
  * Source directory configuration (for rules repositories)
@@ -365,6 +372,45 @@ export function getSourceDir(
     return rootPath ? path.join(rootPath, dir) : dir;
 }
 
+/**
+ * Get entry configuration from project config
+ */
+export function getEntryConfig(
+    projectConfig: ProjectConfig,
+    tool: string,
+    subtype: string,
+    key: string
+): RuleEntry | undefined {
+    const toolConfig = (projectConfig as any)[tool];
+    if (!toolConfig) return undefined;
+
+    const subtypeConfig = toolConfig[subtype];
+    if (!subtypeConfig) return undefined;
+
+    return subtypeConfig[key];
+}
+
+/**
+ * Get the target directory for a specific tool type from project config.
+ * Priority: entry-level targetDir > adapter default
+ */
+export function getTargetDir(
+    projectConfig: ProjectConfig,
+    tool: string,
+    subtype: string,
+    key: string,
+    defaultDir: string
+): string {
+    // 1. Check entry-level targetDir (highest priority)
+    const entry = getEntryConfig(projectConfig, tool, subtype, key);
+    if (entry && typeof entry === 'object' && entry.targetDir) {
+        return path.normalize(entry.targetDir);
+    }
+
+    // 2. Fall back to adapter default (lowest priority)
+    return defaultDir;
+}
+
 export async function getCombinedProjectConfig(projectPath: string): Promise<ProjectConfig> {
     const source = await getConfigSource(projectPath);
 
@@ -431,6 +477,7 @@ async function writeNewConfig(projectPath: string, isLocal: boolean, config: Pro
  * @param repoUrl - Repository URL
  * @param alias - Optional alias for the dependency
  * @param isLocal - Whether to store in local config
+ * @param targetDir - Optional custom target directory for this entry
  */
 export async function addDependencyGeneric(
     projectPath: string,
@@ -438,7 +485,8 @@ export async function addDependencyGeneric(
     name: string,
     repoUrl: string,
     alias?: string,
-    isLocal: boolean = false
+    isLocal: boolean = false,
+    targetDir?: string
 ): Promise<{ migrated: boolean }> {
     const migration = await migrateLegacyToNew(projectPath);
     const config = await readNewConfigForWrite(projectPath, isLocal);
@@ -450,10 +498,22 @@ export async function addDependencyGeneric(
     (config as any)[topLevel][subLevel] ??= {};
 
     const targetName = alias || name;
-    (config as any)[topLevel][subLevel][targetName] =
-        alias && alias !== name
-            ? { url: repoUrl, rule: name }
-            : repoUrl;
+
+    // Build entry value
+    let entryValue: RuleEntry;
+    if (targetDir || (alias && alias !== name)) {
+        // Use object format if targetDir is specified or if alias is different from name
+        entryValue = {
+            url: repoUrl,
+            ...(alias && alias !== name ? { rule: name } : {}),
+            ...(targetDir ? { targetDir } : {})
+        };
+    } else {
+        // Use simple string format
+        entryValue = repoUrl;
+    }
+
+    (config as any)[topLevel][subLevel][targetName] = entryValue;
 
     await writeNewConfig(projectPath, isLocal, config);
     return migration;

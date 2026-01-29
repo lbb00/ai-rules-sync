@@ -20,6 +20,14 @@ export interface CommandContext {
 }
 
 /**
+ * Options for add command
+ */
+export interface AddOptions {
+  local?: boolean;
+  targetDir?: string;
+}
+
+/**
  * Result of an add operation
  */
 export interface AddResult {
@@ -36,16 +44,54 @@ export async function handleAdd(
   adapter: SyncAdapter,
   ctx: CommandContext,
   name: string,
-  alias?: string
+  alias?: string,
+  options?: AddOptions
 ): Promise<AddResult> {
   console.log(chalk.gray(`Using repository: ${chalk.cyan(ctx.repo.name)} (${ctx.repo.url})`));
+
+  // Pre-check for conflict if using targetDir without alias
+  // This is a best-effort check using the input name, but may not catch all cases
+  // due to suffix resolution happening during link
+  if (options?.targetDir && !alias) {
+    const { getCombinedProjectConfig, getEntryConfig } = await import('../project-config.js');
+    const projectConfig = await getCombinedProjectConfig(ctx.projectPath);
+
+    // Check with the input name first
+    let existingEntry = getEntryConfig(projectConfig, adapter.tool, adapter.subtype, name);
+    let foundKey = name;
+
+    // Also check common suffix variations for file-based adapters
+    const suffixes = adapter.fileSuffixes || adapter.hybridFileSuffixes;
+    if (!existingEntry && suffixes) {
+      for (const suffix of suffixes) {
+        const nameWithSuffix = name.endsWith(suffix) ? name : `${name}${suffix}`;
+        existingEntry = getEntryConfig(projectConfig, adapter.tool, adapter.subtype, nameWithSuffix);
+        if (existingEntry) {
+          foundKey = nameWithSuffix;
+          break;
+        }
+      }
+    }
+
+    if (existingEntry) {
+      const existingTargetDir = typeof existingEntry === 'object' ? existingEntry.targetDir : undefined;
+      if (existingTargetDir !== options.targetDir) {
+        throw new Error(
+          `Entry "${foundKey}" already exists in configuration (target: ${existingTargetDir || adapter.targetDir}).\n` +
+          `To add the same rule to a different location, use an alias:\n` +
+          `  ais ${adapter.tool} add ${name} <alias> -d ${options.targetDir}`
+        );
+      }
+    }
+  }
 
   const result = await adapter.link({
     projectPath: ctx.projectPath,
     name,
     repo: ctx.repo,
     alias,
-    isLocal: ctx.isLocal
+    isLocal: ctx.isLocal,
+    targetDir: options?.targetDir
   });
 
   // Use the provided alias if given, otherwise use targetName if different from sourceName
@@ -55,7 +101,8 @@ export async function handleAdd(
     result.sourceName,
     ctx.repo.url,
     depAlias,
-    ctx.isLocal
+    ctx.isLocal,
+    options?.targetDir
   );
 
   const configFileName = ctx.isLocal ? 'ai-rules-sync.local.json' : 'ai-rules-sync.json';

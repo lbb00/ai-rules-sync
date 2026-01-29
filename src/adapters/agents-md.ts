@@ -144,17 +144,27 @@ export const agentsMdAdapter: SyncAdapter = {
   ...baseAdapter,
 
   // Custom addDependency that writes to flat agentsMd structure
-  async addDependency(projectPath: string, name: string, repoUrl: string, alias?: string, isLocal: boolean = false): Promise<{ migrated: boolean }> {
+  async addDependency(projectPath: string, name: string, repoUrl: string, alias?: string, isLocal: boolean = false, targetDir?: string): Promise<{ migrated: boolean }> {
     const configPath = path.join(projectPath, isLocal ? LOCAL_CONFIG_FILENAME : CONFIG_FILENAME);
     const config = await readConfigFile<any>(configPath);
 
     config.agentsMd ??= {};
 
     const targetName = alias || name;
-    config.agentsMd[targetName] =
-      alias && alias !== name
-        ? { url: repoUrl, rule: name }
-        : repoUrl;
+
+    // Build entry value
+    let entryValue: any;
+    if (targetDir || (alias && alias !== name)) {
+      entryValue = {
+        url: repoUrl,
+        ...(alias && alias !== name ? { rule: name } : {}),
+        ...(targetDir ? { targetDir } : {})
+      };
+    } else {
+      entryValue = repoUrl;
+    }
+
+    config.agentsMd[targetName] = entryValue;
 
     await writeConfigFile(configPath, config);
     return { migrated: false };

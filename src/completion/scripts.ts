@@ -118,9 +118,9 @@ _ais_complete() {
     return 0
   fi
 
-  # opencode rules
-  if [[ "\$ppprev" == "opencode" && "\$pprev" == "rules" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete opencode-rules 2>/dev/null)" -- "\$cur") )
+  # agents-md add
+  if [[ "\$pprev" == "agents-md" && "\$prev" == "add" ]]; then
+    COMPREPLY=( $(compgen -W "$(ais _complete agents-md 2>/dev/null)" -- "\$cur") )
     return 0
   fi
 
@@ -142,15 +142,15 @@ _ais_complete() {
     return 0
   fi
 
-  # opencode custom-tools
-  if [[ "\$ppprev" == "opencode" && "\$pprev" == "custom-tools" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete opencode-custom-tools 2>/dev/null)" -- "\$cur") )
+  # opencode tools
+  if [[ "\$ppprev" == "opencode" && "\$pprev" == "tools" && "\$prev" == "add" ]]; then
+    COMPREPLY=( $(compgen -W "$(ais _complete opencode-tools 2>/dev/null)" -- "\$cur") )
     return 0
   fi
 
-  # opencode rules
-  if [[ "\$pprev" == "opencode" && "\$prev" == "rules" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
+  # agents-md
+  if [[ "\$pprev" == "agents-md" && "\$prev" == "add" ]]; then
+    COMPREPLY=( $(compgen -W "$(ais _complete agents-md 2>/dev/null)" -- "\$cur") )
     return 0
   fi
 
@@ -172,8 +172,14 @@ _ais_complete() {
     return 0
   fi
 
-  # opencode custom-tools
-  if [[ "\$pprev" == "opencode" && "\$prev" == "custom-tools" ]]; then
+  # opencode tools
+  if [[ "\$pprev" == "opencode" && "\$prev" == "tools" ]]; then
+    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
+    return 0
+  fi
+
+  # agents-md
+  if [[ "\$prev" == "agents-md" ]]; then
     COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
     return 0
   fi
@@ -199,12 +205,12 @@ _ais_complete() {
   fi
 
   if [[ "\$prev" == "opencode" ]]; then
-    COMPREPLY=( $(compgen -W "rules agents skills commands custom-tools install import" -- "\$cur") )
+    COMPREPLY=( $(compgen -W "agents skills commands tools install import" -- "\$cur") )
     return 0
   fi
 
   if [[ "\$prev" == "ais" ]]; then
-    COMPREPLY=( $(compgen -W "cursor copilot claude trae opencode use list git add remove install import completion" -- "\$cur") )
+    COMPREPLY=( $(compgen -W "cursor copilot claude trae opencode agents-md use list git add remove install import completion" -- "\$cur") )
     return 0
   fi
 }
@@ -220,7 +226,8 @@ subcmds=(
     'copilot:Manage Copilot instructions'
     'claude:Manage Claude skills, agents, and plugins'
     'trae:Manage Trae rules and skills'
-    'opencode:Manage OpenCode rules, agents, skills, commands, and custom-tools'
+    'opencode:Manage OpenCode agents, skills, commands, and tools'
+    'agents-md:Manage AGENTS.md files (agents.md standard)'
     'use:Configure rules repository'
     'list:List configured repositories'
     'git:Run git commands in rules repository'
@@ -231,12 +238,13 @@ subcmds=(
     'completion:Output shell completion script'
   )
 
-  local -a cursor_subcmds copilot_subcmds claude_subcmds trae_subcmds opencode_subcmds cursor_rules_subcmds cursor_commands_subcmds cursor_skills_subcmds cursor_agents_subcmds claude_skills_subcmds claude_agents_subcmds trae_rules_subcmds trae_skills_subcmds opencode_rules_subcmds opencode_agents_subcmds opencode_skills_subcmds opencode_commands_subcmds opencode_custom_tools_subcmds
+  local -a cursor_subcmds copilot_subcmds claude_subcmds trae_subcmds opencode_subcmds agents_md_subcmds cursor_rules_subcmds cursor_commands_subcmds cursor_skills_subcmds cursor_agents_subcmds claude_skills_subcmds claude_agents_subcmds trae_rules_subcmds trae_skills_subcmds opencode_agents_subcmds opencode_skills_subcmds opencode_commands_subcmds opencode_tools_subcmds
   cursor_subcmds=('add:Add a Cursor rule' 'remove:Remove a Cursor rule' 'install:Install all Cursor entries' 'import:Import entry to repository' 'rules:Manage rules explicitly' 'commands:Manage commands' 'skills:Manage skills' 'agents:Manage agents')
   copilot_subcmds=('add:Add a Copilot instruction' 'remove:Remove a Copilot instruction' 'install:Install all Copilot instructions' 'import:Import instruction to repository')
   claude_subcmds=('skills:Manage Claude skills' 'agents:Manage Claude agents' 'install:Install all Claude components')
   trae_subcmds=('rules:Manage Trae rules' 'skills:Manage Trae skills' 'install:Install all Trae entries')
-  opencode_subcmds=('rules:Manage OpenCode rules' 'agents:Manage OpenCode agents' 'skills:Manage OpenCode skills' 'commands:Manage OpenCode commands' 'custom-tools:Manage OpenCode custom-tools' 'install:Install all OpenCode entries' 'import:Import entry to repository')
+  opencode_subcmds=('agents:Manage OpenCode agents' 'skills:Manage OpenCode skills' 'commands:Manage OpenCode commands' 'tools:Manage OpenCode tools' 'install:Install all OpenCode entries' 'import:Import entry to repository')
+  agents_md_subcmds=('add:Add an AGENTS.md file' 'remove:Remove an AGENTS.md file' 'install:Install AGENTS.md' 'import:Import AGENTS.md to repository')
   cursor_rules_subcmds=('add:Add a Cursor rule' 'remove:Remove a Cursor rule' 'install:Install all Cursor rules' 'import:Import rule to repository')
   cursor_commands_subcmds=('add:Add a Cursor command' 'remove:Remove a Cursor command' 'install:Install all Cursor commands' 'import:Import command to repository')
   cursor_skills_subcmds=('add:Add a Cursor skill' 'remove:Remove a Cursor skill' 'install:Install all Cursor skills' 'import:Import skill to repository')
@@ -245,11 +253,10 @@ subcmds=(
   claude_agents_subcmds=('add:Add a Claude agent' 'remove:Remove a Claude agent' 'install:Install all Claude agents' 'import:Import agent to repository')
   trae_rules_subcmds=('add:Add a Trae rule' 'remove:Remove a Trae rule' 'install:Install all Trae rules' 'import:Import rule to repository')
   trae_skills_subcmds=('add:Add a Trae skill' 'remove:Remove a Trae skill' 'install:Install all Trae skills' 'import:Import skill to repository')
-  opencode_rules_subcmds=('add:Add an OpenCode rule' 'remove:Remove an OpenCode rule' 'install:Install all OpenCode rules' 'import:Import rule to repository')
   opencode_agents_subcmds=('add:Add an OpenCode agent' 'remove:Remove an OpenCode agent' 'install:Install all OpenCode agents' 'import:Import agent to repository')
   opencode_skills_subcmds=('add:Add an OpenCode skill' 'remove:Remove an OpenCode skill' 'install:Install all OpenCode skills' 'import:Import skill to repository')
   opencode_commands_subcmds=('add:Add an OpenCode command' 'remove:Remove an OpenCode command' 'install:Install all OpenCode commands' 'import:Import command to repository')
-  opencode_custom_tools_subcmds=('add:Add an OpenCode custom-tool' 'remove:Remove an OpenCode custom-tool' 'install:Install all OpenCode custom-tools' 'import:Import custom-tool to repository')
+  opencode_tools_subcmds=('add:Add an OpenCode tool' 'remove:Remove an OpenCode tool' 'install:Install all OpenCode tools' 'import:Import tool to repository')
 
   _arguments -C \\
     '1:command:->command' \\
@@ -278,6 +285,9 @@ subcmds=(
           ;;
         opencode)
           _describe 'subcommand' opencode_subcmds
+          ;;
+        agents-md)
+          _describe 'subcommand' agents_md_subcmds
           ;;
       esac
       ;;
@@ -351,9 +361,6 @@ subcmds=(
           ;;
         opencode)
           case "\$words[3]" in
-            rules)
-              _describe 'subsubcommand' opencode_rules_subcmds
-              ;;
             agents)
               _describe 'subsubcommand' opencode_agents_subcmds
               ;;
@@ -363,11 +370,25 @@ subcmds=(
             commands)
               _describe 'subsubcommand' opencode_commands_subcmds
               ;;
-            custom-tools)
-              _describe 'subsubcommand' opencode_custom_tools_subcmds
+            tools)
+              _describe 'subsubcommand' opencode_tools_subcmds
               ;;
             *)
               _describe 'subsubcommand' opencode_subcmds
+              ;;
+          esac
+          ;;
+        agents-md)
+          case "\$words[3]" in
+            add)
+              local -a agents_md
+              agents_md=(\${(f)"\$(ais _complete agents-md 2>/dev/null)"})
+              if (( \$#agents_md )); then
+                compadd "\$agents_md[@]"
+              fi
+              ;;
+            *)
+              _describe 'subsubcommand' agents_md_subcmds
               ;;
           esac
           ;;
@@ -495,17 +516,6 @@ subcmds=(
           ;;
         opencode)
           case \"\$words[3]\" in
-            rules)
-              case \"\$words[4]\" in
-                add)
-                  local -a rules
-                  rules=(\${(f)\"$(ais _complete opencode-rules 2>/dev/null)\"})
-                  if (( \$#rules )); then
-                    compadd \"\$rules[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
             agents)
               case \"\$words[4]\" in
                 add)
@@ -539,16 +549,27 @@ subcmds=(
                   ;;
               esac
               ;;
-            custom-tools)
+            tools)
               case \"\$words[4]\" in
                 add)
-                  local -a custom_tools
-                  custom_tools=(\${(f)\"$(ais _complete opencode-custom-tools 2>/dev/null)\"})
-                  if (( \$#custom_tools )); then
-                    compadd \"\$custom_tools[@]\"
+                  local -a tools
+                  tools=(\${(f)\"$(ais _complete opencode-tools 2>/dev/null)\"})
+                  if (( \$#tools )); then
+                    compadd \"\$tools[@]\"
                   fi
                   ;;
               esac
+              ;;
+          esac
+          ;;
+        agents-md)
+          case \"\$words[3]\" in
+            add)
+              local -a agents_md
+              agents_md=(\${(f)\"$(ais _complete agents-md 2>/dev/null)\"})
+              if (( \$#agents_md )); then
+                compadd \"\$agents_md[@]\"
+              fi
               ;;
           esac
           ;;
@@ -573,7 +594,8 @@ complete -c ais -n "__fish_use_subcommand" -a "cursor" -d "Manage Cursor rules, 
 complete -c ais -n "__fish_use_subcommand" -a "copilot" -d "Manage Copilot instructions"
 complete -c ais -n "__fish_use_subcommand" -a "claude" -d "Manage Claude skills, agents, and plugins"
 complete -c ais -n "__fish_use_subcommand" -a "trae" -d "Manage Trae rules and skills"
-complete -c ais -n "__fish_use_subcommand" -a "opencode" -d "Manage OpenCode rules, agents, skills, commands, and custom-tools"
+complete -c ais -n "__fish_use_subcommand" -a "opencode" -d "Manage OpenCode agents, skills, commands, and tools"
+complete -c ais -n "__fish_use_subcommand" -a "agents-md" -d "Manage AGENTS.md files (agents.md standard)"
 complete -c ais -n "__fish_use_subcommand" -a "use" -d "Configure rules repository"
 complete -c ais -n "__fish_use_subcommand" -a "list" -d "List configured repositories"
 complete -c ais -n "__fish_use_subcommand" -a "git" -d "Run git commands in rules repository"
@@ -658,19 +680,12 @@ complete -c ais -n "__fish_seen_subcommand_from trae; and __fish_seen_subcommand
 complete -c ais -n "__fish_seen_subcommand_from trae; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import skill to repository"
 
 # opencode subcommands
-complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from install import rules agents skills commands custom-tools" -a "install" -d "Install all OpenCode entries"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from install import rules agents skills commands custom-tools" -a "import" -d "Import entry to repository"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from install import rules agents skills commands custom-tools" -a "rules" -d "Manage OpenCode rules"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from install import rules agents skills commands custom-tools" -a "agents" -d "Manage OpenCode agents"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from install import rules agents skills commands custom-tools" -a "skills" -d "Manage OpenCode skills"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from install import rules agents skills commands custom-tools" -a "commands" -d "Manage OpenCode commands"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from install import rules agents skills commands custom-tools" -a "custom-tools" -d "Manage OpenCode custom-tools"
-
-# opencode rules subcommands
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add an OpenCode rule"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove an OpenCode rule"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all OpenCode rules"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import rule to repository"
+complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from install import agents skills commands tools" -a "install" -d "Install all OpenCode entries"
+complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from install import agents skills commands tools" -a "import" -d "Import entry to repository"
+complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from install import agents skills commands tools" -a "agents" -d "Manage OpenCode agents"
+complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from install import agents skills commands tools" -a "skills" -d "Manage OpenCode skills"
+complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from install import agents skills commands tools" -a "commands" -d "Manage OpenCode commands"
+complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from install import agents skills commands tools" -a "tools" -d "Manage OpenCode tools"
 
 # opencode agents subcommands
 complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add an OpenCode agent"
@@ -690,11 +705,17 @@ complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcom
 complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from commands; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all OpenCode commands"
 complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from commands; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import command to repository"
 
-# opencode custom-tools subcommands
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from custom-tools; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add an OpenCode custom-tool"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from custom-tools; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove an OpenCode custom-tool"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from custom-tools; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all OpenCode custom-tools"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from custom-tools; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import custom-tool to repository"
+# opencode tools subcommands
+complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from tools; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add an OpenCode tool"
+complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from tools; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove an OpenCode tool"
+complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from tools; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all OpenCode tools"
+complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from tools; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import tool to repository"
+
+# agents-md subcommands
+complete -c ais -n "__fish_seen_subcommand_from agents-md; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add an AGENTS.md file"
+complete -c ais -n "__fish_seen_subcommand_from agents-md; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove an AGENTS.md file"
+complete -c ais -n "__fish_seen_subcommand_from agents-md; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install AGENTS.md"
+complete -c ais -n "__fish_seen_subcommand_from agents-md; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import AGENTS.md to repository"
 
 complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from add" -a "(ais _complete cursor 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from rules; and __fish_seen_subcommand_from add" -a "(ais _complete cursor 2>/dev/null)"
@@ -706,11 +727,11 @@ complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcomma
 complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from agents; and __fish_seen_subcommand_from add" -a "(ais _complete claude-agents 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from trae; and __fish_seen_subcommand_from rules; and __fish_seen_subcommand_from add" -a "(ais _complete trae-rules 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from trae; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete trae-skills 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from rules; and __fish_seen_subcommand_from add" -a "(ais _complete opencode-rules 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from agents; and __fish_seen_subcommand_from add" -a "(ais _complete opencode-agents 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete opencode-skills 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from commands; and __fish_seen_subcommand_from add" -a "(ais _complete opencode-commands 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from custom-tools; and __fish_seen_subcommand_from add" -a "(ais _complete opencode-custom-tools 2>/dev/null)"
+complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from tools; and __fish_seen_subcommand_from add" -a "(ais _complete opencode-tools 2>/dev/null)"
+complete -c ais -n "__fish_seen_subcommand_from agents-md; and __fish_seen_subcommand_from add" -a "(ais _complete agents-md 2>/dev/null)"
 `;
 
 /**

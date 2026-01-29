@@ -55,7 +55,8 @@ export interface SyncAdapter {
         name: string,
         repoUrl: string,
         alias?: string,
-        isLocal?: boolean
+        isLocal?: boolean,
+        targetDir?: string
     ): Promise<{ migrated: boolean }>;
 
     /** Remove a dependency from project config */
@@ -117,6 +118,9 @@ export interface SyncOptions {
 
     /** Whether this is a local/private entry (uses .git/info/exclude instead of .gitignore) */
     isLocal?: boolean;
+
+    /** Optional custom target directory for this entry */
+    targetDir?: string;
 }
 
 /**

@@ -638,3 +638,87 @@ All documentation now includes links to official tool documentation for easy ref
 - `src/project-config.ts` - Updated default comment and config handling
 - `src/commands/handlers.ts` - Fixed alias handling for all adapters
 - `KNOWLEDGE_BASE.md`, `README.md`, `README_ZH.md` - Documentation updates
+
+### Custom Target Directories (2026-01)
+
+**Added support for custom target directories per entry:**
+
+**Feature Overview:**
+- Users can now specify custom target directories for each synced entry
+- Allows flexible organization beyond default tool directories
+- Perfect for documentation projects, monorepos, and custom team structures
+- Supports aliasing same rule to multiple locations
+
+**Implementation:**
+- **Entry-level configuration**: Each config entry can specify `targetDir` field
+- **CLI option**: Added `-d, --target-dir <dir>` to all `add` commands
+- **Priority resolution**: options.targetDir > config entry targetDir > adapter default
+- **Conflict detection**: Prevents overwriting when adding same rule to different locations without alias
+- **Suffix handling**: Properly resolves file suffixes when removing aliased entries
+
+**Configuration Examples:**
+
+```json
+{
+  "cursor": {
+    "rules": {
+      // Default target directory (.cursor/rules/)
+      "standard-rule": "https://github.com/company/rules",
+
+      // Custom target directory
+      "docs-rule": {
+        "url": "https://github.com/company/rules",
+        "targetDir": "docs/ai/rules"
+      },
+
+      // Same rule to multiple locations (requires alias)
+      "frontend-auth": {
+        "url": "https://github.com/company/rules",
+        "rule": "auth-rules",
+        "targetDir": "packages/frontend/.cursor/rules"
+      },
+      "backend-auth": {
+        "url": "https://github.com/company/rules",
+        "rule": "auth-rules",
+        "targetDir": "packages/backend/.cursor/rules"
+      }
+    }
+  }
+}
+```
+
+**CLI Usage:**
+
+```bash
+# Add rule to custom directory
+ais cursor add my-rule -d docs/ai/rules
+
+# Add same rule to multiple locations (requires alias)
+ais cursor add auth-rules frontend-auth -d packages/frontend/.cursor/rules
+ais cursor add auth-rules backend-auth -d packages/backend/.cursor/rules
+
+# Remove specific location (uses alias as config key)
+ais cursor remove frontend-auth
+
+# Install respects custom targetDir from config
+ais cursor install
+```
+
+**Key Behaviors:**
+- **No alias needed** for first-time adds or when targeting different source files
+- **Alias required** when adding same source file to different location (prevents config key conflicts)
+- **Backward compatible**: Entries without `targetDir` use adapter default
+- **Config format**: Uses simple string when no custom targetDir; object format when specified
+- **Install support**: `install` command reads and respects `targetDir` from config
+
+**Files Changed:**
+- `src/project-config.ts` - Extended `RuleEntry` type, added `getTargetDir()` and `getEntryConfig()`
+- `src/sync-engine.ts` - Dynamic target directory resolution in `linkEntry()`, `unlinkEntry()`, `importEntry()`
+- `src/adapters/types.ts` - Extended `SyncOptions` and `addDependency` signature
+- `src/adapters/base.ts` - Pass `targetDir` through to config functions
+- `src/adapters/agents-md.ts` - Updated custom `addDependency()` for `targetDir` support
+- `src/commands/handlers.ts` - Added `AddOptions` with conflict detection
+- `src/commands/install.ts` - Extract and pass `targetDir` during installation
+- `src/cli/register.ts` - Added `-d, --target-dir` option to adapter commands
+- `src/index.ts` - Added `-d, --target-dir` to hardcoded cursor/copilot commands
+- All tests passing (105/105)

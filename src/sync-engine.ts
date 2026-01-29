@@ -5,7 +5,7 @@ import { execa } from 'execa';
 import { RepoConfig } from './config.js';
 import { SyncAdapter, LinkResult, SyncOptions } from './adapters/types.js';
 import { addIgnoreEntry, removeIgnoreEntry } from './utils.js';
-import { getRepoSourceConfig, getSourceDir } from './project-config.js';
+import { getRepoSourceConfig, getSourceDir, getCombinedProjectConfig, getTargetDir } from './project-config.js';
 
 /**
  * Generic sync engine that works with any SyncAdapter
@@ -53,7 +53,36 @@ export async function linkEntry(
     }
 
     const absoluteProjectPath = path.resolve(projectPath);
-    const targetDir = path.join(absoluteProjectPath, adapter.targetDir);
+
+    // Determine target directory
+    // Priority: options.targetDir > config entry targetDir > adapter default
+    let targetDirPath: string;
+    if (options.targetDir) {
+        // Use targetDir from options (highest priority - for add command)
+        targetDirPath = path.normalize(options.targetDir);
+    } else {
+        // Check config for existing entry targetDir, or use adapter default
+        try {
+            const projectConfig = await getCombinedProjectConfig(projectPath);
+            targetDirPath = getTargetDir(
+                projectConfig,
+                adapter.tool,
+                adapter.subtype,
+                targetName,
+                adapter.targetDir
+            );
+        } catch (e) {
+            // If config doesn't exist or can't be read, use adapter default
+            targetDirPath = adapter.targetDir;
+        }
+    }
+
+    // Ensure we always have a valid targetDirPath
+    if (!targetDirPath) {
+        targetDirPath = adapter.targetDir;
+    }
+
+    const targetDir = path.join(absoluteProjectPath, targetDirPath);
     const targetPath = path.join(targetDir, targetName);
 
     // Ensure target directory exists
@@ -75,7 +104,7 @@ export async function linkEntry(
     console.log(chalk.green(`Linked "${sourceName}" to project as "${targetName}".`));
 
     // Handle ignore file
-    const ignoreEntry = `${adapter.targetDir}/${targetName}`;
+    const ignoreEntry = `${targetDirPath}/${targetName}`;
     await handleIgnoreEntry(absoluteProjectPath, ignoreEntry, isLocal, true);
 
     return { sourceName, targetName, linked: true };
@@ -90,8 +119,39 @@ export async function unlinkEntry(
     alias: string
 ): Promise<void> {
     const absoluteProjectPath = path.resolve(projectPath);
-    const targetDir = path.join(absoluteProjectPath, adapter.targetDir);
-    const targetPath = path.join(targetDir, alias);
+
+    // Get target directory from project config (for unlink, always read from config)
+    const projectConfig = await getCombinedProjectConfig(projectPath);
+    const targetDirPath = getTargetDir(
+        projectConfig,
+        adapter.tool,
+        adapter.subtype,
+        alias,
+        adapter.targetDir
+    );
+
+    const targetDir = path.join(absoluteProjectPath, targetDirPath);
+
+    // Try to find the actual file - it may have a suffix added
+    let actualFileName = alias;
+    let targetPath = path.join(targetDir, alias);
+
+    if (!await fs.pathExists(targetPath)) {
+        // Try with common suffixes for file-based adapters
+        const suffixes = adapter.fileSuffixes || adapter.hybridFileSuffixes;
+        if (suffixes) {
+            for (const suffix of suffixes) {
+                if (!alias.endsWith(suffix)) {
+                    const candidatePath = path.join(targetDir, `${alias}${suffix}`);
+                    if (await fs.pathExists(candidatePath)) {
+                        actualFileName = `${alias}${suffix}`;
+                        targetPath = candidatePath;
+                        break;
+                    }
+                }
+            }
+        }
+    }
 
     // Remove symlink/file
     if (await fs.pathExists(targetPath)) {
@@ -101,17 +161,24 @@ export async function unlinkEntry(
         console.log(chalk.yellow(`Entry "${alias}" not found in project.`));
     }
 
-    // Remove from ignore files
-    const ignoreEntry = `${adapter.targetDir}/${alias}`;
+    // Remove from ignore files (try both with and without suffix)
+    const ignoreEntries = [
+        `${targetDirPath}/${alias}`,
+        `${targetDirPath}/${actualFileName}`
+    ];
 
     const gitignorePath = path.join(absoluteProjectPath, '.gitignore');
-    if (await removeIgnoreEntry(gitignorePath, ignoreEntry)) {
-        console.log(chalk.green(`Removed "${ignoreEntry}" from .gitignore.`));
+    for (const ignoreEntry of ignoreEntries) {
+        if (await removeIgnoreEntry(gitignorePath, ignoreEntry)) {
+            console.log(chalk.green(`Removed "${ignoreEntry}" from .gitignore.`));
+        }
     }
 
     const gitInfoExclude = path.join(absoluteProjectPath, '.git', 'info', 'exclude');
-    if (await removeIgnoreEntry(gitInfoExclude, ignoreEntry)) {
-        console.log(chalk.green(`Removed "${ignoreEntry}" from .git/info/exclude.`));
+    for (const ignoreEntry of ignoreEntries) {
+        if (await removeIgnoreEntry(gitInfoExclude, ignoreEntry)) {
+            console.log(chalk.green(`Removed "${ignoreEntry}" from .git/info/exclude.`));
+        }
     }
 }
 
@@ -179,7 +246,18 @@ export async function importEntry(
 
     // 1. Check if entry exists in project
     const absoluteProjectPath = path.resolve(projectPath);
-    const targetDir = path.join(absoluteProjectPath, adapter.targetDir);
+
+    // Get dynamic target directory from project config
+    const projectConfig = await getCombinedProjectConfig(projectPath);
+    const targetDirPath = getTargetDir(
+        projectConfig,
+        adapter.tool,
+        adapter.subtype,
+        name,
+        adapter.targetDir
+    );
+
+    const targetDir = path.join(absoluteProjectPath, targetDirPath);
     const targetPath = path.join(targetDir, name);
 
     if (!await fs.pathExists(targetPath)) {
