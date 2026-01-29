@@ -118,6 +118,167 @@ npm install -g ai-rules-sync
 
 > **注意**：旧的扁平格式（`cursor.rules` 为字符串）仍然支持向后兼容。
 
+## 为第三方仓库自定义源目录
+
+当使用没有 `ai-rules-sync.json` 或使用自定义目录结构的第三方规则仓库时，你可以通过以下方式覆盖源目录：
+
+1. **CLI 参数**（临时使用，一次性）
+2. **全局配置**（持久化，存储在 `~/.config/ai-rules-sync/config.json` 中）
+
+### 优先级系统
+
+源目录解析遵循以下 4 层优先级：
+
+```
+CLI 参数 > 全局配置 > 仓库配置 > 适配器默认值
+```
+
+### CLI 参数
+
+在 `add-all` 命令中使用 `-s` 或 `--source-dir` 选项：
+
+**简单格式**（当工具/子类型从上下文明确时）：
+```bash
+# 在 cursor rules 上下文中
+ais cursor rules add-all -s custom/rules
+
+# 在 cursor 上下文中（需要子类型）
+ais cursor add-all -s rules=custom/rules -s commands=custom/cmds
+```
+
+**点号格式**（显式指定 tool.subtype）：
+```bash
+# 顶层 add-all（需要完整的 tool.subtype）
+ais add-all -s cursor.rules=custom/rules -s cursor.commands=custom/cmds
+
+# 多个工具
+ais add-all \
+  -s cursor.rules=rules/cursor \
+  -s cursor.commands=commands \
+  -s claude.skills=claude/skills
+```
+
+**选项说明：**
+- 可以重复多次：`-s cursor.rules=r1 -s cursor.commands=r2`
+- 如果多次指定同一路径，以最后一个为准
+- 路径相对于仓库根目录
+
+**示例：**
+
+```bash
+# 预览从自定义目录安装的内容
+ais cursor rules add-all -s custom/rules --dry-run
+
+# 从自定义目录安装所有 Cursor 规则
+ais cursor rules add-all -s custom/rules
+
+# 从多个自定义目录安装
+ais cursor add-all -s rules=r1 -s commands=r2 -s skills=r3
+
+# 从非标准结构的仓库安装所有内容
+ais add-all \
+  -s cursor.rules=rules/cursor \
+  -s cursor.commands=commands/cursor \
+  -s claude.skills=claude/skills
+```
+
+### 全局配置
+
+对于持久化配置，使用 `config` 命令：
+
+**设置自定义源目录：**
+```bash
+ais config repo set-source <仓库名称> <tool.subtype> <路径>
+
+# 示例：
+ais config repo set-source third-party cursor.rules custom/rules
+ais config repo set-source company-rules cursor.commands commands
+ais config repo set-source open-source claude.skills claude/skills
+```
+
+**查看仓库配置：**
+```bash
+ais config repo show <仓库名称>
+```
+
+**清除源目录：**
+```bash
+# 清除特定的 tool.subtype
+ais config repo clear-source <仓库名称> <tool.subtype>
+
+# 清除仓库的所有源目录
+ais config repo clear-source <仓库名称>
+```
+
+**列出所有仓库：**
+```bash
+ais config repo list
+```
+
+**配置示例** (`~/.config/ai-rules-sync/config.json`):
+```json
+{
+  "currentRepo": "third-party-rules",
+  "repos": {
+    "third-party-rules": {
+      "name": "third-party-rules",
+      "url": "https://github.com/someone/rules",
+      "path": "/Users/user/.config/ai-rules-sync/repos/third-party-rules",
+      "sourceDir": {
+        "cursor": {
+          "rules": "rules/cursor",
+          "commands": "commands/cursor"
+        },
+        "claude": {
+          "skills": "claude/skills"
+        }
+      }
+    }
+  }
+}
+```
+
+### 使用场景
+
+**场景 1：一次性探索**
+```bash
+# 尝试使用非标准结构的仓库
+ais cursor rules add-all -s custom/rules --dry-run
+```
+
+**场景 2：常规使用第三方仓库**
+```bash
+# 配置一次
+ais config repo set-source my-third-party cursor.rules custom/rules
+ais config repo set-source my-third-party cursor.commands custom/commands
+
+# 正常使用（sourceDir 自动应用）
+ais cursor add-all
+```
+
+**场景 3：覆盖现有配置**
+```bash
+# 全局配置有 cursor.rules=global/rules
+# 但你想临时尝试不同的目录
+ais cursor rules add-all -s experimental/rules
+# CLI 参数优先级最高
+```
+
+### 错误处理
+
+如果指定的源目录不存在：
+```
+Discovering entries from repository...
+  cursor-rules: 0 entries
+
+No entries found in repository.
+```
+
+**提示**：使用 `--dry-run` 在安装前预览：
+```bash
+ais cursor rules add-all -s custom/rules --dry-run
+```
+
 ## 全局选项
 
 所有命令都支持以下全局选项：

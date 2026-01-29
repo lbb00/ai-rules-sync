@@ -452,7 +452,128 @@ Summary:
 - Respects repository source directory configuration
 - Compatible with `ais install` (discovered entries are added to config)
 
-### 16. Configuration Files
+### 16. Custom Source Directories for Third-Party Repositories
+
+**Problem**: Third-party rules repositories may not have `ai-rules-sync.json` or use non-standard directory structures (e.g., `rules/cursor/` instead of `.cursor/rules`).
+
+**Solution**: 4-layer priority system for custom source directory configuration:
+
+```
+CLI Parameters > Global Config > Repository Config > Adapter Defaults
+```
+
+**Implementation** (`src/cli/source-dir-parser.ts`, `src/commands/config.ts`):
+- CLI parameter parsing with context-aware simple format and explicit dot notation
+- Global config persistence in `~/.config/ai-rules-sync/config.json`
+- Enhanced `getSourceDir()` with `globalOverride` parameter
+- Config management commands for persistent configuration
+
+**CLI Parameter Formats:**
+
+```bash
+# Simple format (context-aware - when tool/subtype is clear)
+ais cursor rules add-all -s custom/rules
+ais cursor add-all -s rules=custom/rules -s commands=custom/cmds
+
+# Dot notation (explicit - requires full tool.subtype)
+ais add-all -s cursor.rules=custom/rules -s cursor.commands=custom/cmds
+
+# Multiple overrides (can repeat -s flag)
+ais add-all \
+  -s cursor.rules=rules/cursor \
+  -s cursor.commands=commands \
+  -s claude.skills=claude/skills
+```
+
+**Global Configuration Commands:**
+
+```bash
+# Set custom source directory (persistent)
+ais config repo set-source <repoName> <tool.subtype> <path>
+ais config repo set-source third-party cursor.rules custom/rules
+
+# View repository configuration
+ais config repo show <repoName>
+
+# Clear source directory
+ais config repo clear-source <repoName> [tool.subtype]
+
+# List all repositories
+ais config repo list
+```
+
+**Configuration Structure:**
+
+```json
+// Global config (~/.config/ai-rules-sync/config.json)
+{
+  "currentRepo": "third-party-rules",
+  "repos": {
+    "third-party-rules": {
+      "name": "third-party-rules",
+      "url": "https://github.com/someone/rules",
+      "path": "/Users/user/.config/ai-rules-sync/repos/third-party-rules",
+      "sourceDir": {
+        "cursor": {
+          "rules": "rules/cursor",
+          "commands": "commands/cursor"
+        },
+        "claude": {
+          "skills": "claude/skills"
+        }
+      }
+    }
+  }
+}
+```
+
+**Priority Resolution in `getSourceDir()`:**
+
+1. **CLI override** (highest priority) - `-s` parameter, no rootPath prefix
+2. **Global config** - From `RepoConfig.sourceDir`, no rootPath prefix
+3. **Repository config** - From repo's `ai-rules-sync.json`, with rootPath prefix
+4. **Adapter default** (lowest priority) - Hardcoded in adapter definition
+
+**Use Cases:**
+
+- **One-time exploration**: Use CLI parameter to test repositories
+- **Regular use**: Configure once with `config repo set-source`, use normally
+- **Override**: CLI parameter overrides even global config
+
+**add-all Integration:**
+
+All `add-all` commands support `-s/--source-dir` option:
+- Top-level: `ais add-all -s tool.subtype=path`
+- Tool-level: `ais cursor add-all -s rules=path`
+- Subtype-level: `ais cursor rules add-all -s custom/rules`
+
+**Files Involved:**
+- `src/config.ts` - Extended `RepoConfig` with `sourceDir` field
+- `src/project-config.ts` - Enhanced `getSourceDir()` with 4-layer priority
+- `src/commands/add-all.ts` - Added `sourceDirOverrides` parameter
+- `src/cli/source-dir-parser.ts` - Parameter parsing logic
+- `src/commands/config.ts` - Config management commands
+- `src/cli/register.ts` - Added `-s` option to adapter commands
+- `src/index.ts` - Added `-s` option and config commands
+
+**Example Workflow:**
+
+```bash
+# Discover what a third-party repo has (preview)
+ais cursor rules add-all -s custom/rules --dry-run
+
+# Configure for regular use
+ais config repo set-source my-third-party cursor.rules custom/rules
+ais config repo set-source my-third-party cursor.commands custom/commands
+
+# Use normally (sourceDir automatically applied)
+ais cursor add-all
+
+# Override temporarily
+ais cursor rules add-all -s experimental/rules
+```
+
+### 17. Configuration Files
 
 **Rules Repository Config** (`ai-rules-sync.json` in the rules repo):
 ```json
@@ -575,6 +696,67 @@ Summary:
 - Use **hybrid** mode when entries can be either files or directories (cursor-rules)
 
 ## Recent Changes
+
+### Custom Source Directories for Third-Party Repositories (2026-01)
+
+**Added 4-layer priority system for custom source directory configuration:**
+
+**Problem Solved:**
+- Third-party repositories without `ai-rules-sync.json` were unusable
+- Repositories with non-standard directory structures (e.g., `rules/cursor/` instead of `.cursor/rules`) required forking
+- No way to override source directories without modifying the repository
+
+**Solution - 4-Layer Priority:**
+```
+CLI Parameters > Global Config > Repository Config > Adapter Defaults
+```
+
+**Features Implemented:**
+
+1. **CLI Parameters (`-s/--source-dir`)**:
+   - Simple format: `ais cursor rules add-all -s custom/rules`
+   - Dot notation: `ais add-all -s cursor.rules=custom/rules`
+   - Supports multiple `-s` flags
+   - Context-aware parsing (infers tool/subtype from command)
+
+2. **Global Configuration Commands**:
+   - `ais config repo set-source <name> <tool.subtype> <path>` - Persist custom sourceDir
+   - `ais config repo show <name>` - View repository configuration
+   - `ais config repo clear-source <name> [tool.subtype]` - Remove custom sourceDir
+   - `ais config repo list` - List all repositories with sourceDir
+
+3. **Enhanced Architecture**:
+   - Extended `RepoConfig` interface with `sourceDir?: SourceDirConfig`
+   - Enhanced `getSourceDir()` with `globalOverride` parameter (4-layer priority logic)
+   - All `add-all` commands support `-s` option (top-level, tool-level, subtype-level)
+   - Custom parser with simple and dot notation format support
+
+4. **Configuration Persistence**:
+   - Global config stored in `~/.config/ai-rules-sync/config.json`
+   - Per-repository `sourceDir` configuration
+   - CLI overrides have highest priority (temporary)
+   - Global config persists across sessions
+
+**Use Cases:**
+- **Exploration**: `ais cursor rules add-all -s custom/rules --dry-run`
+- **Persistent**: `ais config repo set-source my-repo cursor.rules custom/rules`
+- **Override**: CLI parameter overrides saved configuration
+
+**Files Changed:**
+- `src/config.ts` - Added `sourceDir` to `RepoConfig` interface
+- `src/project-config.ts` - Enhanced `getSourceDir()` with priority logic
+- `src/commands/add-all.ts` - Added `sourceDirOverrides` parameter throughout
+- `src/cli/source-dir-parser.ts` - New parameter parsing module
+- `src/commands/config.ts` - New config management commands
+- `src/cli/register.ts` - Added `-s` option to all adapter commands
+- `src/index.ts` - Added `-s` to all add-all commands + config command group
+- `README.md` - Added comprehensive documentation section
+
+**Benefits:**
+- Works with any repository (no ai-rules-sync.json required)
+- Flexible (CLI for quick tests, config for persistent use)
+- Non-destructive (doesn't modify third-party repositories)
+- User-friendly (smart context detection in simple format)
 
 ### Configuration Directory Migration (2026-01)
 
