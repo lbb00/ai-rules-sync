@@ -24,6 +24,14 @@ import { installEntriesForAdapter, installEntriesForTool } from './commands/inst
 import { handleAddAll } from './commands/add-all.js';
 import { parseSourceDirParams } from './cli/source-dir-parser.js';
 import { setRepoSourceDir, clearRepoSourceDir, showRepoConfig, listRepos } from './commands/config.js';
+import { getFormattedVersion } from './commands/version.js';
+
+// Intercept version flags to show detailed version info before Commander processes them
+if (process.argv.includes('-v') || process.argv.includes('--version')) {
+  const output = await getFormattedVersion();
+  console.log(output);
+  process.exit(0);
+}
 
 const program = new Command();
 
@@ -34,8 +42,11 @@ function collect(value: string, previous: string[]): string[] {
   return previous ? previous.concat([value]) : [value];
 }
 
-program.name('ais').description('AI Rules Sync - Sync agent rules from git repository').version('1.0.0')
-    .option('-t, --target <repoName>', 'Specify target rule repository (name or URL)');
+program
+  .name('ais')
+  .description('AI Rules Sync - Sync agent rules from git repository')
+  .version('0.4.0', '-v, --version', 'Display version information')
+  .option('-t, --target <repoName>', 'Specify target rule repository (name or URL)');
 
 // ============ Use command ============
 program
