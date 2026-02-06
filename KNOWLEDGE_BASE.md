@@ -628,7 +628,7 @@ ais cursor rules add-all -s experimental/rules
   },
   "trae": {
     "rules": { "project-rules": "https://..." },
-    "skills": { "ai-rules-adapter-builder": "https://..." }
+    "skills": { "new-adapter": "https://..." }
   },
   "opencode": {
     "agents": { "code-reviewer": "https://..." },

@@ -1,8 +1,15 @@
+---
+name: new-adapter
+description: Add support for a new AI tool with adapters, CLI, completion, and tests.
+---
+
 # New Adapter
+
+## Instructions
 
 Complete workflow for adding support for a new AI tool to AIS.
 
-## Prerequisites
+### Prerequisites
 
 Before starting, gather this information:
 - Tool name (e.g., "windsurf", "mcp")
@@ -11,9 +18,9 @@ Before starting, gather this information:
 - Target directory (usually same as source)
 - File mode: `file` or `directory`
 
-## Steps
+### Steps
 
-### 1. Create Adapter File
+#### 1. Create Adapter File
 
 Create `src/adapters/<tool>-<type>.ts`:
 
@@ -31,25 +38,25 @@ export const myToolAdapter = createBaseAdapter({
 });
 ```
 
-### 2. Register Adapter
+#### 2. Register Adapter
 
 In `src/adapters/index.ts`:
 - Import the new adapter
 - Register in `DefaultAdapterRegistry` constructor
 
-### 3. Update Project Config
+#### 3. Update Project Config
 
 In `src/project-config.ts`:
 - Add tool section to `ProjectConfig` interface
 - Add tool to `SourceDirConfig` interface if needed
 
-### 4. Wire CLI Commands
+#### 4. Wire CLI Commands
 
 In `src/cli/register.ts`:
 - Add tool subcommand group
 - Register add/remove/install/import commands
 
-### 5. Update Completion
+#### 5. Update Completion
 
 In `src/completion.ts`:
 - Add tool to completion types
@@ -58,20 +65,20 @@ In `src/completion.ts`:
 In `src/completion/scripts.ts`:
 - Update bash/zsh/fish completion scripts
 
-### 6. Add Tests
+#### 6. Add Tests
 
 Create `src/__tests__/<tool>-<type>.test.ts`:
 - Test adapter properties
 - Test add/remove operations
 - Test config path resolution
 
-### 7. Update Documentation
+#### 7. Update Documentation
 
 - README.md: Add to supported sync types table
 - README_ZH.md: Sync changes (use `/sync-readme`)
 - CLAUDE.md: Update if architectural changes
 
-### 8. Verify
+#### 8. Verify
 
 ```bash
 # Build
@@ -85,7 +92,7 @@ node dist/index.js <tool> <type> add <name>
 node dist/index.js <tool> <type> remove <name>
 ```
 
-## Checklist
+### Checklist
 
 - [ ] Adapter file created
 - [ ] Adapter registered
@@ -96,3 +103,8 @@ node dist/index.js <tool> <type> remove <name>
 - [ ] README.md updated
 - [ ] README_ZH.md synced
 - [ ] Manual testing complete
+
+## Examples
+
+Request: Add support for a new AI tool with rules and skills
+Result: Complete adapter implementation with tests passing

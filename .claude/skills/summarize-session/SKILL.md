@@ -121,7 +121,7 @@ At the end of a productive coding session, analyze the conversation to extract r
 ### Example: After Adding a New Adapter
 
 **Identified Pattern**: Multi-step process for adding adapters
-**Generated**: Skill `ai-rules-adapter-builder`
+**Generated**: Skill `new-adapter`
 
 ### Example: After Fixing Multiple Type Errors
 

@@ -1,8 +1,15 @@
+---
+name: update-docs
+description: Update all project documentation after code changes.
+---
+
 # Update Documentation
+
+## Instructions
 
 One-click command to update all project documentation after code changes.
 
-## Steps
+### Steps
 
 1. **Analyze Changes**
    - Check git status for modified files
@@ -27,16 +34,21 @@ One-click command to update all project documentation after code changes.
    - Check that all documented commands work
    - Review diff before committing
 
-## When to Use
+### When to Use
 
 - After adding a new adapter
 - After adding or modifying CLI commands
 - After changing the configuration format
 - After any user-facing changes
 
-## Output
+### Output
 
 All documentation files updated and in sync:
 - KNOWLEDGE_BASE.md (if exists)
 - README.md
 - README_ZH.md
+
+## Examples
+
+Request: Update all docs after adding OpenCode support
+Result: KNOWLEDGE_BASE.md, README.md, and README_ZH.md all updated

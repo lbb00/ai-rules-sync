@@ -24,7 +24,12 @@
       "Bash(pnpm test:*)",
       "WebFetch(domain:opencode.ai)",
       "WebFetch(domain:agents.md)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(./dist/index.js:*)",
+      "Bash(npx vitest:*)",
+      "Bash(ais:*)",
+      "Bash(xargs ls:*)",
+      "Bash(tree:*)"
     ]
   }
 }
