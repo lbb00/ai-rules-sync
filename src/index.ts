@@ -10,6 +10,8 @@ import { getCombinedProjectConfig, getRepoSourceConfig, getSourceDir } from './p
 import { checkAndPromptCompletion, forceInstallCompletion } from './completion.js';
 import { getCompletionScript } from './completion/scripts.js';
 import { adapterRegistry, getAdapter, findAdapterForAlias } from './adapters/index.js';
+import { copilotInstructionsAdapter } from './adapters/copilot-instructions.js';
+import { copilotSkillsAdapter } from './adapters/copilot-skills.js';
 import { registerAdapterCommands } from './cli/register.js';
 import {
   getTargetRepo,
@@ -551,143 +553,33 @@ const cursorAgents = cursor.command('agents').description('Manage Cursor agents'
 registerAdapterCommands({ adapter: getAdapter('cursor', 'agents'), parentCommand: cursorAgents, programOpts: () => program.opts() });
 
 // ============ Copilot command group ============
-const copilot = program
-  .command('copilot')
-  .description('Manage Copilot instructions in a project');
+const copilot = program.command('copilot').description('Manage GitHub Copilot configurations');
 
-// copilot add
-copilot
-  .command('add <name> [alias]')
-  .description('Sync Copilot instruction to project (.github/instructions/...)')
-  .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
-  .option('-d, --target-dir <dir>', 'Custom target directory for this entry')
-  .action(async (name, alias, options) => {
-    try {
-      const repo = await getTargetRepo(program.opts());
-      const adapter = getAdapter('copilot', 'instructions');
-      await handleAdd(adapter, { projectPath: process.cwd(), repo, isLocal: options.local || false }, name, alias, {
-        local: options.local,
-        targetDir: options.targetDir
-      });
-    } catch (error: any) {
-      console.error(chalk.red('Error adding Copilot instruction:'), error.message);
-      process.exit(1);
-    }
-  });
+// copilot instructions subcommand
+const copilotInstructions = copilot.command('instructions').description('Manage Copilot instructions');
+registerAdapterCommands({
+  parentCommand: copilotInstructions,
+  adapter: copilotInstructionsAdapter,
+  programOpts: () => program.opts()
+});
 
-// copilot remove
-copilot
-  .command('remove <alias>')
-  .description('Remove a Copilot instruction from project')
-  .action(async (alias) => {
-    try {
-      const cfg = await getCombinedProjectConfig(process.cwd());
-      const resolved = resolveCopilotAliasFromConfig(alias, Object.keys(cfg.copilot?.instructions || {}));
-      const adapter = getAdapter('copilot', 'instructions');
-      await handleRemove(adapter, process.cwd(), resolved);
-    } catch (error: any) {
-      console.error(chalk.red('Error removing Copilot instruction:'), error.message);
-      process.exit(1);
-    }
-  });
+// copilot skills subcommand
+const copilotSkills = copilot.command('skills').description('Manage Copilot agent skills');
+registerAdapterCommands({
+  parentCommand: copilotSkills,
+  adapter: copilotSkillsAdapter,
+  programOpts: () => program.opts()
+});
 
-// copilot install
+// copilot install - install all copilot entries
 copilot
   .command('install')
-  .description('Install all Copilot instructions from config')
+  .description('Install all Copilot instructions and skills from config')
   .action(async () => {
     try {
-      const adapter = getAdapter('copilot', 'instructions');
-      await installEntriesForAdapter(adapter, process.cwd());
+      await installEntriesForTool(adapterRegistry.getForTool('copilot'), process.cwd());
     } catch (error: any) {
-      console.error(chalk.red('Error installing Copilot instructions:'), error.message);
-      process.exit(1);
-    }
-  });
-
-// copilot add-all
-copilot
-  .command('add-all')
-  .description('Add all Copilot instructions from repository')
-  .option('--dry-run', 'Preview without making changes')
-  .option('-f, --force', 'Overwrite existing entries')
-  .option('-i, --interactive', 'Prompt for each entry')
-  .option('-l, --local', 'Add to ai-rules-sync.local.json')
-  .option('--skip-existing', 'Skip entries already in config')
-  .option('--quiet', 'Minimal output')
-  .option('-s, --source-dir <path>', 'Custom source directory (can be repeated)', collect)
-  .action(async (options) => {
-    try {
-      const projectPath = process.cwd();
-      const opts = program.opts();
-      const currentRepo = await getTargetRepo(opts);
-
-      // Parse source-dir overrides with copilot as context tool
-      let sourceDirOverrides;
-      if (options.sourceDir && options.sourceDir.length > 0) {
-        try {
-          sourceDirOverrides = parseSourceDirParams(options.sourceDir, 'copilot');
-        } catch (error: any) {
-          console.error(chalk.red('Error parsing --source-dir:'), error.message);
-          process.exit(1);
-        }
-      }
-
-      const result = await handleAddAll(
-        projectPath,
-        currentRepo,
-        adapterRegistry,
-        {
-          target: opts.target,
-          tools: ['copilot'],
-          dryRun: options.dryRun,
-          force: options.force,
-          interactive: options.interactive,
-          isLocal: options.local,
-          skipExisting: options.skipExisting,
-          quiet: options.quiet,
-          sourceDirOverrides
-        }
-      );
-
-      if (!options.quiet) {
-        console.log(chalk.bold('\nSummary:'));
-        console.log(chalk.green(`  Installed: ${result.installed}`));
-        if (result.skipped > 0) {
-          console.log(chalk.yellow(`  Skipped: ${result.skipped}`));
-        }
-        if (result.errors.length > 0) {
-          console.log(chalk.red(`  Errors: ${result.errors.length}`));
-          result.errors.forEach(e => {
-            console.log(chalk.red(`    - ${e.entry}: ${e.error}`));
-          });
-        }
-      }
-
-      if (result.errors.length > 0) {
-        process.exit(1);
-      }
-    } catch (error: any) {
-      console.error(chalk.red('Error in copilot add-all:'), error.message);
-      process.exit(1);
-    }
-  });
-
-// copilot import
-copilot
-  .command('import <name>')
-  .description('Import Copilot instruction from project to repository')
-  .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
-  .option('-m, --message <message>', 'Custom git commit message')
-  .option('-f, --force', 'Overwrite if entry already exists in repository')
-  .option('-p, --push', 'Push to remote repository after commit')
-  .action(async (name, options) => {
-    try {
-      const repo = await getTargetRepo(program.opts());
-      const adapter = getAdapter('copilot', 'instructions');
-      await handleImport(adapter, { projectPath: process.cwd(), repo, isLocal: options.local || false }, name, options);
-    } catch (error: any) {
-      console.error(chalk.red('Error importing Copilot instruction:'), error.message);
+      console.error(chalk.red('Error installing Copilot entries:'), error.message);
       process.exit(1);
     }
   });
