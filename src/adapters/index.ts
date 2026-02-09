@@ -13,6 +13,8 @@ import { opencodeSkillsAdapter } from './opencode-skills.js';
 import { opencodeCommandsAdapter } from './opencode-commands.js';
 import { opencodeToolsAdapter } from './opencode-tools.js';
 import { agentsMdAdapter } from './agents-md.js';
+import { codexRulesAdapter } from './codex-rules.js';
+import { codexSkillsAdapter } from './codex-skills.js';
 import { ProjectConfig } from '../project-config.js';
 
 // Re-export types and utilities
@@ -43,6 +45,8 @@ class DefaultAdapterRegistry implements AdapterRegistry {
         this.register(opencodeCommandsAdapter);
         this.register(opencodeToolsAdapter);
         this.register(agentsMdAdapter);
+        this.register(codexRulesAdapter);
+        this.register(codexSkillsAdapter);
     }
 
     register(adapter: SyncAdapter): void {
@@ -156,6 +160,12 @@ export function findAdapterForAlias(
     }
     if (cfg.agentsMd?.[alias]) {
         return { adapter: agentsMdAdapter, section: 'agentsMd' };
+    }
+    if (cfg.codex?.rules?.[alias]) {
+        return { adapter: codexRulesAdapter, section: 'codex.rules' };
+    }
+    if (cfg.codex?.skills?.[alias]) {
+        return { adapter: codexSkillsAdapter, section: 'codex.skills' };
     }
     return null;
 }

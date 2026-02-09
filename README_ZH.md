@@ -10,7 +10,7 @@
 
 不再复制粘贴 `.mdc` 文件。在 Git 仓库中管理规则，通过软链接同步。
 
-**支持：** Cursor（规则、命令、技能、代理）、Copilot（指令）、Claude（技能、代理）、Trae（规则、技能）、OpenCode（代理、技能、命令、工具）以及通用的 AGENTS.md。
+**支持：** Cursor（规则、命令、技能、代理）、Copilot（指令）、Claude（技能、代理）、Trae（规则、技能）、OpenCode（代理、技能、命令、工具）、Codex（规则、技能）以及通用的 AGENTS.md。
 
 ---
 
@@ -144,6 +144,8 @@ ais completion install
 | OpenCode | Skills | directory | `.opencode/skills/` | - | [网站](https://opencode.ing/) |
 | OpenCode | Commands | file | `.opencode/commands/` | `.md` | [网站](https://opencode.ing/) |
 | OpenCode | Tools | file | `.opencode/tools/` | `.ts`, `.js` | [网站](https://opencode.ing/) |
+| Codex | Rules | file | `.codex/rules/` | `.rules` | [文档](https://developers.openai.com/codex/rules) |
+| Codex | Skills | directory | `.agents/skills/` | - | [文档](https://developers.openai.com/codex/skills) |
 | **通用** | **AGENTS.md** | file | `.`（根目录） | `.md` | [标准](https://agents.md/) |
 
 **模式说明：**
@@ -492,6 +494,28 @@ ais opencode tools add project-analyzer
 # 移除
 ais opencode agents remove code-reviewer
 ```
+
+### Codex
+
+```bash
+# 添加规则（用于沙箱控制的 Starlark 语法）
+ais codex rules add default
+
+# 添加技能
+ais codex skills add code-assistant
+
+# 安装所有
+ais codex install
+
+# 从项目导入
+ais codex rules import my-sandbox-rules
+ais codex skills import my-helper-skill
+
+# 移除
+ais codex rules remove default
+```
+
+**注意：** Codex 技能使用 `.agents/skills/` 目录（而非 `.codex/skills/`），这是按照 OpenAI 文档的规定。
 
 ### AGENTS.md（通用）
 

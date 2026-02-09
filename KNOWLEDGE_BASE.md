@@ -1,12 +1,12 @@
 # Project Knowledge Base
 
 ## Project Overview
-**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor agents**, **Copilot instructions**, **Claude Code skills/agents**, **Trae rules/skills**, **OpenCode agents/skills/commands/tools**, and **universal AGENTS.md support**, keeping projects up-to-date across teams.
+**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor agents**, **Copilot instructions**, **Claude Code skills/agents**, **Trae rules/skills**, **OpenCode agents/skills/commands/tools**, **Codex rules/skills**, and **universal AGENTS.md support**, keeping projects up-to-date across teams.
 
 ## Core Concepts
-- **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/commands/`, `.cursor/skills/`, `.cursor/agents/`, `.github/instructions/`, `.claude/skills/`, `.claude/agents/`, `.trae/rules/`, `.trae/skills/`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, `.opencode/tools/`, `agents-md/`).
+- **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/commands/`, `.cursor/skills/`, `.cursor/agents/`, `.github/instructions/`, `.claude/skills/`, `.claude/agents/`, `.trae/rules/`, `.trae/skills/`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, `.opencode/tools/`, `.codex/rules/`, `.agents/skills/`, `agents-md/`).
 - **Symbolic Links**: Entries are linked from the local cache of the repo to project directories, avoiding file duplication and drift.
-- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills/agents, Copilot instructions, Claude skills/agents, Trae rules/skills, OpenCode agents/skills/commands/tools, AGENTS.md).
+- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills/agents, Copilot instructions, Claude skills/agents, Trae rules/skills, OpenCode agents/skills/commands/tools, Codex rules/skills, AGENTS.md).
 - **Privacy**: Supports private/local entries via `ai-rules-sync.local.json` and `.git/info/exclude`.
 
 ## Architecture
@@ -38,6 +38,8 @@ src/
 │   ├── opencode-skills.ts   # OpenCode skills adapter (directory mode)
 │   ├── opencode-commands.ts # OpenCode commands adapter (file mode)
 │   ├── opencode-tools.ts    # OpenCode tools adapter (file mode)
+│   ├── codex-rules.ts       # Codex rules adapter (file mode)
+│   ├── codex-skills.ts      # Codex skills adapter (directory mode)
 │   └── agents-md.ts         # Universal AGENTS.md adapter (file mode)
 ├── cli/                     # CLI registration layer
 │   └── register.ts          # Declarative command registration (registerAdapterCommands)
@@ -207,6 +209,10 @@ interface SourceDirConfig {
     commands?: string;    // Default: ".opencode/commands"
     tools?: string;       // Default: ".opencode/tools"
   };
+  codex?: {
+    rules?: string;       // Default: ".codex/rules"
+    skills?: string;      // Default: ".agents/skills"
+  };
   agentsMd?: {
     file?: string;        // Default: "." (repository root)
   };
@@ -243,6 +249,10 @@ interface ProjectConfig {
     skills?: Record<string, RuleEntry>;
     commands?: Record<string, RuleEntry>;
     tools?: Record<string, RuleEntry>;
+  };
+  codex?: {
+    rules?: Record<string, RuleEntry>;
+    skills?: Record<string, RuleEntry>;
   };
   // Universal AGENTS.md support (tool-agnostic)
   agentsMd?: Record<string, RuleEntry>;
@@ -347,7 +357,23 @@ OpenCode AI is supported with four different entry types:
 - Links `<repo>/.opencode/tools/<toolName>` to `.opencode/tools/<alias>`.
 - File-based synchronization with `.ts`/`.js` suffixes for OpenCode AI tools.
 
-### 13. Import Command
+### 13. Codex Synchronization
+
+OpenAI Codex is supported with two entry types:
+
+### 13.1. Codex Rule Synchronization
+- **Syntax**: `ais codex rules add <ruleName> [alias]`
+- Links `<repo>/.codex/rules/<ruleName>` to `.codex/rules/<alias>`.
+- File-based synchronization with `.rules` suffix for Codex rules (Starlark syntax).
+- **Purpose**: Control which commands can run outside sandbox.
+
+### 13.2. Codex Skill Synchronization
+- **Syntax**: `ais codex skills add <skillName> [alias]`
+- Links `<repo>/.agents/skills/<skillName>` to `.agents/skills/<alias>`.
+- Directory-based synchronization for Codex skills (SKILL.md inside).
+- **Note**: Uses non-standard `.agents/skills` directory (not `.codex/skills`) per Codex documentation.
+
+### 15. Import Command
 - **Syntax**: `ais import <tool> <subtype> <name>` or `ais <tool> <subtype> import <name>`
 - Copies entry from project to rules repository, commits, and creates symlink back.
 - **Options**:
@@ -362,16 +388,17 @@ OpenCode AI is supported with four different entry types:
   ais import copilot instructions my-instruction -m "Add new instruction"
   ```
 
-### 14. Installation
+### 16. Installation
 - `ais cursor install` - Install all Cursor rules, commands, skills, and agents.
 - `ais copilot install` - Install all Copilot instructions.
 - `ais claude install` - Install all Claude skills and agents.
 - `ais trae install` - Install all Trae rules and skills.
-- `ais agents-md install` - Install AGENTS.md files.
 - `ais opencode install` - Install all OpenCode agents, skills, commands, and tools.
+- `ais codex install` - Install all Codex rules and skills.
+- `ais agents-md install` - Install AGENTS.md files.
 - `ais install` - Install everything (smart dispatch).
 
-### 15. Bulk Discovery and Installation (add-all)
+### 17. Bulk Discovery and Installation (add-all)
 
 The `add-all` command automatically **discovers and installs all available entries** from the rules repository by scanning the filesystem, unlike `install` which reads from config files.
 
@@ -452,7 +479,7 @@ Summary:
 - Respects repository source directory configuration
 - Compatible with `ais install` (discovered entries are added to config)
 
-### 16. Custom Source Directories for Third-Party Repositories
+### 18. Custom Source Directories for Third-Party Repositories
 
 **Problem**: Third-party rules repositories may not have `ai-rules-sync.json` or use non-standard directory structures (e.g., `rules/cursor/` instead of `.cursor/rules`).
 
@@ -573,7 +600,7 @@ ais cursor add-all
 ais cursor rules add-all -s experimental/rules
 ```
 
-### 17. Configuration Files
+### 19. Configuration Files
 
 **Rules Repository Config** (`ai-rules-sync.json` in the rules repo):
 ```json
@@ -602,6 +629,10 @@ ais cursor rules add-all -s experimental/rules
       "skills": ".opencode/skills",
       "commands": ".opencode/commands",
       "tools": ".opencode/tools"
+    },
+    "codex": {
+      "rules": ".codex/rules",
+      "skills": ".agents/skills"
     },
     "agentsMd": {
       "file": "."
@@ -636,6 +667,10 @@ ais cursor rules add-all -s experimental/rules
     "commands": { "build-optimizer": "https://..." },
     "tools": { "project-analyzer": "https://..." }
   },
+  "codex": {
+    "rules": { "sandbox-rules": "https://..." },
+    "skills": { "code-assistant": "https://..." }
+  },
   "agentsMd": {
     "root": {
       "url": "https://...",
@@ -653,7 +688,7 @@ ais cursor rules add-all -s experimental/rules
 - **Legacy format**: Old configs with `cursor.rules` as string are still supported.
 - **Legacy files**: `cursor-rules*.json` are read-only compatible; write operations migrate to new format.
 
-### 17. Shell Completion
+### 20. Shell Completion
 - **Auto-Install**: On first run, AIS prompts to install shell completion automatically.
 - **Manual Install**: `ais completion install` - Installs completion to shell config file.
 - **Script Output**: `ais completion [bash|zsh|fish]` - Outputs raw completion script.
@@ -678,6 +713,8 @@ ais cursor rules add-all -s experimental/rules
 | opencode-skills | opencode | skills | directory | .opencode/skills | - | [OpenCode](https://opencode.ing/) |
 | opencode-commands | opencode | commands | file | .opencode/commands | .md | [OpenCode](https://opencode.ing/) |
 | opencode-tools | opencode | tools | file | .opencode/tools | .ts, .js | [OpenCode](https://opencode.ing/) |
+| codex-rules | codex | rules | file | .codex/rules | .rules | [OpenAI Codex Rules](https://developers.openai.com/codex/rules) |
+| codex-skills | codex | skills | directory | .agents/skills | - | [OpenAI Codex Skills](https://developers.openai.com/codex/skills) |
 
 ## Development Guidelines
 - **TypeScript**: Strict mode enabled.
@@ -696,6 +733,70 @@ ais cursor rules add-all -s experimental/rules
 - Use **hybrid** mode when entries can be either files or directories (cursor-rules)
 
 ## Recent Changes
+
+### OpenAI Codex Support (2026-02)
+
+**Added complete support for OpenAI Codex project-level rules and skills:**
+
+**Problem Solved:**
+- Teams using Codex needed to share rules and skills across projects
+- No centralized way to distribute Codex configurations
+- Manual copying led to drift and inconsistency
+
+**Features Implemented:**
+
+1. **Codex Rules Adapter**:
+   - File mode with `.rules` suffix
+   - Source: `.codex/rules/`
+   - Syntax: `ais codex rules add <ruleName> [alias]`
+   - Purpose: Control which commands can run outside sandbox using Starlark syntax
+
+2. **Codex Skills Adapter**:
+   - Directory mode (SKILL.md + optional scripts/assets)
+   - Source: `.agents/skills/` (non-standard location per Codex docs)
+   - Syntax: `ais codex skills add <skillName> [alias]`
+   - Purpose: Task-specific capabilities that extend Codex
+
+3. **CLI Commands**:
+   - `ais codex install` - Install all Codex rules and skills
+   - `ais codex add-all` - Discover and add all entries from repository
+   - `ais codex import <name>` - Import from project to repository (auto-detects subtype)
+   - `ais codex rules [add|remove|install|import]` - Rules management
+   - `ais codex skills [add|remove|install|import]` - Skills management
+
+4. **Configuration Support**:
+   - Extended `SourceDirConfig` with `codex.rules` and `codex.skills`
+   - Extended `ProjectConfig` with `codex.rules` and `codex.skills` records
+   - Full support for custom source directories via `-s` option
+   - Backward compatible with existing configs
+
+5. **Shell Completion**:
+   - Added Codex to bash, zsh, and fish completion scripts
+   - Dynamic completion for rule/skill names via `ais _complete codex-rules|codex-skills`
+   - Context-aware completions for all subcommands
+
+6. **Mode Detection**:
+   - Added 'codex' to `DefaultMode` type
+   - `ais install` smart dispatch includes Codex
+   - Auto-detect Codex-only projects
+
+**Implementation:**
+- `src/adapters/codex-rules.ts` - Rules adapter (file mode, `.rules` suffix)
+- `src/adapters/codex-skills.ts` - Skills adapter (directory mode, `.agents/skills`)
+- `src/adapters/index.ts` - Registered adapters and added to `findAdapterForAlias`
+- `src/project-config.ts` - Extended configuration interfaces and helpers
+- `src/commands/helpers.ts` - Added 'codex' mode type and inference
+- `src/index.ts` - Full CLI command hierarchy with install/add-all/import
+- `src/completion/scripts.ts` - Shell completion for all three shells
+- `tests/codex-adapters.test.ts` - Complete test coverage (9 tests)
+
+**Files Changed:** 9 new/modified, all tests passing (126/126)
+
+**Benefits:**
+- Centralized Codex configuration management
+- Team-wide consistency for sandbox rules
+- Easy sharing of skills across projects
+- Follows same pattern as other supported tools
 
 ### Custom Source Directories for Third-Party Repositories (2026-01)
 

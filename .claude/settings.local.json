@@ -29,7 +29,8 @@
       "Bash(npx vitest:*)",
       "Bash(ais:*)",
       "Bash(xargs ls:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "WebFetch(domain:developers.openai.com)"
     ]
   }
 }
