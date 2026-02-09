@@ -136,6 +136,7 @@ ais completion install
 | Cursor | Skills | directory | `.cursor/skills/` | - | [文档](https://docs.cursor.com/context/rules-for-ai#skills) |
 | Cursor | Agents | directory | `.cursor/agents/` | - | [文档](https://docs.cursor.com/context/rules-for-ai#agents) |
 | Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [文档](https://docs.github.com/copilot) |
+| Copilot | Skills | directory | `.github/skills/` | - | [文档](https://docs.github.com/en/copilot/using-github-copilot/using-extensions-to-integrate-external-tools-with-copilot-chat) |
 | Claude | Skills | directory | `.claude/skills/` | - | [文档](https://docs.anthropic.com/en/docs/agents/claude-code) |
 | Claude | Agents | directory | `.claude/agents/` | - | [文档](https://docs.anthropic.com/en/docs/agents/claude-code) |
 | Trae | Rules | file | `.trae/rules/` | `.md` | [网站](https://trae.ai/) |
