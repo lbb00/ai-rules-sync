@@ -257,6 +257,9 @@ program
       if (mode === 'opencode' || mode === 'ambiguous') {
         await installEntriesForTool(adapterRegistry.getForTool('opencode'), projectPath);
       }
+      if (mode === 'codex' || mode === 'ambiguous') {
+        await installEntriesForTool(adapterRegistry.getForTool('codex'), projectPath);
+      }
       if (mode === 'agents-md' || mode === 'ambiguous') {
         await installEntriesForTool(adapterRegistry.getForTool('agents-md'), projectPath);
       }
@@ -270,7 +273,7 @@ program
 program
   .command('add-all')
   .description('Discover and install all configurations from rules repository')
-  .option('--tools <tools>', 'Filter by tools (comma-separated): cursor,copilot,claude,trae,opencode,agents-md')
+  .option('--tools <tools>', 'Filter by tools (comma-separated): cursor,copilot,claude,trae,opencode,codex,agents-md')
   .option('--adapters <adapters>', 'Filter by adapters (comma-separated)')
   .option('--dry-run', 'Preview without making changes')
   .option('-f, --force', 'Overwrite existing entries')
@@ -1013,6 +1016,132 @@ registerAdapterCommands({ adapter: getAdapter('opencode', 'commands'), parentCom
 const opencodeTools = opencode.command('tools').description('Manage OpenCode tools');
 registerAdapterCommands({ adapter: getAdapter('opencode', 'tools'), parentCommand: opencodeTools, programOpts: () => program.opts() });
 
+// ============ Codex command group ============
+const codex = program
+  .command('codex')
+  .description('Manage Codex rules and skills in a project');
+
+codex
+  .command('install')
+  .description('Install all Codex rules and skills from config')
+  .action(async () => {
+    try {
+      await installEntriesForTool(adapterRegistry.getForTool('codex'), process.cwd());
+    } catch (error: any) {
+      console.error(chalk.red('Error installing Codex entries:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// codex add-all
+codex
+  .command('add-all')
+  .description('Add all Codex entries from repository')
+  .option('--dry-run', 'Preview without making changes')
+  .option('-f, --force', 'Overwrite existing entries')
+  .option('-i, --interactive', 'Prompt for each entry')
+  .option('-l, --local', 'Add to ai-rules-sync.local.json')
+  .option('--skip-existing', 'Skip entries already in config')
+  .option('--quiet', 'Minimal output')
+  .option('-s, --source-dir <path>', 'Custom source directory (can be repeated)', collect)
+  .action(async (options) => {
+    try {
+      const projectPath = process.cwd();
+      const opts = program.opts();
+      const currentRepo = await getTargetRepo(opts);
+
+      // Parse source-dir overrides with codex as context tool
+      let sourceDirOverrides;
+      if (options.sourceDir && options.sourceDir.length > 0) {
+        try {
+          sourceDirOverrides = parseSourceDirParams(options.sourceDir, 'codex');
+        } catch (error: any) {
+          console.error(chalk.red('Error parsing --source-dir:'), error.message);
+          process.exit(1);
+        }
+      }
+
+      const result = await handleAddAll(
+        projectPath,
+        currentRepo,
+        adapterRegistry,
+        {
+          target: opts.target,
+          tools: ['codex'],
+          dryRun: options.dryRun,
+          force: options.force,
+          interactive: options.interactive,
+          isLocal: options.local,
+          skipExisting: options.skipExisting,
+          quiet: options.quiet,
+          sourceDirOverrides
+        }
+      );
+
+      if (!options.quiet) {
+        console.log(chalk.bold('\nSummary:'));
+        console.log(chalk.green(`  Installed: ${result.installed}`));
+        if (result.skipped > 0) {
+          console.log(chalk.yellow(`  Skipped: ${result.skipped}`));
+        }
+        if (result.errors.length > 0) {
+          console.log(chalk.red(`  Errors: ${result.errors.length}`));
+          result.errors.forEach(e => {
+            console.log(chalk.red(`    - ${e.entry}: ${e.error}`));
+          });
+        }
+      }
+
+      if (result.errors.length > 0) {
+        process.exit(1);
+      }
+    } catch (error: any) {
+      console.error(chalk.red('Error in codex add-all:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// codex import
+codex
+  .command('import <name>')
+  .description('Import Codex rule/skill from project to repository (auto-detects subtype)')
+  .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
+  .option('-m, --message <message>', 'Custom git commit message')
+  .option('-f, --force', 'Overwrite if entry already exists in repository')
+  .option('-p, --push', 'Push to remote repository after commit')
+  .action(async (name, options) => {
+    try {
+      const projectPath = process.cwd();
+      const repo = await getTargetRepo(program.opts());
+      const codexAdapters = adapterRegistry.getForTool('codex');
+      let foundAdapter = null;
+
+      for (const adapter of codexAdapters) {
+        const targetPath = path.join(projectPath, adapter.targetDir, name);
+        if (await fs.pathExists(targetPath)) {
+          foundAdapter = adapter;
+          break;
+        }
+      }
+
+      if (!foundAdapter) {
+        throw new Error(`Entry "${name}" not found in .codex/rules or .agents/skills.`);
+      }
+
+      console.log(chalk.gray(`Detected ${foundAdapter.subtype}: ${name}`));
+      await handleImport(foundAdapter, { projectPath, repo, isLocal: options.local || false }, name, options);
+    } catch (error: any) {
+      console.error(chalk.red('Error importing Codex entry:'), error.message);
+      process.exit(1);
+    }
+  });
+
+const codexRules = codex.command('rules').description('Manage Codex rules');
+registerAdapterCommands({ adapter: getAdapter('codex', 'rules'), parentCommand: codexRules, programOpts: () => program.opts() });
+
+const codexSkills = codex.command('skills').description('Manage Codex skills');
+registerAdapterCommands({ adapter: getAdapter('codex', 'skills'), parentCommand: codexSkills, programOpts: () => program.opts() });
+
 // ============ Git command ============
 program
   .command('git')
@@ -1032,7 +1161,7 @@ program
 // ============ Internal _complete command ============
 program
   .command('_complete')
-  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, cursor-agents, copilot, claude-skills, claude-agents, trae-rules, trae-skills, opencode-agents, opencode-skills, opencode-commands, opencode-tools, agents-md')
+  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, cursor-agents, copilot, claude-skills, claude-agents, trae-rules, trae-skills, opencode-agents, opencode-skills, opencode-commands, opencode-tools, codex-rules, codex-skills, agents-md')
   .description('Internal command for shell completion')
   .action(async (type: string) => {
     try {
@@ -1090,6 +1219,12 @@ program
           break;
         case 'opencode-tools':
           sourceDir = getSourceDir(repoConfig, 'opencode', 'tools', '.opencode/tools');
+          break;
+        case 'codex-rules':
+          sourceDir = getSourceDir(repoConfig, 'codex', 'rules', '.codex/rules');
+          break;
+        case 'codex-skills':
+          sourceDir = getSourceDir(repoConfig, 'codex', 'skills', '.agents/skills');
           break;
         case 'agents-md':
           sourceDir = getSourceDir(repoConfig, 'agents-md', 'file', 'agents-md');

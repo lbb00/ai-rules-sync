@@ -58,6 +58,12 @@ export interface SourceDirConfig {
         // Source directory for opencode tools, default: ".opencode/tools"
         tools?: string;
     };
+    codex?: {
+        // Source directory for codex rules, default: ".codex/rules"
+        rules?: string;
+        // Source directory for codex skills, default: ".agents/skills"
+        skills?: string;
+    };
     agentsMd?: {
         // Source directory for AGENTS.md files, default: "." (repository root)
         file?: string;
@@ -109,6 +115,10 @@ export interface ProjectConfig {
         commands?: Record<string, RuleEntry>;
         tools?: Record<string, RuleEntry>;
     };
+    codex?: {
+        rules?: Record<string, RuleEntry>;
+        skills?: Record<string, RuleEntry>;
+    };
     // Universal AGENTS.md support (tool-agnostic)
     agentsMd?: Record<string, RuleEntry>;
 }
@@ -141,6 +151,10 @@ export interface RepoSourceConfig {
         skills?: string;
         commands?: string;
         tools?: string;
+    };
+    codex?: {
+        rules?: string;
+        skills?: string;
     };
     agentsMd?: {
         file?: string;
@@ -207,6 +221,10 @@ function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig
             commands: { ...(main.opencode?.commands || {}), ...(local.opencode?.commands || {}) },
             tools: { ...(main.opencode?.tools || {}), ...(local.opencode?.tools || {}) }
         },
+        codex: {
+            rules: { ...(main.codex?.rules || {}), ...(local.codex?.rules || {}) },
+            skills: { ...(main.codex?.skills || {}), ...(local.codex?.skills || {}) }
+        },
         agentsMd: { ...(main.agentsMd || {}), ...(local.agentsMd || {}) }
     };
 }
@@ -234,7 +252,10 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
                 cursor: config.sourceDir.cursor,
                 copilot: config.sourceDir.copilot,
                 claude: config.sourceDir.claude,
-                trae: config.sourceDir.trae
+                trae: config.sourceDir.trae,
+                opencode: config.sourceDir.opencode,
+                codex: config.sourceDir.codex,
+                agentsMd: config.sourceDir.agentsMd
             };
         }
 
@@ -268,11 +289,15 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
         const isOpencodeSkillsString = typeof opencodeSkills === 'string';
         const isOpencodeCommandsString = typeof opencodeCommands === 'string';
         const isOpencodeToolsString = typeof opencodeTools === 'string';
+        const codexRules = config.codex?.rules;
+        const codexSkills = config.codex?.skills;
+        const isCodexRulesString = typeof codexRules === 'string';
+        const isCodexSkillsString = typeof codexSkills === 'string';
         const agentsMdFile = config.agentsMd?.file;
         const isAgentsMdFileString = typeof agentsMdFile === 'string';
 
         // If any of these are strings, treat as legacy rules repo config
-        if (isCursorRulesString || isCursorCommandsString || isCursorSkillsString || isCursorAgentsString || isCopilotInstructionsString || isClaudeSkillsString || isClaudeAgentsString || isTraeRulesString || isTraeSkillsString || isOpencodeAgentsString || isOpencodeSkillsString || isOpencodeCommandsString || isOpencodeToolsString || isAgentsMdFileString) {
+        if (isCursorRulesString || isCursorCommandsString || isCursorSkillsString || isCursorAgentsString || isCopilotInstructionsString || isClaudeSkillsString || isClaudeAgentsString || isTraeRulesString || isTraeSkillsString || isOpencodeAgentsString || isOpencodeSkillsString || isOpencodeCommandsString || isOpencodeToolsString || isCodexRulesString || isCodexSkillsString || isAgentsMdFileString) {
             return {
                 rootPath: config.rootPath,
                 cursor: {
@@ -297,6 +322,10 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
                     skills: isOpencodeSkillsString ? opencodeSkills : undefined,
                     commands: isOpencodeCommandsString ? opencodeCommands : undefined,
                     tools: isOpencodeToolsString ? opencodeTools : undefined
+                },
+                codex: {
+                    rules: isCodexRulesString ? codexRules : undefined,
+                    skills: isCodexSkillsString ? codexSkills : undefined
                 },
                 agentsMd: {
                     file: isAgentsMdFileString ? agentsMdFile : undefined
@@ -373,6 +402,12 @@ export function getSourceDir(
             toolDir = repoConfig.opencode?.commands;
         } else if (subtype === 'tools') {
             toolDir = repoConfig.opencode?.tools;
+        }
+    } else if (tool === 'codex') {
+        if (subtype === 'rules') {
+            toolDir = repoConfig.codex?.rules;
+        } else if (subtype === 'skills') {
+            toolDir = repoConfig.codex?.skills;
         }
     } else if (tool === 'agents-md') {
         if (subtype === 'file') {

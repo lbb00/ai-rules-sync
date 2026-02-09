@@ -10,7 +10,7 @@
 
 Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links.
 
-**Supports:** Cursor (rules, commands, skills, agents), Copilot (instructions), Claude (skills, agents), Trae (rules, skills), OpenCode (agents, skills, commands, tools), and universal AGENTS.md.
+**Supports:** Cursor (rules, commands, skills, agents), Copilot (instructions), Claude (skills, agents), Trae (rules, skills), OpenCode (agents, skills, commands, tools), Codex (rules, skills), and universal AGENTS.md.
 
 ---
 
@@ -144,6 +144,8 @@ ais completion install
 | OpenCode | Skills | directory | `.opencode/skills/` | - | [Website](https://opencode.ing/) |
 | OpenCode | Commands | file | `.opencode/commands/` | `.md` | [Website](https://opencode.ing/) |
 | OpenCode | Tools | file | `.opencode/tools/` | `.ts`, `.js` | [Website](https://opencode.ing/) |
+| Codex | Rules | file | `.codex/rules/` | `.rules` | [Docs](https://developers.openai.com/codex/rules) |
+| Codex | Skills | directory | `.agents/skills/` | - | [Docs](https://developers.openai.com/codex/skills) |
 | **Universal** | **AGENTS.md** | file | `.` (root) | `.md` | [Standard](https://agents.md/) |
 
 **Modes:**
@@ -492,6 +494,28 @@ ais opencode tools add project-analyzer
 # Remove
 ais opencode agents remove code-reviewer
 ```
+
+### Codex
+
+```bash
+# Add rule (Starlark syntax for sandbox control)
+ais codex rules add default
+
+# Add skill
+ais codex skills add code-assistant
+
+# Install all
+ais codex install
+
+# Import from project
+ais codex rules import my-sandbox-rules
+ais codex skills import my-helper-skill
+
+# Remove
+ais codex rules remove default
+```
+
+**Note:** Codex skills use `.agents/skills/` (not `.codex/skills/`) per OpenAI documentation.
 
 ### AGENTS.md (Universal)
 

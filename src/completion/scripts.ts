@@ -148,6 +148,18 @@ _ais_complete() {
     return 0
   fi
 
+  # codex rules add
+  if [[ "\$ppprev" == "codex" && "\$pprev" == "rules" && "\$prev" == "add" ]]; then
+    COMPREPLY=( $(compgen -W "$(ais _complete codex-rules 2>/dev/null)" -- "\$cur") )
+    return 0
+  fi
+
+  # codex skills add
+  if [[ "\$ppprev" == "codex" && "\$pprev" == "skills" && "\$prev" == "add" ]]; then
+    COMPREPLY=( $(compgen -W "$(ais _complete codex-skills 2>/dev/null)" -- "\$cur") )
+    return 0
+  fi
+
   # agents-md
   if [[ "\$pprev" == "agents-md" && "\$prev" == "add" ]]; then
     COMPREPLY=( $(compgen -W "$(ais _complete agents-md 2>/dev/null)" -- "\$cur") )
@@ -174,6 +186,18 @@ _ais_complete() {
 
   # opencode tools
   if [[ "\$pprev" == "opencode" && "\$prev" == "tools" ]]; then
+    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
+    return 0
+  fi
+
+  # codex rules
+  if [[ "\$pprev" == "codex" && "\$prev" == "rules" ]]; then
+    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
+    return 0
+  fi
+
+  # codex skills
+  if [[ "\$pprev" == "codex" && "\$prev" == "skills" ]]; then
     COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
     return 0
   fi
@@ -209,8 +233,13 @@ _ais_complete() {
     return 0
   fi
 
+  if [[ "\$prev" == "codex" ]]; then
+    COMPREPLY=( $(compgen -W "rules skills install import" -- "\$cur") )
+    return 0
+  fi
+
   if [[ "\$prev" == "ais" ]]; then
-    COMPREPLY=( $(compgen -W "cursor copilot claude trae opencode agents-md use list git add remove install import completion" -- "\$cur") )
+    COMPREPLY=( $(compgen -W "cursor copilot claude trae opencode codex agents-md use list git add remove install import completion" -- "\$cur") )
     return 0
   fi
 }
@@ -238,7 +267,7 @@ subcmds=(
     'completion:Output shell completion script'
   )
 
-  local -a cursor_subcmds copilot_subcmds claude_subcmds trae_subcmds opencode_subcmds agents_md_subcmds cursor_rules_subcmds cursor_commands_subcmds cursor_skills_subcmds cursor_agents_subcmds claude_skills_subcmds claude_agents_subcmds trae_rules_subcmds trae_skills_subcmds opencode_agents_subcmds opencode_skills_subcmds opencode_commands_subcmds opencode_tools_subcmds
+  local -a cursor_subcmds copilot_subcmds claude_subcmds trae_subcmds opencode_subcmds codex_subcmds agents_md_subcmds cursor_rules_subcmds cursor_commands_subcmds cursor_skills_subcmds cursor_agents_subcmds claude_skills_subcmds claude_agents_subcmds trae_rules_subcmds trae_skills_subcmds opencode_agents_subcmds opencode_skills_subcmds opencode_commands_subcmds opencode_tools_subcmds codex_rules_subcmds codex_skills_subcmds
   cursor_subcmds=('add:Add a Cursor rule' 'remove:Remove a Cursor rule' 'install:Install all Cursor entries' 'import:Import entry to repository' 'rules:Manage rules explicitly' 'commands:Manage commands' 'skills:Manage skills' 'agents:Manage agents')
   copilot_subcmds=('add:Add a Copilot instruction' 'remove:Remove a Copilot instruction' 'install:Install all Copilot instructions' 'import:Import instruction to repository')
   claude_subcmds=('skills:Manage Claude skills' 'agents:Manage Claude agents' 'install:Install all Claude components')
@@ -257,6 +286,9 @@ subcmds=(
   opencode_skills_subcmds=('add:Add an OpenCode skill' 'remove:Remove an OpenCode skill' 'install:Install all OpenCode skills' 'import:Import skill to repository')
   opencode_commands_subcmds=('add:Add an OpenCode command' 'remove:Remove an OpenCode command' 'install:Install all OpenCode commands' 'import:Import command to repository')
   opencode_tools_subcmds=('add:Add an OpenCode tool' 'remove:Remove an OpenCode tool' 'install:Install all OpenCode tools' 'import:Import tool to repository')
+  codex_subcmds=('rules:Manage Codex rules' 'skills:Manage Codex skills' 'install:Install all Codex entries' 'import:Import entry to repository')
+  codex_rules_subcmds=('add:Add a Codex rule' 'remove:Remove a Codex rule' 'install:Install all Codex rules' 'import:Import rule to repository')
+  codex_skills_subcmds=('add:Add a Codex skill' 'remove:Remove a Codex skill' 'install:Install all Codex skills' 'import:Import skill to repository')
 
   _arguments -C \\
     '1:command:->command' \\
@@ -285,6 +317,9 @@ subcmds=(
           ;;
         opencode)
           _describe 'subcommand' opencode_subcmds
+          ;;
+        codex)
+          _describe 'subcommand' codex_subcmds
           ;;
         agents-md)
           _describe 'subcommand' agents_md_subcmds
@@ -375,6 +410,19 @@ subcmds=(
               ;;
             *)
               _describe 'subsubcommand' opencode_subcmds
+              ;;
+          esac
+          ;;
+        codex)
+          case "\$words[3]" in
+            rules)
+              _describe 'subsubcommand' codex_rules_subcmds
+              ;;
+            skills)
+              _describe 'subsubcommand' codex_skills_subcmds
+              ;;
+            *)
+              _describe 'subsubcommand' codex_subcmds
               ;;
           esac
           ;;
@@ -562,6 +610,32 @@ subcmds=(
               ;;
           esac
           ;;
+        codex)
+          case \"\$words[3]\" in
+            rules)
+              case \"\$words[4]\" in
+                add)
+                  local -a rules
+                  rules=(\${(f)\"$(ais _complete codex-rules 2>/dev/null)\"})
+                  if (( \$#rules )); then
+                    compadd \"\$rules[@]\"
+                  fi
+                  ;;
+              esac
+              ;;
+            skills)
+              case \"\$words[4]\" in
+                add)
+                  local -a skills
+                  skills=(\${(f)\"$(ais _complete codex-skills 2>/dev/null)\"})
+                  if (( \$#skills )); then
+                    compadd \"\$skills[@]\"
+                  fi
+                  ;;
+              esac
+              ;;
+          esac
+          ;;
         agents-md)
           case \"\$words[3]\" in
             add)
@@ -595,6 +669,7 @@ complete -c ais -n "__fish_use_subcommand" -a "copilot" -d "Manage Copilot instr
 complete -c ais -n "__fish_use_subcommand" -a "claude" -d "Manage Claude skills, agents, and plugins"
 complete -c ais -n "__fish_use_subcommand" -a "trae" -d "Manage Trae rules and skills"
 complete -c ais -n "__fish_use_subcommand" -a "opencode" -d "Manage OpenCode agents, skills, commands, and tools"
+complete -c ais -n "__fish_use_subcommand" -a "codex" -d "Manage Codex rules and skills"
 complete -c ais -n "__fish_use_subcommand" -a "agents-md" -d "Manage AGENTS.md files (agents.md standard)"
 complete -c ais -n "__fish_use_subcommand" -a "use" -d "Configure rules repository"
 complete -c ais -n "__fish_use_subcommand" -a "list" -d "List configured repositories"
@@ -711,6 +786,24 @@ complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcom
 complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from tools; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all OpenCode tools"
 complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from tools; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import tool to repository"
 
+# codex subcommands
+complete -c ais -n "__fish_seen_subcommand_from codex; and not __fish_seen_subcommand_from install import rules skills" -a "install" -d "Install all Codex entries"
+complete -c ais -n "__fish_seen_subcommand_from codex; and not __fish_seen_subcommand_from install import rules skills" -a "import" -d "Import entry to repository"
+complete -c ais -n "__fish_seen_subcommand_from codex; and not __fish_seen_subcommand_from install import rules skills" -a "rules" -d "Manage Codex rules"
+complete -c ais -n "__fish_seen_subcommand_from codex; and not __fish_seen_subcommand_from install import rules skills" -a "skills" -d "Manage Codex skills"
+
+# codex rules subcommands
+complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Codex rule"
+complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Codex rule"
+complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Codex rules"
+complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import rule to repository"
+
+# codex skills subcommands
+complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Codex skill"
+complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Codex skill"
+complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Codex skills"
+complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import skill to repository"
+
 # agents-md subcommands
 complete -c ais -n "__fish_seen_subcommand_from agents-md; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add an AGENTS.md file"
 complete -c ais -n "__fish_seen_subcommand_from agents-md; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove an AGENTS.md file"
@@ -731,6 +824,8 @@ complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcom
 complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete opencode-skills 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from commands; and __fish_seen_subcommand_from add" -a "(ais _complete opencode-commands 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from tools; and __fish_seen_subcommand_from add" -a "(ais _complete opencode-tools 2>/dev/null)"
+complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from rules; and __fish_seen_subcommand_from add" -a "(ais _complete codex-rules 2>/dev/null)"
+complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete codex-skills 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from agents-md; and __fish_seen_subcommand_from add" -a "(ais _complete agents-md 2>/dev/null)"
 `;
 
