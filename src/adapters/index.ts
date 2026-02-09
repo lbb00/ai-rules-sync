@@ -16,6 +16,9 @@ import { opencodeToolsAdapter } from './opencode-tools.js';
 import { agentsMdAdapter } from './agents-md.js';
 import { codexRulesAdapter } from './codex-rules.js';
 import { codexSkillsAdapter } from './codex-skills.js';
+import { geminiCommandsAdapter } from './gemini-commands.js';
+import { geminiSkillsAdapter } from './gemini-skills.js';
+import { geminiAgentsAdapter } from './gemini-agents.js';
 import { ProjectConfig } from '../project-config.js';
 
 // Re-export types and utilities
@@ -49,6 +52,9 @@ class DefaultAdapterRegistry implements AdapterRegistry {
         this.register(agentsMdAdapter);
         this.register(codexRulesAdapter);
         this.register(codexSkillsAdapter);
+        this.register(geminiCommandsAdapter);
+        this.register(geminiSkillsAdapter);
+        this.register(geminiAgentsAdapter);
     }
 
     register(adapter: SyncAdapter): void {
@@ -171,6 +177,15 @@ export function findAdapterForAlias(
     }
     if (cfg.codex?.skills?.[alias]) {
         return { adapter: codexSkillsAdapter, section: 'codex.skills' };
+    }
+    if (cfg.gemini?.commands?.[alias]) {
+        return { adapter: geminiCommandsAdapter, section: 'gemini.commands' };
+    }
+    if (cfg.gemini?.skills?.[alias]) {
+        return { adapter: geminiSkillsAdapter, section: 'gemini.skills' };
+    }
+    if (cfg.gemini?.agents?.[alias]) {
+        return { adapter: geminiAgentsAdapter, section: 'gemini.agents' };
     }
     return null;
 }

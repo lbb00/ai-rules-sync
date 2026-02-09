@@ -66,6 +66,14 @@ export interface SourceDirConfig {
         // Source directory for codex skills, default: ".agents/skills"
         skills?: string;
     };
+    gemini?: {
+        // Source directory for gemini commands, default: ".gemini/commands"
+        commands?: string;
+        // Source directory for gemini skills, default: ".gemini/skills"
+        skills?: string;
+        // Source directory for gemini agents, default: ".gemini/agents"
+        agents?: string;
+    };
     agentsMd?: {
         // Source directory for AGENTS.md files, default: "." (repository root)
         file?: string;
@@ -121,6 +129,11 @@ export interface ProjectConfig {
     codex?: {
         rules?: Record<string, RuleEntry>;
         skills?: Record<string, RuleEntry>;
+    };
+    gemini?: {
+        commands?: Record<string, RuleEntry>;
+        skills?: Record<string, RuleEntry>;
+        agents?: Record<string, RuleEntry>;
     };
     // Universal AGENTS.md support (tool-agnostic)
     agentsMd?: Record<string, RuleEntry>;

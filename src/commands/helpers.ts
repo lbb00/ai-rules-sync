@@ -70,7 +70,7 @@ export async function getTargetRepo(options: { target?: string }): Promise<RepoC
   return currentRepo;
 }
 
-export type DefaultMode = 'cursor' | 'copilot' | 'claude' | 'trae' | 'opencode' | 'codex' | 'agents-md' | 'ambiguous' | 'none';
+export type DefaultMode = 'cursor' | 'copilot' | 'claude' | 'trae' | 'opencode' | 'codex' | 'gemini' | 'agents-md' | 'ambiguous' | 'none';
 
 /**
  * Infer the default mode based on project configuration
@@ -91,16 +91,20 @@ export async function inferDefaultMode(projectPath: string): Promise<DefaultMode
     Object.keys(cfg.opencode?.tools || {}).length;
   const codexCount = Object.keys(cfg.codex?.rules || {}).length +
     Object.keys(cfg.codex?.skills || {}).length;
+  const geminiCount = Object.keys(cfg.gemini?.commands || {}).length +
+    Object.keys(cfg.gemini?.skills || {}).length +
+    Object.keys(cfg.gemini?.agents || {}).length;
   const agentsMdCount = Object.keys(cfg.agentsMd || {}).length;
 
-  if (cursorCount > 0 && copilotCount === 0 && claudeCount === 0 && traeCount === 0 && opencodeCount === 0 && codexCount === 0 && agentsMdCount === 0) return 'cursor';
-  if (copilotCount > 0 && cursorCount === 0 && claudeCount === 0 && traeCount === 0 && opencodeCount === 0 && codexCount === 0 && agentsMdCount === 0) return 'copilot';
-  if (claudeCount > 0 && cursorCount === 0 && copilotCount === 0 && traeCount === 0 && opencodeCount === 0 && codexCount === 0 && agentsMdCount === 0) return 'claude';
-  if (traeCount > 0 && cursorCount === 0 && copilotCount === 0 && claudeCount === 0 && opencodeCount === 0 && codexCount === 0 && agentsMdCount === 0) return 'trae';
-  if (opencodeCount > 0 && cursorCount === 0 && copilotCount === 0 && claudeCount === 0 && traeCount === 0 && codexCount === 0 && agentsMdCount === 0) return 'opencode';
-  if (codexCount > 0 && cursorCount === 0 && copilotCount === 0 && claudeCount === 0 && traeCount === 0 && opencodeCount === 0 && agentsMdCount === 0) return 'codex';
-  if (agentsMdCount > 0 && cursorCount === 0 && copilotCount === 0 && claudeCount === 0 && traeCount === 0 && opencodeCount === 0 && codexCount === 0) return 'agents-md';
-  if (cursorCount === 0 && copilotCount === 0 && claudeCount === 0 && traeCount === 0 && opencodeCount === 0 && codexCount === 0 && agentsMdCount === 0) return 'none';
+  if (cursorCount > 0 && copilotCount === 0 && claudeCount === 0 && traeCount === 0 && opencodeCount === 0 && codexCount === 0 && geminiCount === 0 && agentsMdCount === 0) return 'cursor';
+  if (copilotCount > 0 && cursorCount === 0 && claudeCount === 0 && traeCount === 0 && opencodeCount === 0 && codexCount === 0 && geminiCount === 0 && agentsMdCount === 0) return 'copilot';
+  if (claudeCount > 0 && cursorCount === 0 && copilotCount === 0 && traeCount === 0 && opencodeCount === 0 && codexCount === 0 && geminiCount === 0 && agentsMdCount === 0) return 'claude';
+  if (traeCount > 0 && cursorCount === 0 && copilotCount === 0 && claudeCount === 0 && opencodeCount === 0 && codexCount === 0 && geminiCount === 0 && agentsMdCount === 0) return 'trae';
+  if (opencodeCount > 0 && cursorCount === 0 && copilotCount === 0 && claudeCount === 0 && traeCount === 0 && codexCount === 0 && geminiCount === 0 && agentsMdCount === 0) return 'opencode';
+  if (codexCount > 0 && cursorCount === 0 && copilotCount === 0 && claudeCount === 0 && traeCount === 0 && opencodeCount === 0 && geminiCount === 0 && agentsMdCount === 0) return 'codex';
+  if (geminiCount > 0 && cursorCount === 0 && copilotCount === 0 && claudeCount === 0 && traeCount === 0 && opencodeCount === 0 && codexCount === 0 && agentsMdCount === 0) return 'gemini';
+  if (agentsMdCount > 0 && cursorCount === 0 && copilotCount === 0 && claudeCount === 0 && traeCount === 0 && opencodeCount === 0 && codexCount === 0 && geminiCount === 0) return 'agents-md';
+  if (cursorCount === 0 && copilotCount === 0 && claudeCount === 0 && traeCount === 0 && opencodeCount === 0 && codexCount === 0 && geminiCount === 0 && agentsMdCount === 0) return 'none';
   return 'ambiguous';
 }
 
@@ -109,9 +113,9 @@ export async function inferDefaultMode(projectPath: string): Promise<DefaultMode
  */
 export function requireExplicitMode(mode: DefaultMode): never {
   if (mode === 'ambiguous') {
-    throw new Error('Multiple tool configs exist in this project. Please use "ais cursor ...", "ais copilot ...", "ais claude ...", "ais trae ...", "ais opencode ...", "ais codex ...", or "ais agents-md ..." explicitly.');
+    throw new Error('Multiple tool configs exist in this project. Please use "ais cursor ...", "ais copilot ...", "ais claude ...", "ais trae ...", "ais opencode ...", "ais codex ...", "ais gemini ...", or "ais agents-md ..." explicitly.');
   }
-  throw new Error('No default mode could be inferred. Please use "ais cursor ...", "ais copilot ...", "ais claude ...", "ais trae ...", "ais opencode ...", "ais codex ...", or "ais agents-md ..." explicitly.');
+  throw new Error('No default mode could be inferred. Please use "ais cursor ...", "ais copilot ...", "ais claude ...", "ais trae ...", "ais opencode ...", "ais codex ...", "ais gemini ...", or "ais agents-md ..." explicitly.');
 }
 
 /**

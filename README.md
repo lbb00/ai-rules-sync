@@ -10,7 +10,7 @@
 
 Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links.
 
-**Supports:** Cursor (rules, commands, skills, agents), Copilot (instructions, skills), Claude (skills, agents), Trae (rules, skills), OpenCode (agents, skills, commands, tools), Codex (rules, skills), and universal AGENTS.md.
+**Supports:** Cursor (rules, commands, skills, agents), Copilot (instructions, skills), Claude (skills, agents), Trae (rules, skills), OpenCode (agents, skills, commands, tools), Codex (rules, skills), Gemini CLI (commands, skills, agents), and universal AGENTS.md.
 
 ---
 
@@ -146,6 +146,9 @@ ais completion install
 | OpenCode | Tools | file | `.opencode/tools/` | `.ts`, `.js` | [Website](https://opencode.ing/) |
 | Codex | Rules | file | `.codex/rules/` | `.rules` | [Docs](https://developers.openai.com/codex/rules) |
 | Codex | Skills | directory | `.agents/skills/` | - | [Docs](https://developers.openai.com/codex/skills) |
+| Gemini CLI | Commands | file | `.gemini/commands/` | `.toml` | [Website](https://geminicli.com/) |
+| Gemini CLI | Skills | directory | `.gemini/skills/` | - | [Website](https://geminicli.com/) |
+| Gemini CLI | Agents | file | `.gemini/agents/` | `.md` | [Website](https://geminicli.com/) |
 | **Universal** | **AGENTS.md** | file | `.` (root) | `.md` | [Standard](https://agents.md/) |
 
 **Modes:**
