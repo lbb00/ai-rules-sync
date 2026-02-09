@@ -10,7 +10,7 @@
 
 不再复制粘贴 `.mdc` 文件。在 Git 仓库中管理规则，通过软链接同步。
 
-**支持：** Cursor（规则、命令、技能、代理）、Copilot（指令）、Claude（技能、代理）、Trae（规则、技能）、OpenCode（代理、技能、命令、工具）、Codex（规则、技能）以及通用的 AGENTS.md。
+**支持：** Cursor（规则、命令、技能、代理）、Copilot（指令、技能）、Claude（技能、代理）、Trae（规则、技能）、OpenCode（代理、技能、命令、工具）、Codex（规则、技能）以及通用的 AGENTS.md。
 
 ---
 
@@ -377,7 +377,7 @@ ais install
 ```bash
 # 移除并重新创建所有软链接
 ais cursor install
-ais copilot install
+ais copilot install  # 所有 copilot 条目（指令 + 技能）
 ais install  # 所有工具
 ```
 
@@ -438,14 +438,18 @@ ais cursor agents remove code-analyzer
 
 ```bash
 # 添加指令
-ais copilot add coding-style
+ais copilot instructions add coding-style
 
 # 后缀匹配（如果两者都存在，必须明确指定）
-ais copilot add style.md               # 明确指定
-ais copilot add style.instructions.md  # 明确指定
+ais copilot instructions add style.md               # 明确指定
+ais copilot instructions add style.instructions.md  # 明确指定
+
+# 添加技能
+ais copilot skills add web-scraping
 
 # 移除
-ais copilot remove coding-style
+ais copilot instructions remove coding-style
+ais copilot skills remove web-scraping
 ```
 
 ### Claude
@@ -576,7 +580,7 @@ ais use personal-rules
 示例：
 ```bash
 ais cursor add react -t company-rules --local
-ais copilot add coding-style -t https://github.com/org/rules.git
+ais copilot instructions add coding-style -t https://github.com/org/rules.git
 ```
 
 ### 发现并安装所有（add-all）
@@ -779,9 +783,10 @@ ais completion fish | source
 
 **使用：**
 ```bash
-ais cursor add <Tab>            # 列出可用规则
-ais cursor commands add <Tab>   # 列出可用命令
-ais copilot add <Tab>           # 列出可用指令
+ais cursor add <Tab>                     # 列出可用规则
+ais cursor commands add <Tab>            # 列出可用命令
+ais copilot instructions add <Tab>       # 列出可用指令
+ais copilot skills add <Tab>             # 列出可用技能
 ```
 
 ---

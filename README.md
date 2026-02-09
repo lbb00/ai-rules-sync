@@ -10,7 +10,7 @@
 
 Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links.
 
-**Supports:** Cursor (rules, commands, skills, agents), Copilot (instructions), Claude (skills, agents), Trae (rules, skills), OpenCode (agents, skills, commands, tools), Codex (rules, skills), and universal AGENTS.md.
+**Supports:** Cursor (rules, commands, skills, agents), Copilot (instructions, skills), Claude (skills, agents), Trae (rules, skills), OpenCode (agents, skills, commands, tools), Codex (rules, skills), and universal AGENTS.md.
 
 ---
 
@@ -377,7 +377,7 @@ ais install
 ```bash
 # Remove and recreate all symlinks
 ais cursor install
-ais copilot install
+ais copilot install  # All copilot entries (instructions + skills)
 ais install  # All tools
 ```
 
@@ -438,14 +438,18 @@ ais cursor agents remove code-analyzer
 
 ```bash
 # Add instruction
-ais copilot add coding-style
+ais copilot instructions add coding-style
 
 # Suffix matching (if both exist, you must specify)
-ais copilot add style.md               # Explicit
-ais copilot add style.instructions.md  # Explicit
+ais copilot instructions add style.md               # Explicit
+ais copilot instructions add style.instructions.md  # Explicit
+
+# Add skill
+ais copilot skills add web-scraping
 
 # Remove
-ais copilot remove coding-style
+ais copilot instructions remove coding-style
+ais copilot skills remove web-scraping
 ```
 
 ### Claude
@@ -576,7 +580,7 @@ All commands support:
 Examples:
 ```bash
 ais cursor add react -t company-rules --local
-ais copilot add coding-style -t https://github.com/org/rules.git
+ais copilot instructions add coding-style -t https://github.com/org/rules.git
 ```
 
 ### Discover and Install All (add-all)
@@ -779,9 +783,10 @@ ais completion fish | source
 
 **Usage:**
 ```bash
-ais cursor add <Tab>            # Lists available rules
-ais cursor commands add <Tab>   # Lists available commands
-ais copilot add <Tab>           # Lists available instructions
+ais cursor add <Tab>                     # Lists available rules
+ais cursor commands add <Tab>            # Lists available commands
+ais copilot instructions add <Tab>       # Lists available instructions
+ais copilot skills add <Tab>             # Lists available skills
 ```
 
 ---

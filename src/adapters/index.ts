@@ -2,6 +2,7 @@ import { SyncAdapter, AdapterRegistry } from './types.js';
 import { cursorRulesAdapter } from './cursor-rules.js';
 import { cursorCommandsAdapter } from './cursor-commands.js';
 import { copilotInstructionsAdapter } from './copilot-instructions.js';
+import { copilotSkillsAdapter } from './copilot-skills.js';
 import { claudeSkillsAdapter } from './claude-skills.js';
 import { claudeAgentsAdapter } from './claude-agents.js';
 import { cursorSkillsAdapter } from './cursor-skills.js';
@@ -36,6 +37,7 @@ class DefaultAdapterRegistry implements AdapterRegistry {
         this.register(cursorSkillsAdapter);
         this.register(cursorAgentsAdapter);
         this.register(copilotInstructionsAdapter);
+        this.register(copilotSkillsAdapter);
         this.register(claudeSkillsAdapter);
         this.register(claudeAgentsAdapter);
         this.register(traeRulesAdapter);
@@ -133,6 +135,9 @@ export function findAdapterForAlias(
     }
     if (cfg.copilot?.instructions?.[alias]) {
         return { adapter: copilotInstructionsAdapter, section: 'copilot.instructions' };
+    }
+    if (cfg.copilot?.skills?.[alias]) {
+        return { adapter: copilotSkillsAdapter, section: 'copilot.skills' };
     }
     if (cfg.claude?.skills?.[alias]) {
         return { adapter: claudeSkillsAdapter, section: 'claude.skills' };
