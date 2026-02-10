@@ -1,12 +1,12 @@
 # Project Knowledge Base
 
 ## Project Overview
-**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor agents**, **Copilot instructions**, **Claude Code skills/agents**, **Trae rules/skills**, **OpenCode agents/skills/commands/tools**, **Codex rules/skills**, and **universal AGENTS.md support**, keeping projects up-to-date across teams.
+**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor agents**, **Copilot instructions**, **Claude Code skills/agents**, **Trae rules/skills**, **OpenCode agents/skills/commands/tools**, **Codex rules/skills**, **Gemini CLI commands/skills/agents**, and **universal AGENTS.md support**, keeping projects up-to-date across teams.
 
 ## Core Concepts
-- **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/commands/`, `.cursor/skills/`, `.cursor/agents/`, `.github/instructions/`, `.claude/skills/`, `.claude/agents/`, `.trae/rules/`, `.trae/skills/`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, `.opencode/tools/`, `.codex/rules/`, `.agents/skills/`, `agents-md/`).
+- **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/commands/`, `.cursor/skills/`, `.cursor/agents/`, `.github/instructions/`, `.claude/skills/`, `.claude/agents/`, `.trae/rules/`, `.trae/skills/`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, `.opencode/tools/`, `.codex/rules/`, `.agents/skills/`, `.gemini/commands/`, `.gemini/skills/`, `.gemini/agents/`, `agents-md/`).
 - **Symbolic Links**: Entries are linked from the local cache of the repo to project directories, avoiding file duplication and drift.
-- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills/agents, Copilot instructions, Claude skills/agents, Trae rules/skills, OpenCode agents/skills/commands/tools, Codex rules/skills, AGENTS.md).
+- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills/agents, Copilot instructions, Claude skills/agents, Trae rules/skills, OpenCode agents/skills/commands/tools, Codex rules/skills, Gemini CLI commands/skills/agents, AGENTS.md).
 - **Privacy**: Supports private/local entries via `ai-rules-sync.local.json` and `.git/info/exclude`.
 
 ## Architecture
@@ -40,6 +40,9 @@ src/
 │   ├── opencode-tools.ts    # OpenCode tools adapter (file mode)
 │   ├── codex-rules.ts       # Codex rules adapter (file mode)
 │   ├── codex-skills.ts      # Codex skills adapter (directory mode)
+│   ├── gemini-commands.ts   # Gemini CLI commands adapter (file mode)
+│   ├── gemini-skills.ts     # Gemini CLI skills adapter (directory mode)
+│   ├── gemini-agents.ts     # Gemini CLI agents adapter (file mode)
 │   └── agents-md.ts         # Universal AGENTS.md adapter (file mode)
 ├── cli/                     # CLI registration layer
 │   └── register.ts          # Declarative command registration (registerAdapterCommands)
@@ -213,6 +216,11 @@ interface SourceDirConfig {
     rules?: string;       // Default: ".codex/rules"
     skills?: string;      // Default: ".agents/skills"
   };
+  gemini?: {
+    commands?: string;    // Default: ".gemini/commands"
+    skills?: string;      // Default: ".gemini/skills"
+    agents?: string;      // Default: ".gemini/agents"
+  };
   agentsMd?: {
     file?: string;        // Default: "." (repository root)
   };
@@ -253,6 +261,11 @@ interface ProjectConfig {
   codex?: {
     rules?: Record<string, RuleEntry>;
     skills?: Record<string, RuleEntry>;
+  };
+  gemini?: {
+    commands?: Record<string, RuleEntry>;
+    skills?: Record<string, RuleEntry>;
+    agents?: Record<string, RuleEntry>;
   };
   // Universal AGENTS.md support (tool-agnostic)
   agentsMd?: Record<string, RuleEntry>;
@@ -373,6 +386,28 @@ OpenAI Codex is supported with two entry types:
 - Directory-based synchronization for Codex skills (SKILL.md inside).
 - **Note**: Uses non-standard `.agents/skills` directory (not `.codex/skills`) per Codex documentation.
 
+### 14. Gemini CLI Synchronization
+
+Gemini CLI (https://geminicli.com/) is supported with three entry types:
+
+### 14.1. Gemini Command Synchronization
+- **Syntax**: `ais gemini commands add <commandName> [alias]`
+- Links `<repo>/.gemini/commands/<commandName>` to `.gemini/commands/<alias>`.
+- File-based synchronization with `.toml` suffix for Gemini CLI commands.
+- **Purpose**: Reusable prompts with argument substitution.
+
+### 14.2. Gemini Skill Synchronization
+- **Syntax**: `ais gemini skills add <skillName> [alias]`
+- Links `<repo>/.gemini/skills/<skillName>` to `.gemini/skills/<alias>`.
+- Directory-based synchronization for Gemini CLI skills (SKILL.md inside).
+- **Purpose**: Specialized expertise for specific tasks.
+
+### 14.3. Gemini Agent Synchronization
+- **Syntax**: `ais gemini agents add <agentName> [alias]`
+- Links `<repo>/.gemini/agents/<agentName>` to `.gemini/agents/<alias>`.
+- File-based synchronization with `.md` suffix for Gemini CLI agents (Markdown with YAML frontmatter).
+- **Purpose**: Specialized agents with defined capabilities.
+
 ### 15. Import Command
 - **Syntax**: `ais import <tool> <subtype> <name>` or `ais <tool> <subtype> import <name>`
 - Copies entry from project to rules repository, commits, and creates symlink back.
@@ -395,6 +430,7 @@ OpenAI Codex is supported with two entry types:
 - `ais trae install` - Install all Trae rules and skills.
 - `ais opencode install` - Install all OpenCode agents, skills, commands, and tools.
 - `ais codex install` - Install all Codex rules and skills.
+- `ais gemini install` - Install all Gemini CLI commands, skills, and agents.
 - `ais agents-md install` - Install AGENTS.md files.
 - `ais install` - Install everything (smart dispatch).
 
@@ -634,6 +670,11 @@ ais cursor rules add-all -s experimental/rules
       "rules": ".codex/rules",
       "skills": ".agents/skills"
     },
+    "gemini": {
+      "commands": ".gemini/commands",
+      "skills": ".gemini/skills",
+      "agents": ".gemini/agents"
+    },
     "agentsMd": {
       "file": "."
     }
@@ -670,6 +711,11 @@ ais cursor rules add-all -s experimental/rules
   "codex": {
     "rules": { "sandbox-rules": "https://..." },
     "skills": { "code-assistant": "https://..." }
+  },
+  "gemini": {
+    "commands": { "deploy-command": "https://..." },
+    "skills": { "code-review-skill": "https://..." },
+    "agents": { "refactor-agent": "https://..." }
   },
   "agentsMd": {
     "root": {
@@ -715,6 +761,9 @@ ais cursor rules add-all -s experimental/rules
 | opencode-tools | opencode | tools | file | .opencode/tools | .ts, .js | [OpenCode](https://opencode.ing/) |
 | codex-rules | codex | rules | file | .codex/rules | .rules | [OpenAI Codex Rules](https://developers.openai.com/codex/rules) |
 | codex-skills | codex | skills | directory | .agents/skills | - | [OpenAI Codex Skills](https://developers.openai.com/codex/skills) |
+| gemini-commands | gemini | commands | file | .gemini/commands | .toml | [Gemini CLI](https://geminicli.com/) |
+| gemini-skills | gemini | skills | directory | .gemini/skills | - | [Gemini CLI](https://geminicli.com/) |
+| gemini-agents | gemini | agents | file | .gemini/agents | .md | [Gemini CLI](https://geminicli.com/) |
 
 ## Development Guidelines
 - **TypeScript**: Strict mode enabled.
@@ -1091,3 +1140,79 @@ ais cursor install
 - `src/cli/register.ts` - Added `-d, --target-dir` option to adapter commands
 - `src/index.ts` - Added `-d, --target-dir` to hardcoded cursor/copilot commands
 - All tests passing (105/105)
+
+### Gemini CLI Support (2026-02)
+
+**Added complete support for Gemini CLI (https://geminicli.com/) with three entry types:**
+
+**Problem Solved:**
+- Teams using Gemini CLI needed to share commands, skills, and agents across projects
+- No centralized way to distribute Gemini CLI configurations
+- Manual copying led to drift and inconsistency
+
+**Features Implemented:**
+
+1. **Gemini Commands Adapter**:
+   - File mode with `.toml` suffix (native Gemini CLI format)
+   - Source: `.gemini/commands/`
+   - Syntax: `ais gemini commands add <commandName> [alias]`
+   - Purpose: Reusable prompts with argument substitution
+
+2. **Gemini Skills Adapter**:
+   - Directory mode (SKILL.md + optional assets)
+   - Source: `.gemini/skills/`
+   - Syntax: `ais gemini skills add <skillName> [alias]`
+   - Purpose: Specialized expertise for specific tasks
+
+3. **Gemini Agents Adapter**:
+   - File mode with `.md` suffix (Markdown with YAML frontmatter)
+   - Source: `.gemini/agents/`
+   - Syntax: `ais gemini agents add <agentName> [alias]`
+   - Purpose: Specialized agents with defined capabilities
+
+4. **CLI Commands**:
+   - `ais gemini install` - Install all Gemini commands, skills, and agents
+   - `ais gemini add-all` - Discover and add all entries from repository
+   - `ais gemini import <name>` - Import from project to repository (auto-detects subtype)
+   - `ais gemini commands [add|remove|install|import]` - Commands management
+   - `ais gemini skills [add|remove|install|import]` - Skills management
+   - `ais gemini agents [add|remove|install|import]` - Agents management
+
+5. **Configuration Support**:
+   - Extended `SourceDirConfig` with `gemini.commands`, `gemini.skills`, and `gemini.agents`
+   - Extended `ProjectConfig` with `gemini.commands`, `gemini.skills`, and `gemini.agents` records
+   - Full support for custom source directories via `-s` option
+   - Backward compatible with existing configs
+
+6. **Shell Completion**:
+   - Added Gemini CLI to bash, zsh, and fish completion scripts
+   - Dynamic completion for command/skill/agent names via `ais _complete gemini-commands|gemini-skills|gemini-agents`
+   - Context-aware completions for all subcommands
+
+7. **Mode Detection**:
+   - Added 'gemini' to `DefaultMode` type
+   - `ais install` smart dispatch includes Gemini CLI
+   - Auto-detect Gemini-only projects
+
+**Implementation:**
+- `src/adapters/gemini-commands.ts` - Commands adapter (file mode, `.toml` suffix)
+- `src/adapters/gemini-skills.ts` - Skills adapter (directory mode)
+- `src/adapters/gemini-agents.ts` - Agents adapter (file mode, `.md` suffix)
+- `src/adapters/index.ts` - Registered adapters and added to `findAdapterForAlias`
+- `src/project-config.ts` - Extended configuration interfaces and helpers
+- `src/commands/helpers.ts` - Added 'gemini' mode type and inference
+- `src/index.ts` - Full CLI command hierarchy with install/add-all/import
+- `src/completion/scripts.ts` - Shell completion for all three shells
+- `src/__tests__/gemini-commands.test.ts` - Commands adapter tests (5 tests)
+- `src/__tests__/gemini-skills.test.ts` - Skills adapter tests (5 tests)
+- `src/__tests__/gemini-agents.test.ts` - Agents adapter tests (5 tests)
+- `README.md`, `README_ZH.md` - Documentation updates
+
+**Files Changed:** 15 new/modified, all tests passing (166/166)
+
+**Benefits:**
+- Centralized Gemini CLI configuration management
+- Team-wide consistency for commands, skills, and agents
+- Easy sharing of configurations across projects
+- Native TOML support for commands
+- Follows same pattern as other supported tools (Cursor, OpenCode, Codex)

@@ -262,6 +262,9 @@ program
       if (mode === 'codex' || mode === 'ambiguous') {
         await installEntriesForTool(adapterRegistry.getForTool('codex'), projectPath);
       }
+      if (mode === 'gemini' || mode === 'ambiguous') {
+        await installEntriesForTool(adapterRegistry.getForTool('gemini'), projectPath);
+      }
       if (mode === 'agents-md' || mode === 'ambiguous') {
         await installEntriesForTool(adapterRegistry.getForTool('agents-md'), projectPath);
       }
@@ -275,7 +278,7 @@ program
 program
   .command('add-all')
   .description('Discover and install all configurations from rules repository')
-  .option('--tools <tools>', 'Filter by tools (comma-separated): cursor,copilot,claude,trae,opencode,codex,agents-md')
+  .option('--tools <tools>', 'Filter by tools (comma-separated): cursor,copilot,claude,trae,opencode,codex,gemini,agents-md')
   .option('--adapters <adapters>', 'Filter by adapters (comma-separated)')
   .option('--dry-run', 'Preview without making changes')
   .option('-f, --force', 'Overwrite existing entries')
@@ -1034,6 +1037,132 @@ registerAdapterCommands({ adapter: getAdapter('codex', 'rules'), parentCommand: 
 const codexSkills = codex.command('skills').description('Manage Codex skills');
 registerAdapterCommands({ adapter: getAdapter('codex', 'skills'), parentCommand: codexSkills, programOpts: () => program.opts() });
 
+// ============ Gemini CLI command group ============
+const gemini = program
+  .command('gemini')
+  .description('Manage Gemini CLI commands, skills, and agents');
+
+gemini
+  .command('install')
+  .description('Install all Gemini commands, skills, and agents from config')
+  .action(async () => {
+    try {
+      await installEntriesForTool(adapterRegistry.getForTool('gemini'), process.cwd());
+    } catch (error: any) {
+      console.error(chalk.red('Error installing Gemini entries:'), error.message);
+      process.exit(1);
+    }
+  });
+
+gemini
+  .command('add-all')
+  .description('Add all Gemini entries from repository')
+  .option('--dry-run', 'Preview without making changes')
+  .option('-f, --force', 'Overwrite existing entries')
+  .option('-i, --interactive', 'Prompt for each entry')
+  .option('-l, --local', 'Add to ai-rules-sync.local.json')
+  .option('--skip-existing', 'Skip entries already in config')
+  .option('--quiet', 'Minimal output')
+  .option('-s, --source-dir <path>', 'Custom source directory (can be repeated)', collect)
+  .action(async (options) => {
+    try {
+      const projectPath = process.cwd();
+      const opts = program.opts();
+      const currentRepo = await getTargetRepo(opts);
+
+      let sourceDirOverrides;
+      if (options.sourceDir && options.sourceDir.length > 0) {
+        try {
+          sourceDirOverrides = parseSourceDirParams(options.sourceDir, 'gemini');
+        } catch (error: any) {
+          console.error(chalk.red('Error parsing --source-dir:'), error.message);
+          process.exit(1);
+        }
+      }
+
+      const result = await handleAddAll(
+        projectPath,
+        currentRepo,
+        adapterRegistry,
+        {
+          target: opts.target,
+          tools: ['gemini'],
+          dryRun: options.dryRun,
+          force: options.force,
+          interactive: options.interactive,
+          isLocal: options.local,
+          skipExisting: options.skipExisting,
+          quiet: options.quiet,
+          sourceDirOverrides
+        }
+      );
+
+      if (!options.quiet) {
+        console.log(chalk.bold('\nSummary:'));
+        console.log(chalk.green(`  Installed: ${result.installed}`));
+        if (result.skipped > 0) {
+          console.log(chalk.yellow(`  Skipped: ${result.skipped}`));
+        }
+        if (result.errors.length > 0) {
+          console.log(chalk.red(`  Errors: ${result.errors.length}`));
+          result.errors.forEach(e => {
+            console.log(chalk.red(`    - ${e.entry}: ${e.error}`));
+          });
+        }
+      }
+
+      if (result.errors.length > 0) {
+        process.exit(1);
+      }
+    } catch (error: any) {
+      console.error(chalk.red('Error in gemini add-all:'), error.message);
+      process.exit(1);
+    }
+  });
+
+gemini
+  .command('import <name>')
+  .description('Import Gemini command/skill/agent from project to repository (auto-detects subtype)')
+  .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
+  .option('-m, --message <message>', 'Custom git commit message')
+  .option('-f, --force', 'Overwrite if entry already exists in repository')
+  .option('-p, --push', 'Push to remote repository after commit')
+  .action(async (name, options) => {
+    try {
+      const projectPath = process.cwd();
+      const repo = await getTargetRepo(program.opts());
+      const geminiAdapters = adapterRegistry.getForTool('gemini');
+      let foundAdapter = null;
+
+      for (const adapter of geminiAdapters) {
+        const targetPath = path.join(projectPath, adapter.targetDir, name);
+        if (await fs.pathExists(targetPath)) {
+          foundAdapter = adapter;
+          break;
+        }
+      }
+
+      if (!foundAdapter) {
+        throw new Error(`Entry "${name}" not found in .gemini/commands, .gemini/skills, or .gemini/agents.`);
+      }
+
+      console.log(chalk.gray(`Detected ${foundAdapter.subtype}: ${name}`));
+      await handleImport(foundAdapter, { projectPath, repo, isLocal: options.local || false }, name, options);
+    } catch (error: any) {
+      console.error(chalk.red('Error importing Gemini entry:'), error.message);
+      process.exit(1);
+    }
+  });
+
+const geminiCommands = gemini.command('commands').description('Manage Gemini commands');
+registerAdapterCommands({ adapter: getAdapter('gemini', 'commands'), parentCommand: geminiCommands, programOpts: () => program.opts() });
+
+const geminiSkills = gemini.command('skills').description('Manage Gemini skills');
+registerAdapterCommands({ adapter: getAdapter('gemini', 'skills'), parentCommand: geminiSkills, programOpts: () => program.opts() });
+
+const geminiAgents = gemini.command('agents').description('Manage Gemini agents');
+registerAdapterCommands({ adapter: getAdapter('gemini', 'agents'), parentCommand: geminiAgents, programOpts: () => program.opts() });
+
 // ============ Git command ============
 program
   .command('git')
@@ -1053,7 +1182,7 @@ program
 // ============ Internal _complete command ============
 program
   .command('_complete')
-  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, cursor-agents, copilot, claude-skills, claude-agents, trae-rules, trae-skills, opencode-agents, opencode-skills, opencode-commands, opencode-tools, codex-rules, codex-skills, agents-md')
+  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, cursor-agents, copilot, claude-skills, claude-agents, trae-rules, trae-skills, opencode-agents, opencode-skills, opencode-commands, opencode-tools, codex-rules, codex-skills, gemini-commands, gemini-skills, gemini-agents, agents-md')
   .description('Internal command for shell completion')
   .action(async (type: string) => {
     try {
@@ -1117,6 +1246,15 @@ program
           break;
         case 'codex-skills':
           sourceDir = getSourceDir(repoConfig, 'codex', 'skills', '.agents/skills');
+          break;
+        case 'gemini-commands':
+          sourceDir = getSourceDir(repoConfig, 'gemini', 'commands', '.gemini/commands');
+          break;
+        case 'gemini-skills':
+          sourceDir = getSourceDir(repoConfig, 'gemini', 'skills', '.gemini/skills');
+          break;
+        case 'gemini-agents':
+          sourceDir = getSourceDir(repoConfig, 'gemini', 'agents', '.gemini/agents');
           break;
         case 'agents-md':
           sourceDir = getSourceDir(repoConfig, 'agents-md', 'file', 'agents-md');
