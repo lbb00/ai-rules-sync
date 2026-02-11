@@ -46,6 +46,12 @@ _ais_complete() {
     return 0
   fi
 
+  # claude rules add
+  if [[ "\$ppprev" == "claude" && "\$pprev" == "rules" && "\$prev" == "add" ]]; then
+    COMPREPLY=( $(compgen -W "$(ais _complete claude-rules 2>/dev/null)" -- "\$cur") )
+    return 0
+  fi
+
   # trae rules add
   if [[ "\$ppprev" == "trae" && "\$pprev" == "rules" && "\$prev" == "add" ]]; then
     COMPREPLY=( $(compgen -W "$(ais _complete trae-rules 2>/dev/null)" -- "\$cur") )
@@ -667,6 +673,17 @@ subcmds=(
                   ;;
               esac
               ;;
+            rules)
+              case \"\$words[4]\" in
+                add)
+                  local -a rules
+                  rules=(\${(f)\"$(ais _complete claude-rules 2>/dev/null)\"})
+                  if (( \$#rules )); then
+                    compadd \"\$rules[@]\"
+                  fi
+                  ;;
+              esac
+              ;;
           esac
           ;;
         trae)
@@ -1054,6 +1071,7 @@ complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcomm
 complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete copilot-skills 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete claude-skills 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from agents; and __fish_seen_subcommand_from add" -a "(ais _complete claude-agents 2>/dev/null)"
+complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from rules; and __fish_seen_subcommand_from add" -a "(ais _complete claude-rules 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from trae; and __fish_seen_subcommand_from rules; and __fish_seen_subcommand_from add" -a "(ais _complete trae-rules 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from trae; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete trae-skills 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from agents; and __fish_seen_subcommand_from add" -a "(ais _complete opencode-agents 2>/dev/null)"

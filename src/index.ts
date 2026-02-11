@@ -681,6 +681,10 @@ registerAdapterCommands({ adapter: getAdapter('claude', 'skills'), parentCommand
 const claudeAgents = claude.command('agents').description('Manage Claude agents');
 registerAdapterCommands({ adapter: getAdapter('claude', 'agents'), parentCommand: claudeAgents, programOpts: () => program.opts() });
 
+// claude rules subgroup
+const claudeRules = claude.command('rules').description('Manage Claude rules (.claude/rules/)');
+registerAdapterCommands({ adapter: getAdapter('claude', 'rules'), parentCommand: claudeRules, programOpts: () => program.opts() });
+
 // ============ Trae command group ============
 const trae = program
   .command('trae')
@@ -1182,7 +1186,7 @@ program
 // ============ Internal _complete command ============
 program
   .command('_complete')
-  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, cursor-agents, copilot, claude-skills, claude-agents, trae-rules, trae-skills, opencode-agents, opencode-skills, opencode-commands, opencode-tools, codex-rules, codex-skills, gemini-commands, gemini-skills, gemini-agents, agents-md')
+  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, cursor-agents, copilot, claude-skills, claude-agents, claude-rules, trae-rules, trae-skills, opencode-agents, opencode-skills, opencode-commands, opencode-tools, codex-rules, codex-skills, gemini-commands, gemini-skills, gemini-agents, agents-md')
   .description('Internal command for shell completion')
   .action(async (type: string) => {
     try {
@@ -1222,6 +1226,9 @@ program
           break;
         case 'claude-agents':
           sourceDir = getSourceDir(repoConfig, 'claude', 'agents', '.claude/agents');
+          break;
+        case 'claude-rules':
+          sourceDir = getSourceDir(repoConfig, 'claude', 'rules', '.claude/rules');
           break;
         case 'trae-rules':
           sourceDir = getSourceDir(repoConfig, 'trae', 'rules', '.trae/rules');

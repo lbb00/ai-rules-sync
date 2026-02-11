@@ -10,7 +10,7 @@
 
 不再复制粘贴 `.mdc` 文件。在 Git 仓库中管理规则，通过软链接同步。
 
-**支持：** Cursor（规则、命令、技能、subagents）、Copilot（指令、技能）、Claude Code（技能、subagents）、Trae（规则、技能）、OpenCode（代理、技能、命令、工具）、Codex（规则、技能）、Gemini CLI（命令、技能、代理）、Warp（规则 via AGENTS.md、技能）以及通用的 AGENTS.md。
+**支持：** Cursor（规则、命令、技能、subagents）、Copilot（指令、技能）、Claude Code（技能、subagents、规则）、Trae（规则、技能）、OpenCode（代理、技能、命令、工具）、Codex（规则、技能）、Gemini CLI（命令、技能、代理）、Warp（规则 via AGENTS.md、技能）以及通用的 AGENTS.md。
 
 ---
 
@@ -139,6 +139,7 @@ ais completion install
 | Copilot | Skills | directory | `.github/skills/` | - | [文档](https://docs.github.com/en/copilot/using-github-copilot/using-extensions-to-integrate-external-tools-with-copilot-chat) |
 | Claude Code | Skills | directory | `.claude/skills/` | - | [文档](https://code.claude.com/docs/en/skills) |
 | Claude Code | Subagents | directory | `.claude/agents/` | - | [文档](https://code.claude.com/docs/en/sub-agents) |
+| Claude Code | Rules | file | `.claude/rules/` | `.md` | [文档](https://code.claude.com/docs/en/memory) |
 | Trae | Rules | file | `.trae/rules/` | `.md` | [网站](https://trae.ai/) |
 | Trae | Skills | directory | `.trae/skills/` | - | [网站](https://trae.ai/) |
 | OpenCode | Agents | file | `.opencode/agents/` | `.md` | [网站](https://opencode.ing/) |

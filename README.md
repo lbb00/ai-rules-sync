@@ -10,7 +10,7 @@
 
 Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links.
 
-**Supports:** Cursor (rules, commands, skills, subagents), Copilot (instructions, skills), Claude Code (skills, subagents), Trae (rules, skills), OpenCode (agents, skills, commands, tools), Codex (rules, skills), Gemini CLI (commands, skills, agents), Warp (rules via AGENTS.md, skills), and universal AGENTS.md.
+**Supports:** Cursor (rules, commands, skills, subagents), Copilot (instructions, skills), Claude Code (skills, subagents, rules), Trae (rules, skills), OpenCode (agents, skills, commands, tools), Codex (rules, skills), Gemini CLI (commands, skills, agents), Warp (rules via AGENTS.md, skills), and universal AGENTS.md.
 
 ---
 
@@ -139,6 +139,7 @@ ais completion install
 | Copilot | Skills | directory | `.github/skills/` | - | [Docs](https://docs.github.com/en/copilot/using-github-copilot/using-extensions-to-integrate-external-tools-with-copilot-chat) |
 | Claude Code | Skills | directory | `.claude/skills/` | - | [Docs](https://code.claude.com/docs/en/skills) |
 | Claude Code | Subagents | directory | `.claude/agents/` | - | [Docs](https://code.claude.com/docs/en/sub-agents) |
+| Claude Code | Rules | file | `.claude/rules/` | `.md` | [Docs](https://code.claude.com/docs/en/memory) |
 | Trae | Rules | file | `.trae/rules/` | `.md` | [Website](https://trae.ai/) |
 | Trae | Skills | directory | `.trae/skills/` | - | [Website](https://trae.ai/) |
 | OpenCode | Agents | file | `.opencode/agents/` | `.md` | [Website](https://opencode.ing/) |
