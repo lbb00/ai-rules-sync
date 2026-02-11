@@ -10,7 +10,7 @@
 
 不再复制粘贴 `.mdc` 文件。在 Git 仓库中管理规则，通过软链接同步。
 
-**支持：** Cursor（规则、命令、技能、subagents）、Copilot（指令、技能）、Claude Code（技能、subagents、规则）、Trae（规则、技能）、OpenCode（代理、技能、命令、工具）、Codex（规则、技能）、Gemini CLI（命令、技能、代理）、Warp（规则 via AGENTS.md、技能）以及通用的 AGENTS.md。
+**支持：** Cursor（规则、命令、技能、subagents）、Copilot（指令、技能、提示词、代理）、Claude Code（技能、subagents、规则）、Trae（规则、技能）、OpenCode（代理、技能、命令、工具）、Codex（规则、技能）、Gemini CLI（命令、技能、代理）、Warp（规则 via AGENTS.md、技能）以及通用的 AGENTS.md。
 
 ---
 
@@ -137,6 +137,8 @@ ais completion install
 | Cursor | subagents | directory | `.cursor/agents/` | - | [文档](https://cursor.com/docs/context/subagents) |
 | Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [文档](https://docs.github.com/copilot) |
 | Copilot | Skills | directory | `.github/skills/` | - | [文档](https://docs.github.com/en/copilot/using-github-copilot/using-extensions-to-integrate-external-tools-with-copilot-chat) |
+| Copilot | Prompts | file | `.github/prompts/` | `.prompt.md`, `.md` | [文档](https://docs.github.com/copilot) |
+| Copilot | Agents | file | `.github/agents/` | `.agent.md`, `.md` | [文档](https://docs.github.com/copilot) |
 | Claude Code | Skills | directory | `.claude/skills/` | - | [文档](https://code.claude.com/docs/en/skills) |
 | Claude Code | Subagents | directory | `.claude/agents/` | - | [文档](https://code.claude.com/docs/en/sub-agents) |
 | Claude Code | Rules | file | `.claude/rules/` | `.md` | [文档](https://code.claude.com/docs/en/memory) |
@@ -384,7 +386,7 @@ ais install
 ```bash
 # 移除并重新创建所有软链接
 ais cursor install
-ais copilot install  # 所有 copilot 条目（指令 + 技能）
+ais copilot install  # 所有 copilot 条目（指令 + 技能 + 提示词 + 代理）
 ais install  # 所有工具
 ```
 
@@ -454,9 +456,17 @@ ais copilot instructions add style.instructions.md  # 明确指定
 # 添加技能
 ais copilot skills add web-scraping
 
+# 添加提示词文件
+ais copilot prompts add generate-tests
+
+# 添加自定义代理
+ais copilot agents add code-reviewer
+
 # 移除
 ais copilot instructions remove coding-style
 ais copilot skills remove web-scraping
+ais copilot prompts remove generate-tests
+ais copilot agents remove code-reviewer
 ```
 
 ### Claude Code

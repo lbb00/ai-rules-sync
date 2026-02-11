@@ -34,6 +34,18 @@ _ais_complete() {
     return 0
   fi
 
+  # copilot prompts add
+  if [[ "\$ppprev" == "copilot" && "\$pprev" == "prompts" && "\$prev" == "add" ]]; then
+    COMPREPLY=( $(compgen -W "$(ais _complete copilot-prompts 2>/dev/null)" -- "\$cur") )
+    return 0
+  fi
+
+  # copilot agents add
+  if [[ "\$ppprev" == "copilot" && "\$pprev" == "agents" && "\$prev" == "add" ]]; then
+    COMPREPLY=( $(compgen -W "$(ais _complete copilot-agents 2>/dev/null)" -- "\$cur") )
+    return 0
+  fi
+
   # claude skills add
   if [[ "\$ppprev" == "claude" && "\$pprev" == "skills" && "\$prev" == "add" ]]; then
     COMPREPLY=( $(compgen -W "$(ais _complete claude-skills 2>/dev/null)" -- "\$cur") )
@@ -285,8 +297,20 @@ _ais_complete() {
     return 0
   fi
 
+  # copilot prompts
+  if [[ "\$pprev" == "copilot" && "\$prev" == "prompts" ]]; then
+    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
+    return 0
+  fi
+
+  # copilot agents
+  if [[ "\$pprev" == "copilot" && "\$prev" == "agents" ]]; then
+    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
+    return 0
+  fi
+
   if [[ "\$prev" == "copilot" ]]; then
-    COMPREPLY=( $(compgen -W "instructions skills install" -- "\$cur") )
+    COMPREPLY=( $(compgen -W "instructions skills prompts agents install" -- "\$cur") )
     return 0
   fi
 
@@ -352,11 +376,13 @@ subcmds=(
     'completion:Output shell completion script'
   )
 
-  local -a cursor_subcmds copilot_subcmds claude_subcmds trae_subcmds opencode_subcmds codex_subcmds gemini_subcmds warp_subcmds agents_md_subcmds cursor_rules_subcmds cursor_commands_subcmds cursor_skills_subcmds cursor_agents_subcmds copilot_instructions_subcmds copilot_skills_subcmds claude_skills_subcmds claude_agents_subcmds trae_rules_subcmds trae_skills_subcmds opencode_agents_subcmds opencode_skills_subcmds opencode_commands_subcmds opencode_tools_subcmds codex_rules_subcmds codex_skills_subcmds gemini_commands_subcmds gemini_skills_subcmds gemini_agents_subcmds warp_skills_subcmds
+  local -a cursor_subcmds copilot_subcmds claude_subcmds trae_subcmds opencode_subcmds codex_subcmds gemini_subcmds warp_subcmds agents_md_subcmds cursor_rules_subcmds cursor_commands_subcmds cursor_skills_subcmds cursor_agents_subcmds copilot_instructions_subcmds copilot_skills_subcmds copilot_prompts_subcmds copilot_agents_subcmds claude_skills_subcmds claude_agents_subcmds trae_rules_subcmds trae_skills_subcmds opencode_agents_subcmds opencode_skills_subcmds opencode_commands_subcmds opencode_tools_subcmds codex_rules_subcmds codex_skills_subcmds gemini_commands_subcmds gemini_skills_subcmds gemini_agents_subcmds warp_skills_subcmds
   cursor_subcmds=('add:Add a Cursor rule' 'remove:Remove a Cursor rule' 'install:Install all Cursor entries' 'import:Import entry to repository' 'rules:Manage rules explicitly' 'commands:Manage commands' 'skills:Manage skills' 'agents:Manage agents')
-  copilot_subcmds=('instructions:Manage Copilot instructions' 'skills:Manage Copilot skills' 'install:Install all Copilot entries')
+  copilot_subcmds=('instructions:Manage Copilot instructions' 'skills:Manage Copilot skills' 'prompts:Manage Copilot prompt files' 'agents:Manage Copilot custom agents' 'install:Install all Copilot entries')
   copilot_instructions_subcmds=('add:Add a Copilot instruction' 'remove:Remove a Copilot instruction' 'install:Install all Copilot instructions' 'import:Import instruction to repository')
   copilot_skills_subcmds=('add:Add a Copilot skill' 'remove:Remove a Copilot skill' 'install:Install all Copilot skills' 'import:Import skill to repository')
+  copilot_prompts_subcmds=('add:Add a Copilot prompt' 'remove:Remove a Copilot prompt' 'install:Install all Copilot prompts' 'import:Import prompt to repository')
+  copilot_agents_subcmds=('add:Add a Copilot agent' 'remove:Remove a Copilot agent' 'install:Install all Copilot agents' 'import:Import agent to repository')
   claude_subcmds=('skills:Manage Claude skills' 'agents:Manage Claude agents' 'install:Install all Claude components')
   trae_subcmds=('rules:Manage Trae rules' 'skills:Manage Trae skills' 'install:Install all Trae entries')
   opencode_subcmds=('agents:Manage OpenCode agents' 'skills:Manage OpenCode skills' 'commands:Manage OpenCode commands' 'tools:Manage OpenCode tools' 'install:Install all OpenCode entries' 'import:Import entry to repository')
@@ -460,6 +486,12 @@ subcmds=(
               ;;
             skills)
               _describe 'subsubcommand' copilot_skills_subcmds
+              ;;
+            prompts)
+              _describe 'subsubcommand' copilot_prompts_subcmds
+              ;;
+            agents)
+              _describe 'subsubcommand' copilot_agents_subcmds
               ;;
             *)
               _describe 'subsubcommand' copilot_subcmds
@@ -643,6 +675,28 @@ subcmds=(
                   skills=(\${(f)\"$(ais _complete copilot-skills 2>/dev/null)\"})
                   if (( \$#skills )); then
                     compadd \"\$skills[@]\"
+                  fi
+                  ;;
+              esac
+              ;;
+            prompts)
+              case \"\$words[4]\" in
+                add)
+                  local -a prompts
+                  prompts=(\${(f)\"$(ais _complete copilot-prompts 2>/dev/null)\"})
+                  if (( \$#prompts )); then
+                    compadd \"\$prompts[@]\"
+                  fi
+                  ;;
+              esac
+              ;;
+            agents)
+              case \"\$words[4]\" in
+                add)
+                  local -a agents
+                  agents=(\${(f)\"$(ais _complete copilot-agents 2>/dev/null)\"})
+                  if (( \$#agents )); then
+                    compadd \"\$agents[@]\"
                   fi
                   ;;
               esac
@@ -919,9 +973,11 @@ complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcomma
 complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import agent to repository"
 
 # copilot subcommands
-complete -c ais -n "__fish_seen_subcommand_from copilot; and not __fish_seen_subcommand_from instructions skills install" -a "instructions" -d "Manage Copilot instructions"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and not __fish_seen_subcommand_from instructions skills install" -a "skills" -d "Manage Copilot skills"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and not __fish_seen_subcommand_from instructions skills install" -a "install" -d "Install all Copilot entries"
+complete -c ais -n "__fish_seen_subcommand_from copilot; and not __fish_seen_subcommand_from instructions skills prompts agents install" -a "instructions" -d "Manage Copilot instructions"
+complete -c ais -n "__fish_seen_subcommand_from copilot; and not __fish_seen_subcommand_from instructions skills prompts agents install" -a "skills" -d "Manage Copilot skills"
+complete -c ais -n "__fish_seen_subcommand_from copilot; and not __fish_seen_subcommand_from instructions skills prompts agents install" -a "prompts" -d "Manage Copilot prompt files"
+complete -c ais -n "__fish_seen_subcommand_from copilot; and not __fish_seen_subcommand_from instructions skills prompts agents install" -a "agents" -d "Manage Copilot custom agents"
+complete -c ais -n "__fish_seen_subcommand_from copilot; and not __fish_seen_subcommand_from instructions skills prompts agents install" -a "install" -d "Install all Copilot entries"
 
 # copilot instructions subcommands
 complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from instructions; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Copilot instruction"
@@ -934,6 +990,18 @@ complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcomm
 complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Copilot skill"
 complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Copilot skills"
 complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import skill to repository"
+
+# copilot prompts subcommands
+complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from prompts; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Copilot prompt"
+complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from prompts; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Copilot prompt"
+complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from prompts; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Copilot prompts"
+complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from prompts; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import prompt to repository"
+
+# copilot agents subcommands
+complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Copilot agent"
+complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Copilot agent"
+complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Copilot agents"
+complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import agent to repository"
 
 # claude subcommands
 complete -c ais -n "__fish_seen_subcommand_from claude; and not __fish_seen_subcommand_from skills agents install" -a "skills" -d "Manage Claude skills"
@@ -1069,6 +1137,8 @@ complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcomma
 complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from agents; and __fish_seen_subcommand_from add" -a "(ais _complete cursor-agents 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from instructions; and __fish_seen_subcommand_from add" -a "(ais _complete copilot-instructions 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete copilot-skills 2>/dev/null)"
+complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from prompts; and __fish_seen_subcommand_from add" -a "(ais _complete copilot-prompts 2>/dev/null)"
+complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from agents; and __fish_seen_subcommand_from add" -a "(ais _complete copilot-agents 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete claude-skills 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from agents; and __fish_seen_subcommand_from add" -a "(ais _complete claude-agents 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from rules; and __fish_seen_subcommand_from add" -a "(ais _complete claude-rules 2>/dev/null)"

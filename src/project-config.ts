@@ -37,6 +37,10 @@ export interface SourceDirConfig {
         instructions?: string;
         // Source directory for copilot skills, default: ".github/skills"
         skills?: string;
+        // Source directory for copilot prompts, default: ".github/prompts"
+        prompts?: string;
+        // Source directory for copilot agents, default: ".github/agents"
+        agents?: string;
     };
     claude?: {
         // Source directory for claude skills, default: ".claude/skills"
@@ -115,6 +119,8 @@ export interface ProjectConfig {
         // key is the local alias (target name), value is repo url OR object with url and original rule name
         instructions?: Record<string, RuleEntry>;
         skills?: Record<string, RuleEntry>;
+        prompts?: Record<string, RuleEntry>;
+        agents?: Record<string, RuleEntry>;
     };
     claude?: {
         // key is the local alias (target name), value is repo url OR object with url and original rule name
@@ -164,6 +170,8 @@ export interface RepoSourceConfig {
     copilot?: {
         instructions?: string;
         skills?: string;
+        prompts?: string;
+        agents?: string;
     };
     claude?: {
         skills?: string;
@@ -234,7 +242,9 @@ function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig
         },
         copilot: {
             instructions: { ...(main.copilot?.instructions || {}), ...(local.copilot?.instructions || {}) },
-            skills: { ...(main.copilot?.skills || {}), ...(local.copilot?.skills || {}) }
+            skills: { ...(main.copilot?.skills || {}), ...(local.copilot?.skills || {}) },
+            prompts: { ...(main.copilot?.prompts || {}), ...(local.copilot?.prompts || {}) },
+            agents: { ...(main.copilot?.agents || {}), ...(local.copilot?.agents || {}) }
         },
         claude: {
             skills: { ...(main.claude?.skills || {}), ...(local.claude?.skills || {}) },
@@ -301,6 +311,8 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
         const cursorAgents = config.cursor?.agents;
         const copilotInstructions = config.copilot?.instructions;
         const copilotSkills = config.copilot?.skills;
+        const copilotPrompts = (config.copilot as any)?.prompts;
+        const copilotAgents = (config.copilot as any)?.agents;
 
         const isCursorRulesString = typeof cursorRules === 'string';
         const isCursorCommandsString = typeof cursorCommands === 'string';
@@ -308,6 +320,8 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
         const isCursorAgentsString = typeof cursorAgents === 'string';
         const isCopilotInstructionsString = typeof copilotInstructions === 'string';
         const isCopilotSkillsString = typeof copilotSkills === 'string';
+        const isCopilotPromptsString = typeof copilotPrompts === 'string';
+        const isCopilotAgentsString = typeof copilotAgents === 'string';
         const claudeSkills = config.claude?.skills;
         const claudeAgents = config.claude?.agents;
         const claudeRules = config.claude?.rules;
@@ -334,7 +348,7 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
         const isAgentsMdFileString = typeof agentsMdFile === 'string';
 
         // If any of these are strings, treat as legacy rules repo config
-        if (isCursorRulesString || isCursorCommandsString || isCursorSkillsString || isCursorAgentsString || isCopilotInstructionsString || isCopilotSkillsString || isClaudeSkillsString || isClaudeAgentsString || isClaudeRulesString || isTraeRulesString || isTraeSkillsString || isOpencodeAgentsString || isOpencodeSkillsString || isOpencodeCommandsString || isOpencodeToolsString || isCodexRulesString || isCodexSkillsString || isAgentsMdFileString) {
+        if (isCursorRulesString || isCursorCommandsString || isCursorSkillsString || isCursorAgentsString || isCopilotInstructionsString || isCopilotSkillsString || isCopilotPromptsString || isCopilotAgentsString || isClaudeSkillsString || isClaudeAgentsString || isClaudeRulesString || isTraeRulesString || isTraeSkillsString || isOpencodeAgentsString || isOpencodeSkillsString || isOpencodeCommandsString || isOpencodeToolsString || isCodexRulesString || isCodexSkillsString || isAgentsMdFileString) {
             return {
                 rootPath: config.rootPath,
                 cursor: {
@@ -345,7 +359,9 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
                 },
                 copilot: {
                     instructions: isCopilotInstructionsString ? copilotInstructions : undefined,
-                    skills: isCopilotSkillsString ? copilotSkills : undefined
+                    skills: isCopilotSkillsString ? copilotSkills : undefined,
+                    prompts: isCopilotPromptsString ? copilotPrompts : undefined,
+                    agents: isCopilotAgentsString ? copilotAgents : undefined
                 },
                 claude: {
                     skills: isClaudeSkillsString ? claudeSkills : undefined,
@@ -421,6 +437,10 @@ export function getSourceDir(
             toolDir = repoConfig.copilot?.instructions;
         } else if (subtype === 'skills') {
             toolDir = repoConfig.copilot?.skills;
+        } else if (subtype === 'prompts') {
+            toolDir = (repoConfig.copilot as any)?.prompts;
+        } else if (subtype === 'agents') {
+            toolDir = (repoConfig.copilot as any)?.agents;
         }
     } else if (tool === 'claude') {
         if (subtype === 'skills') {

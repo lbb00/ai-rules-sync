@@ -12,6 +12,8 @@ import { getCompletionScript } from './completion/scripts.js';
 import { adapterRegistry, getAdapter, findAdapterForAlias } from './adapters/index.js';
 import { copilotInstructionsAdapter } from './adapters/copilot-instructions.js';
 import { copilotSkillsAdapter } from './adapters/copilot-skills.js';
+import { copilotPromptsAdapter } from './adapters/copilot-prompts.js';
+import { copilotAgentsAdapter } from './adapters/copilot-agents.js';
 import { registerAdapterCommands } from './cli/register.js';
 import {
   getTargetRepo,
@@ -574,10 +576,26 @@ registerAdapterCommands({
   programOpts: () => program.opts()
 });
 
+// copilot prompts subcommand
+const copilotPrompts = copilot.command('prompts').description('Manage Copilot prompt files');
+registerAdapterCommands({
+  parentCommand: copilotPrompts,
+  adapter: copilotPromptsAdapter,
+  programOpts: () => program.opts()
+});
+
+// copilot agents subcommand
+const copilotAgents = copilot.command('agents').description('Manage Copilot custom agents');
+registerAdapterCommands({
+  parentCommand: copilotAgents,
+  adapter: copilotAgentsAdapter,
+  programOpts: () => program.opts()
+});
+
 // copilot install - install all copilot entries
 copilot
   .command('install')
-  .description('Install all Copilot instructions and skills from config')
+  .description('Install all Copilot instructions, skills, prompts, and agents from config')
   .action(async () => {
     try {
       await installEntriesForTool(adapterRegistry.getForTool('copilot'), process.cwd());
