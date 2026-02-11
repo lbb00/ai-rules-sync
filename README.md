@@ -10,7 +10,7 @@
 
 Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links.
 
-**Supports:** Cursor (rules, commands, skills, agents), Copilot (instructions, skills), Claude (skills, agents), Trae (rules, skills), OpenCode (agents, skills, commands, tools), Codex (rules, skills), Gemini CLI (commands, skills, agents), Warp (skills), and universal AGENTS.md.
+**Supports:** Cursor (rules, commands, skills, agents), Copilot (instructions, skills), Claude (skills, agents), Trae (rules, skills), OpenCode (agents, skills, commands, tools), Codex (rules, skills), Gemini CLI (commands, skills, agents), Warp (rules via AGENTS.md, skills), and universal AGENTS.md.
 
 ---
 
@@ -150,6 +150,7 @@ ais completion install
 | Gemini CLI | Commands | file | `.gemini/commands/` | `.toml` | [Website](https://geminicli.com/) |
 | Gemini CLI | Skills | directory | `.gemini/skills/` | - | [Website](https://geminicli.com/) |
 | Gemini CLI | Agents | file | `.gemini/agents/` | `.md` | [Website](https://geminicli.com/) |
+| Warp | Rules | file | `.` (root) | `.md` | [Docs](https://docs.warp.dev/agent-platform/capabilities/rules) — same as AGENTS.md, use `ais agents-md` |
 | Warp | Skills | directory | `.agents/skills/` | - | [Docs](https://docs.warp.dev/agent-platform/capabilities/skills) |
 | **Universal** | **AGENTS.md** | file | `.` (root) | `.md` | [Standard](https://agents.md/) |
 
@@ -541,6 +542,31 @@ ais agents-md add backend be-agents
 
 # Remove
 ais agents-md remove fe-agents
+```
+
+### Warp
+
+#### Rules
+
+Warp Rules use the [AGENTS.md standard](https://agents.md/) — use the `agents-md` commands:
+
+```bash
+# Add AGENTS.md from repo root (applies globally in Warp)
+ais agents-md add .
+
+# Add directory-specific rules
+ais agents-md add src
+
+# Remove
+ais agents-md remove .
+```
+
+#### Skills
+
+```bash
+ais warp skills add my-skill
+ais warp skills remove my-skill
+ais warp skills install
 ```
 
 ---
