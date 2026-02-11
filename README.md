@@ -10,7 +10,7 @@
 
 Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links.
 
-**Supports:** Cursor (rules, commands, skills, agents), Copilot (instructions, skills), Claude (skills, agents), Trae (rules, skills), OpenCode (agents, skills, commands, tools), Codex (rules, skills), Gemini CLI (commands, skills, agents), Warp (rules via AGENTS.md, skills), and universal AGENTS.md.
+**Supports:** Cursor (rules, commands, skills, subagents), Copilot (instructions, skills), Claude Code (skills, subagents), Trae (rules, skills), OpenCode (agents, skills, commands, tools), Codex (rules, skills), Gemini CLI (commands, skills, agents), Warp (rules via AGENTS.md, skills), and universal AGENTS.md.
 
 ---
 
@@ -134,11 +134,11 @@ ais completion install
 | Cursor | Rules | hybrid | `.cursor/rules/` | `.mdc`, `.md` | [Docs](https://cursor.com/docs/context/rules) |
 | Cursor | Commands | file | `.cursor/commands/` | `.md` | [Docs](https://cursor.com/docs/context/commands) |
 | Cursor | Skills | directory | `.cursor/skills/` | - | [Docs](https://cursor.com/docs/context/skills) |
-| Cursor | subagents | directory | `.cursor/agents/` | - | [Docs](https://cursor.com/docs/context/subagents) |
+| Cursor | Subagents | directory | `.cursor/agents/` | - | [Docs](https://cursor.com/docs/context/subagents) |
 | Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [Docs](https://docs.github.com/copilot) |
 | Copilot | Skills | directory | `.github/skills/` | - | [Docs](https://docs.github.com/en/copilot/using-github-copilot/using-extensions-to-integrate-external-tools-with-copilot-chat) |
-| Claude | Skills | directory | `.claude/skills/` | - | [Docs](https://docs.anthropic.com/en/docs/agents/claude-code) |
-| Claude | Agents | directory | `.claude/agents/` | - | [Docs](https://docs.anthropic.com/en/docs/agents/claude-code) |
+| Claude Code | Skills | directory | `.claude/skills/` | - | [Docs](https://code.claude.com/docs/en/skills) |
+| Claude Code | Subagents | directory | `.claude/agents/` | - | [Docs](https://code.claude.com/docs/en/sub-agents) |
 | Trae | Rules | file | `.trae/rules/` | `.md` | [Website](https://trae.ai/) |
 | Trae | Skills | directory | `.trae/skills/` | - | [Website](https://trae.ai/) |
 | OpenCode | Agents | file | `.opencode/agents/` | `.md` | [Website](https://opencode.ing/) |
@@ -430,13 +430,13 @@ ais cursor skills add code-review
 ais cursor skills remove code-review
 ```
 
-#### Agents
+#### Subagents
 
 ```bash
-# Add agent (directory)
+# Add subagent (directory)
 ais cursor agents add code-analyzer
 
-# Remove agent
+# Remove subagent
 ais cursor agents remove code-analyzer
 ```
 
@@ -458,13 +458,13 @@ ais copilot instructions remove coding-style
 ais copilot skills remove web-scraping
 ```
 
-### Claude
+### Claude Code
 
 ```bash
 # Add skill
 ais claude skills add code-review
 
-# Add agent
+# Add subagent
 ais claude agents add debugger
 
 # Remove
