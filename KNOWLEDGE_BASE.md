@@ -745,10 +745,10 @@ ais cursor rules add-all -s experimental/rules
 
 | Adapter | Tool | Subtype | Mode | Source Dir | File Suffixes | Reference |
 |---------|------|---------|------|------------|---------------|-----------|
-| cursor-rules | cursor | rules | hybrid | .cursor/rules | .mdc, .md | [Cursor Rules](https://docs.cursor.com/context/rules-for-ai) |
-| cursor-commands | cursor | commands | file | .cursor/commands | .md | [Cursor Commands](https://docs.cursor.com/context/rules-for-ai#commands) |
-| cursor-skills | cursor | skills | directory | .cursor/skills | - | [Cursor Skills](https://docs.cursor.com/context/rules-for-ai#skills) |
-| cursor-agents | cursor | agents | directory | .cursor/agents | - | [Cursor Agents](https://docs.cursor.com/context/rules-for-ai#agents) |
+| cursor-rules | cursor | rules | hybrid | .cursor/rules | .mdc, .md | [Cursor Rules](https://cursor.com/docs/context/rules) |
+| cursor-commands | cursor | commands | file | .cursor/commands | .md | [Cursor Commands](https://cursor.com/docs/context/commands) |
+| cursor-skills | cursor | skills | directory | .cursor/skills | - | [Cursor Skills](https://cursor.com/docs/context/skills) |
+| cursor-agents | cursor | subagents | directory | .cursor/agents | - | [Cursor subagents](https://cursor.com/docs/context/subagents) |
 | copilot-instructions | copilot | instructions | file | .github/instructions | .instructions.md, .md | [Copilot Instructions](https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot) |
 | claude-skills | claude | skills | directory | .claude/skills | - | [Claude Code Skills](https://docs.anthropic.com/en/docs/agents/claude-code) |
 | claude-agents | claude | agents | directory | .claude/agents | - | [Claude Code Agents](https://docs.anthropic.com/en/docs/agents/claude-code) |

@@ -131,10 +131,10 @@ ais completion install
 
 | 工具 | 类型 | 模式 | 默认源目录 | 文件后缀 | 文档 |
 |------|------|------|------------|----------|------|
-| Cursor | Rules | hybrid | `.cursor/rules/` | `.mdc`, `.md` | [文档](https://docs.cursor.com/context/rules-for-ai) |
-| Cursor | Commands | file | `.cursor/commands/` | `.md` | [文档](https://docs.cursor.com/context/rules-for-ai#commands) |
-| Cursor | Skills | directory | `.cursor/skills/` | - | [文档](https://docs.cursor.com/context/rules-for-ai#skills) |
-| Cursor | Agents | directory | `.cursor/agents/` | - | [文档](https://docs.cursor.com/context/rules-for-ai#agents) |
+| Cursor | Rules | hybrid | `.cursor/rules/` | `.mdc`, `.md` | [文档](https://cursor.com/docs/context/rules) |
+| Cursor | Commands | file | `.cursor/commands/` | `.md` | [文档](https://cursor.com/docs/context/commands) |
+| Cursor | Skills | directory | `.cursor/skills/` | - | [文档](https://cursor.com/docs/context/skills) |
+| Cursor | subagents | directory | `.cursor/agents/` | - | [文档](https://cursor.com/docs/context/subagents) |
 | Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [文档](https://docs.github.com/copilot) |
 | Copilot | Skills | directory | `.github/skills/` | - | [文档](https://docs.github.com/en/copilot/using-github-copilot/using-extensions-to-integrate-external-tools-with-copilot-chat) |
 | Claude | Skills | directory | `.claude/skills/` | - | [文档](https://docs.anthropic.com/en/docs/agents/claude-code) |
