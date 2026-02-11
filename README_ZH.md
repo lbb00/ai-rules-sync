@@ -10,7 +10,7 @@
 
 不再复制粘贴 `.mdc` 文件。在 Git 仓库中管理规则，通过软链接同步。
 
-**支持：** Cursor（规则、命令、技能、代理）、Copilot（指令、技能）、Claude（技能、代理）、Trae（规则、技能）、OpenCode（代理、技能、命令、工具）、Codex（规则、技能）、Gemini CLI（命令、技能、代理）、Warp（规则 via AGENTS.md、技能）以及通用的 AGENTS.md。
+**支持：** Cursor（规则、命令、技能、subagents）、Copilot（指令、技能）、Claude Code（技能、subagents、规则）、Trae（规则、技能）、OpenCode（代理、技能、命令、工具）、Codex（规则、技能）、Gemini CLI（命令、技能、代理）、Warp（规则 via AGENTS.md、技能）以及通用的 AGENTS.md。
 
 ---
 
@@ -137,8 +137,9 @@ ais completion install
 | Cursor | subagents | directory | `.cursor/agents/` | - | [文档](https://cursor.com/docs/context/subagents) |
 | Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [文档](https://docs.github.com/copilot) |
 | Copilot | Skills | directory | `.github/skills/` | - | [文档](https://docs.github.com/en/copilot/using-github-copilot/using-extensions-to-integrate-external-tools-with-copilot-chat) |
-| Claude | Skills | directory | `.claude/skills/` | - | [文档](https://docs.anthropic.com/en/docs/agents/claude-code) |
-| Claude | Agents | directory | `.claude/agents/` | - | [文档](https://docs.anthropic.com/en/docs/agents/claude-code) |
+| Claude Code | Skills | directory | `.claude/skills/` | - | [文档](https://code.claude.com/docs/en/skills) |
+| Claude Code | Subagents | directory | `.claude/agents/` | - | [文档](https://code.claude.com/docs/en/sub-agents) |
+| Claude Code | Rules | file | `.claude/rules/` | `.md` | [文档](https://code.claude.com/docs/en/memory) |
 | Trae | Rules | file | `.trae/rules/` | `.md` | [网站](https://trae.ai/) |
 | Trae | Skills | directory | `.trae/skills/` | - | [网站](https://trae.ai/) |
 | OpenCode | Agents | file | `.opencode/agents/` | `.md` | [网站](https://opencode.ing/) |
@@ -430,13 +431,13 @@ ais cursor skills add code-review
 ais cursor skills remove code-review
 ```
 
-#### 代理
+#### Subagents
 
 ```bash
-# 添加代理（目录）
+# 添加 subagent（目录）
 ais cursor agents add code-analyzer
 
-# 移除代理
+# 移除 subagent
 ais cursor agents remove code-analyzer
 ```
 
@@ -458,13 +459,13 @@ ais copilot instructions remove coding-style
 ais copilot skills remove web-scraping
 ```
 
-### Claude
+### Claude Code
 
 ```bash
 # 添加技能
 ais claude skills add code-review
 
-# 添加代理
+# 添加 subagent
 ais claude agents add debugger
 
 # 移除

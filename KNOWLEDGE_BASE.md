@@ -1,12 +1,12 @@
 # Project Knowledge Base
 
 ## Project Overview
-**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor agents**, **Copilot instructions**, **Claude Code skills/agents**, **Trae rules/skills**, **OpenCode agents/skills/commands/tools**, **Codex rules/skills**, **Gemini CLI commands/skills/agents**, and **universal AGENTS.md support**, keeping projects up-to-date across teams.
+**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor subagents**, **Copilot instructions**, **Claude Code skills/subagents**, **Trae rules/skills**, **OpenCode agents/skills/commands/tools**, **Codex rules/skills**, **Gemini CLI commands/skills/agents**, and **universal AGENTS.md support**, keeping projects up-to-date across teams.
 
 ## Core Concepts
 - **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/commands/`, `.cursor/skills/`, `.cursor/agents/`, `.github/instructions/`, `.claude/skills/`, `.claude/agents/`, `.trae/rules/`, `.trae/skills/`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, `.opencode/tools/`, `.codex/rules/`, `.agents/skills/`, `.gemini/commands/`, `.gemini/skills/`, `.gemini/agents/`, `agents-md/`).
 - **Symbolic Links**: Entries are linked from the local cache of the repo to project directories, avoiding file duplication and drift.
-- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills/agents, Copilot instructions, Claude skills/agents, Trae rules/skills, OpenCode agents/skills/commands/tools, Codex rules/skills, Gemini CLI commands/skills/agents, AGENTS.md).
+- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills/subagents, Copilot instructions, Claude Code skills/subagents, Trae rules/skills, OpenCode agents/skills/commands/tools, Codex rules/skills, Gemini CLI commands/skills/agents, AGENTS.md).
 - **Privacy**: Supports private/local entries via `ai-rules-sync.local.json` and `.git/info/exclude`.
 
 ## Architecture
@@ -314,12 +314,12 @@ interface ProjectConfig {
 - Links `<repo>/.cursor/agents/<agentName>` to `.cursor/agents/<alias>`.
 - Directory-based synchronization for Cursor subagents (Markdown files with YAML frontmatter).
 
-### 7. Claude Skill Synchronization
+### 7. Claude Code Skill Synchronization
 - **Syntax**: `ais claude skills add <skillName> [alias]`
 - Links `<repo>/.claude/skills/<skillName>` to `.claude/skills/<alias>`.
 - Directory-based synchronization.
 
-### 8. Claude Agent Synchronization
+### 8. Claude Code Subagent Synchronization
 - **Syntax**: `ais claude agents add <agentName> [alias]`
 - Links `<repo>/.claude/agents/<agentName>` to `.claude/agents/<alias>`.
 - Directory-based synchronization.
@@ -426,7 +426,7 @@ Gemini CLI (https://geminicli.com/) is supported with three entry types:
 ### 16. Installation
 - `ais cursor install` - Install all Cursor rules, commands, skills, and agents.
 - `ais copilot install` - Install all Copilot instructions.
-- `ais claude install` - Install all Claude skills and agents.
+- `ais claude install` - Install all Claude Code skills and subagents.
 - `ais trae install` - Install all Trae rules and skills.
 - `ais opencode install` - Install all OpenCode agents, skills, commands, and tools.
 - `ais codex install` - Install all Codex rules and skills.
@@ -750,8 +750,8 @@ ais cursor rules add-all -s experimental/rules
 | cursor-skills | cursor | skills | directory | .cursor/skills | - | [Cursor Skills](https://cursor.com/docs/context/skills) |
 | cursor-agents | cursor | subagents | directory | .cursor/agents | - | [Cursor subagents](https://cursor.com/docs/context/subagents) |
 | copilot-instructions | copilot | instructions | file | .github/instructions | .instructions.md, .md | [Copilot Instructions](https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot) |
-| claude-skills | claude | skills | directory | .claude/skills | - | [Claude Code Skills](https://docs.anthropic.com/en/docs/agents/claude-code) |
-| claude-agents | claude | agents | directory | .claude/agents | - | [Claude Code Agents](https://docs.anthropic.com/en/docs/agents/claude-code) |
+| claude-skills | claude | skills | directory | .claude/skills | - | [Claude Code Skills](https://code.claude.com/docs/en/skills) |
+| claude-agents | claude | subagents | directory | .claude/agents | - | [Claude Code Subagents](https://code.claude.com/docs/en/sub-agents) |
 | trae-rules | trae | rules | file | .trae/rules | .md | [Trae AI](https://trae.ai/) |
 | trae-skills | trae | skills | directory | .trae/skills | - | [Trae AI](https://trae.ai/) |
 | **agents-md** | **agents-md** | **file** | **file** | **.** (root) | **.md** | **[agents.md standard](https://agents.md/)** |

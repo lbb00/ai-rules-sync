@@ -43,6 +43,8 @@ export interface SourceDirConfig {
         skills?: string;
         // Source directory for claude agents, default: ".claude/agents"
         agents?: string;
+        // Source directory for claude rules, default: ".claude/rules"
+        rules?: string;
     };
     trae?: {
         // Source directory for trae rules, default: ".trae/rules"
@@ -118,6 +120,7 @@ export interface ProjectConfig {
         // key is the local alias (target name), value is repo url OR object with url and original rule name
         skills?: Record<string, RuleEntry>;
         agents?: Record<string, RuleEntry>;
+        rules?: Record<string, RuleEntry>;
     };
     trae?: {
         rules?: Record<string, RuleEntry>;
@@ -165,6 +168,7 @@ export interface RepoSourceConfig {
     claude?: {
         skills?: string;
         agents?: string;
+        rules?: string;
     };
     trae?: {
         rules?: string;
@@ -234,7 +238,8 @@ function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig
         },
         claude: {
             skills: { ...(main.claude?.skills || {}), ...(local.claude?.skills || {}) },
-            agents: { ...(main.claude?.agents || {}), ...(local.claude?.agents || {}) }
+            agents: { ...(main.claude?.agents || {}), ...(local.claude?.agents || {}) },
+            rules: { ...(main.claude?.rules || {}), ...(local.claude?.rules || {}) }
         },
         trae: {
             rules: { ...(main.trae?.rules || {}), ...(local.trae?.rules || {}) },
@@ -305,8 +310,10 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
         const isCopilotSkillsString = typeof copilotSkills === 'string';
         const claudeSkills = config.claude?.skills;
         const claudeAgents = config.claude?.agents;
+        const claudeRules = config.claude?.rules;
         const isClaudeSkillsString = typeof claudeSkills === 'string';
         const isClaudeAgentsString = typeof claudeAgents === 'string';
+        const isClaudeRulesString = typeof claudeRules === 'string';
         const traeRules = config.trae?.rules;
         const traeSkills = config.trae?.skills;
         const isTraeRulesString = typeof traeRules === 'string';
@@ -327,7 +334,7 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
         const isAgentsMdFileString = typeof agentsMdFile === 'string';
 
         // If any of these are strings, treat as legacy rules repo config
-        if (isCursorRulesString || isCursorCommandsString || isCursorSkillsString || isCursorAgentsString || isCopilotInstructionsString || isCopilotSkillsString || isClaudeSkillsString || isClaudeAgentsString || isTraeRulesString || isTraeSkillsString || isOpencodeAgentsString || isOpencodeSkillsString || isOpencodeCommandsString || isOpencodeToolsString || isCodexRulesString || isCodexSkillsString || isAgentsMdFileString) {
+        if (isCursorRulesString || isCursorCommandsString || isCursorSkillsString || isCursorAgentsString || isCopilotInstructionsString || isCopilotSkillsString || isClaudeSkillsString || isClaudeAgentsString || isClaudeRulesString || isTraeRulesString || isTraeSkillsString || isOpencodeAgentsString || isOpencodeSkillsString || isOpencodeCommandsString || isOpencodeToolsString || isCodexRulesString || isCodexSkillsString || isAgentsMdFileString) {
             return {
                 rootPath: config.rootPath,
                 cursor: {
@@ -342,7 +349,8 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
                 },
                 claude: {
                     skills: isClaudeSkillsString ? claudeSkills : undefined,
-                    agents: isClaudeAgentsString ? claudeAgents : undefined
+                    agents: isClaudeAgentsString ? claudeAgents : undefined,
+                    rules: isClaudeRulesString ? claudeRules : undefined
                 },
                 trae: {
                     rules: isTraeRulesString ? traeRules : undefined,
@@ -419,6 +427,8 @@ export function getSourceDir(
             toolDir = repoConfig.claude?.skills;
         } else if (subtype === 'agents') {
             toolDir = repoConfig.claude?.agents;
+        } else if (subtype === 'rules') {
+            toolDir = repoConfig.claude?.rules;
         }
     } else if (tool === 'trae') {
         if (subtype === 'rules') {
