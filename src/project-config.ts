@@ -74,6 +74,10 @@ export interface SourceDirConfig {
         // Source directory for gemini agents, default: ".gemini/agents"
         agents?: string;
     };
+    warp?: {
+        // Source directory for warp skills, default: ".agents/skills"
+        skills?: string;
+    };
     agentsMd?: {
         // Source directory for AGENTS.md files, default: "." (repository root)
         file?: string;
@@ -134,6 +138,9 @@ export interface ProjectConfig {
         commands?: Record<string, RuleEntry>;
         skills?: Record<string, RuleEntry>;
         agents?: Record<string, RuleEntry>;
+    };
+    warp?: {
+        skills?: Record<string, RuleEntry>;
     };
     // Universal AGENTS.md support (tool-agnostic)
     agentsMd?: Record<string, RuleEntry>;
@@ -242,6 +249,9 @@ function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig
         codex: {
             rules: { ...(main.codex?.rules || {}), ...(local.codex?.rules || {}) },
             skills: { ...(main.codex?.skills || {}), ...(local.codex?.skills || {}) }
+        },
+        warp: {
+            skills: { ...(main.warp?.skills || {}), ...(local.warp?.skills || {}) }
         },
         agentsMd: { ...(main.agentsMd || {}), ...(local.agentsMd || {}) }
     };
@@ -431,6 +441,10 @@ export function getSourceDir(
             toolDir = repoConfig.codex?.rules;
         } else if (subtype === 'skills') {
             toolDir = repoConfig.codex?.skills;
+        }
+    } else if (tool === 'warp') {
+        if (subtype === 'skills') {
+            toolDir = (repoConfig as any).warp?.skills;
         }
     } else if (tool === 'agents-md') {
         if (subtype === 'file') {

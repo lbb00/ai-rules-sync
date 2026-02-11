@@ -10,7 +10,7 @@
 
 Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links.
 
-**Supports:** Cursor (rules, commands, skills, agents), Copilot (instructions, skills), Claude (skills, agents), Trae (rules, skills), OpenCode (agents, skills, commands, tools), Codex (rules, skills), Gemini CLI (commands, skills, agents), and universal AGENTS.md.
+**Supports:** Cursor (rules, commands, skills, agents), Copilot (instructions, skills), Claude (skills, agents), Trae (rules, skills), OpenCode (agents, skills, commands, tools), Codex (rules, skills), Gemini CLI (commands, skills, agents), Warp (skills), and universal AGENTS.md.
 
 ---
 
@@ -150,6 +150,7 @@ ais completion install
 | Gemini CLI | Commands | file | `.gemini/commands/` | `.toml` | [Website](https://geminicli.com/) |
 | Gemini CLI | Skills | directory | `.gemini/skills/` | - | [Website](https://geminicli.com/) |
 | Gemini CLI | Agents | file | `.gemini/agents/` | `.md` | [Website](https://geminicli.com/) |
+| Warp | Skills | directory | `.agents/skills/` | - | [Docs](https://docs.warp.dev/agent-platform/capabilities/skills) |
 | **Universal** | **AGENTS.md** | file | `.` (root) | `.md` | [Standard](https://agents.md/) |
 
 **Modes:**

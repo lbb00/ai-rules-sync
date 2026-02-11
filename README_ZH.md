@@ -10,7 +10,7 @@
 
 不再复制粘贴 `.mdc` 文件。在 Git 仓库中管理规则，通过软链接同步。
 
-**支持：** Cursor（规则、命令、技能、代理）、Copilot（指令、技能）、Claude（技能、代理）、Trae（规则、技能）、OpenCode（代理、技能、命令、工具）、Codex（规则、技能）、Gemini CLI（命令、技能、代理）以及通用的 AGENTS.md。
+**支持：** Cursor（规则、命令、技能、代理）、Copilot（指令、技能）、Claude（技能、代理）、Trae（规则、技能）、OpenCode（代理、技能、命令、工具）、Codex（规则、技能）、Gemini CLI（命令、技能、代理）、Warp（技能）以及通用的 AGENTS.md。
 
 ---
 
@@ -150,6 +150,7 @@ ais completion install
 | Gemini CLI | Commands | file | `.gemini/commands/` | `.toml` | [网站](https://geminicli.com/) |
 | Gemini CLI | Skills | directory | `.gemini/skills/` | - | [网站](https://geminicli.com/) |
 | Gemini CLI | Agents | file | `.gemini/agents/` | `.md` | [网站](https://geminicli.com/) |
+| Warp | Skills | directory | `.agents/skills/` | - | [文档](https://docs.warp.dev/agent-platform/capabilities/skills) |
 | **通用** | **AGENTS.md** | file | `.`（根目录） | `.md` | [标准](https://agents.md/) |
 
 **模式说明：**

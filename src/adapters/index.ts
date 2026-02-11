@@ -19,6 +19,7 @@ import { codexSkillsAdapter } from './codex-skills.js';
 import { geminiCommandsAdapter } from './gemini-commands.js';
 import { geminiSkillsAdapter } from './gemini-skills.js';
 import { geminiAgentsAdapter } from './gemini-agents.js';
+import { warpSkillsAdapter } from './warp-skills.js';
 import { ProjectConfig } from '../project-config.js';
 
 // Re-export types and utilities
@@ -55,6 +56,7 @@ class DefaultAdapterRegistry implements AdapterRegistry {
         this.register(geminiCommandsAdapter);
         this.register(geminiSkillsAdapter);
         this.register(geminiAgentsAdapter);
+        this.register(warpSkillsAdapter);
     }
 
     register(adapter: SyncAdapter): void {
@@ -186,6 +188,9 @@ export function findAdapterForAlias(
     }
     if (cfg.gemini?.agents?.[alias]) {
         return { adapter: geminiAgentsAdapter, section: 'gemini.agents' };
+    }
+    if (cfg.warp?.skills?.[alias]) {
+        return { adapter: warpSkillsAdapter, section: 'warp.skills' };
     }
     return null;
 }
