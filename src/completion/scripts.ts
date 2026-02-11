@@ -184,6 +184,12 @@ _ais_complete() {
     return 0
   fi
 
+  # warp skills add
+  if [[ "\$ppprev" == "warp" && "\$pprev" == "skills" && "\$prev" == "add" ]]; then
+    COMPREPLY=( $(compgen -W "$(ais _complete warp-skills 2>/dev/null)" -- "\$cur") )
+    return 0
+  fi
+
   # agents-md
   if [[ "\$pprev" == "agents-md" && "\$prev" == "add" ]]; then
     COMPREPLY=( $(compgen -W "$(ais _complete agents-md 2>/dev/null)" -- "\$cur") )
@@ -244,6 +250,12 @@ _ais_complete() {
     return 0
   fi
 
+  # warp skills
+  if [[ "\$pprev" == "warp" && "\$prev" == "skills" ]]; then
+    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
+    return 0
+  fi
+
   # agents-md
   if [[ "\$prev" == "agents-md" ]]; then
     COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
@@ -297,8 +309,13 @@ _ais_complete() {
     return 0
   fi
 
+  if [[ "\$prev" == "warp" ]]; then
+    COMPREPLY=( $(compgen -W "skills install import" -- "\$cur") )
+    return 0
+  fi
+
   if [[ "\$prev" == "ais" ]]; then
-    COMPREPLY=( $(compgen -W "cursor copilot claude trae opencode codex gemini agents-md use list git add remove install import completion" -- "\$cur") )
+    COMPREPLY=( $(compgen -W "cursor copilot claude trae opencode codex gemini warp agents-md use list git add remove install import completion" -- "\$cur") )
     return 0
   fi
 }
@@ -317,6 +334,7 @@ subcmds=(
     'opencode:Manage OpenCode agents, skills, commands, and tools'
     'codex:Manage Codex rules and skills'
     'gemini:Manage Gemini CLI commands, skills, and agents'
+    'warp:Manage Warp agent skills'
     'agents-md:Manage AGENTS.md files (agents.md standard)'
     'use:Configure rules repository'
     'list:List configured repositories'
@@ -328,7 +346,7 @@ subcmds=(
     'completion:Output shell completion script'
   )
 
-  local -a cursor_subcmds copilot_subcmds claude_subcmds trae_subcmds opencode_subcmds codex_subcmds gemini_subcmds agents_md_subcmds cursor_rules_subcmds cursor_commands_subcmds cursor_skills_subcmds cursor_agents_subcmds copilot_instructions_subcmds copilot_skills_subcmds claude_skills_subcmds claude_agents_subcmds trae_rules_subcmds trae_skills_subcmds opencode_agents_subcmds opencode_skills_subcmds opencode_commands_subcmds opencode_tools_subcmds codex_rules_subcmds codex_skills_subcmds gemini_commands_subcmds gemini_skills_subcmds gemini_agents_subcmds
+  local -a cursor_subcmds copilot_subcmds claude_subcmds trae_subcmds opencode_subcmds codex_subcmds gemini_subcmds warp_subcmds agents_md_subcmds cursor_rules_subcmds cursor_commands_subcmds cursor_skills_subcmds cursor_agents_subcmds copilot_instructions_subcmds copilot_skills_subcmds claude_skills_subcmds claude_agents_subcmds trae_rules_subcmds trae_skills_subcmds opencode_agents_subcmds opencode_skills_subcmds opencode_commands_subcmds opencode_tools_subcmds codex_rules_subcmds codex_skills_subcmds gemini_commands_subcmds gemini_skills_subcmds gemini_agents_subcmds warp_skills_subcmds
   cursor_subcmds=('add:Add a Cursor rule' 'remove:Remove a Cursor rule' 'install:Install all Cursor entries' 'import:Import entry to repository' 'rules:Manage rules explicitly' 'commands:Manage commands' 'skills:Manage skills' 'agents:Manage agents')
   copilot_subcmds=('instructions:Manage Copilot instructions' 'skills:Manage Copilot skills' 'install:Install all Copilot entries')
   copilot_instructions_subcmds=('add:Add a Copilot instruction' 'remove:Remove a Copilot instruction' 'install:Install all Copilot instructions' 'import:Import instruction to repository')
@@ -356,6 +374,8 @@ subcmds=(
   gemini_commands_subcmds=('add:Add a Gemini command' 'remove:Remove a Gemini command' 'install:Install all Gemini commands' 'import:Import command to repository')
   gemini_skills_subcmds=('add:Add a Gemini skill' 'remove:Remove a Gemini skill' 'install:Install all Gemini skills' 'import:Import skill to repository')
   gemini_agents_subcmds=('add:Add a Gemini agent' 'remove:Remove a Gemini agent' 'install:Install all Gemini agents' 'import:Import agent to repository')
+  warp_subcmds=('skills:Manage Warp skills' 'install:Install all Warp entries' 'import:Import entry to repository')
+  warp_skills_subcmds=('add:Add a Warp skill' 'remove:Remove a Warp skill' 'install:Install all Warp skills' 'import:Import skill to repository')
 
   _arguments -C \\
     '1:command:->command' \\
@@ -390,6 +410,9 @@ subcmds=(
           ;;
         gemini)
           _describe 'subcommand' gemini_subcmds
+          ;;
+        warp)
+          _describe 'subcommand' warp_subcmds
           ;;
         agents-md)
           _describe 'subcommand' agents_md_subcmds
@@ -508,6 +531,16 @@ subcmds=(
               ;;
             *)
               _describe 'subsubcommand' gemini_subcmds
+              ;;
+          esac
+          ;;
+        warp)
+          case "\$words[3]" in
+            skills)
+              _describe 'subsubcommand' warp_skills_subcmds
+              ;;
+            *)
+              _describe 'subsubcommand' warp_subcmds
               ;;
           esac
           ;;
@@ -773,6 +806,21 @@ subcmds=(
               ;;
           esac
           ;;
+        warp)
+          case \"\$words[3]\" in
+            skills)
+              case \"\$words[4]\" in
+                add)
+                  local -a skills
+                  skills=(\${(f)\"$(ais _complete warp-skills 2>/dev/null)\"})
+                  if (( \$#skills )); then
+                    compadd \"\$skills[@]\"
+                  fi
+                  ;;
+              esac
+              ;;
+          esac
+          ;;
         agents-md)
           case \"\$words[3]\" in
             add)
@@ -808,6 +856,7 @@ complete -c ais -n "__fish_use_subcommand" -a "trae" -d "Manage Trae rules and s
 complete -c ais -n "__fish_use_subcommand" -a "opencode" -d "Manage OpenCode agents, skills, commands, and tools"
 complete -c ais -n "__fish_use_subcommand" -a "codex" -d "Manage Codex rules and skills"
 complete -c ais -n "__fish_use_subcommand" -a "gemini" -d "Manage Gemini CLI commands, skills, and agents"
+complete -c ais -n "__fish_use_subcommand" -a "warp" -d "Manage Warp agent skills"
 complete -c ais -n "__fish_use_subcommand" -a "agents-md" -d "Manage AGENTS.md files (agents.md standard)"
 complete -c ais -n "__fish_use_subcommand" -a "use" -d "Configure rules repository"
 complete -c ais -n "__fish_use_subcommand" -a "list" -d "List configured repositories"
@@ -979,6 +1028,17 @@ complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcomma
 complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Gemini agents"
 complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import agent to repository"
 
+# warp subcommands
+complete -c ais -n "__fish_seen_subcommand_from warp; and not __fish_seen_subcommand_from install import skills" -a "skills" -d "Manage Warp skills"
+complete -c ais -n "__fish_seen_subcommand_from warp; and not __fish_seen_subcommand_from install import skills" -a "install" -d "Install all Warp entries"
+complete -c ais -n "__fish_seen_subcommand_from warp; and not __fish_seen_subcommand_from install import skills" -a "import" -d "Import entry to repository"
+
+# warp skills subcommands
+complete -c ais -n "__fish_seen_subcommand_from warp; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Warp skill"
+complete -c ais -n "__fish_seen_subcommand_from warp; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Warp skill"
+complete -c ais -n "__fish_seen_subcommand_from warp; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Warp skills"
+complete -c ais -n "__fish_seen_subcommand_from warp; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import skill to repository"
+
 # agents-md subcommands
 complete -c ais -n "__fish_seen_subcommand_from agents-md; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add an AGENTS.md file"
 complete -c ais -n "__fish_seen_subcommand_from agents-md; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove an AGENTS.md file"
@@ -1005,6 +1065,7 @@ complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcomman
 complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from commands; and __fish_seen_subcommand_from add" -a "(ais _complete gemini-commands 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete gemini-skills 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from agents; and __fish_seen_subcommand_from add" -a "(ais _complete gemini-agents 2>/dev/null)"
+complete -c ais -n "__fish_seen_subcommand_from warp; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete warp-skills 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from agents-md; and __fish_seen_subcommand_from add" -a "(ais _complete agents-md 2>/dev/null)"
 `;
 

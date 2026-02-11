@@ -10,7 +10,7 @@
 
 不再复制粘贴 `.mdc` 文件。在 Git 仓库中管理规则，通过软链接同步。
 
-**支持：** Cursor（规则、命令、技能、代理）、Copilot（指令、技能）、Claude（技能、代理）、Trae（规则、技能）、OpenCode（代理、技能、命令、工具）、Codex（规则、技能）、Gemini CLI（命令、技能、代理）以及通用的 AGENTS.md。
+**支持：** Cursor（规则、命令、技能、代理）、Copilot（指令、技能）、Claude（技能、代理）、Trae（规则、技能）、OpenCode（代理、技能、命令、工具）、Codex（规则、技能）、Gemini CLI（命令、技能、代理）、Warp（规则 via AGENTS.md、技能）以及通用的 AGENTS.md。
 
 ---
 
@@ -150,6 +150,8 @@ ais completion install
 | Gemini CLI | Commands | file | `.gemini/commands/` | `.toml` | [网站](https://geminicli.com/) |
 | Gemini CLI | Skills | directory | `.gemini/skills/` | - | [网站](https://geminicli.com/) |
 | Gemini CLI | Agents | file | `.gemini/agents/` | `.md` | [网站](https://geminicli.com/) |
+| Warp | Rules | file | `.`（根目录） | `.md` | [文档](https://docs.warp.dev/agent-platform/capabilities/rules) — 与 AGENTS.md 相同，使用 `ais agents-md` |
+| Warp | Skills | directory | `.agents/skills/` | - | [文档](https://docs.warp.dev/agent-platform/capabilities/skills) |
 | **通用** | **AGENTS.md** | file | `.`（根目录） | `.md` | [标准](https://agents.md/) |
 
 **模式说明：**
@@ -540,6 +542,31 @@ ais agents-md add backend be-agents
 
 # 移除
 ais agents-md remove fe-agents
+```
+
+### Warp
+
+#### 规则（Rules）
+
+Warp Rules 使用 [AGENTS.md 标准](https://agents.md/) — 使用 `agents-md` 命令：
+
+```bash
+# 从仓库根目录添加 AGENTS.md（在 Warp 中全局生效）
+ais agents-md add .
+
+# 添加目录专属规则
+ais agents-md add src
+
+# 移除
+ais agents-md remove .
+```
+
+#### 技能（Skills）
+
+```bash
+ais warp skills add my-skill
+ais warp skills remove my-skill
+ais warp skills install
 ```
 
 ---
