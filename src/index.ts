@@ -561,31 +561,31 @@ registerAdapterCommands({ adapter: getAdapter('cursor', 'agents'), parentCommand
 const copilot = program.command('copilot').description('Manage GitHub Copilot configurations');
 
 // copilot instructions subcommand
-const copilotInstructions = copilot.command('instructions').description('Manage Copilot instructions');
+const copilotInstructions = copilot.command('instructions').description('Manage GitHub Copilot instructions');
 registerAdapterCommands({
   parentCommand: copilotInstructions,
   adapter: copilotInstructionsAdapter,
   programOpts: () => program.opts()
 });
 
-// copilot skills subcommand
-const copilotSkills = copilot.command('skills').description('Manage Copilot agent skills');
-registerAdapterCommands({
-  parentCommand: copilotSkills,
-  adapter: copilotSkillsAdapter,
-  programOpts: () => program.opts()
-});
-
 // copilot prompts subcommand
-const copilotPrompts = copilot.command('prompts').description('Manage Copilot prompt files');
+const copilotPrompts = copilot.command('prompts').description('Manage GitHub Copilot prompt files');
 registerAdapterCommands({
   parentCommand: copilotPrompts,
   adapter: copilotPromptsAdapter,
   programOpts: () => program.opts()
 });
 
+// copilot skills subcommand
+const copilotSkills = copilot.command('skills').description('Manage GitHub Copilot agent skills');
+registerAdapterCommands({
+  parentCommand: copilotSkills,
+  adapter: copilotSkillsAdapter,
+  programOpts: () => program.opts()
+});
+
 // copilot agents subcommand
-const copilotAgents = copilot.command('agents').description('Manage Copilot custom agents');
+const copilotAgents = copilot.command('agents').description('Manage GitHub Copilot custom agents');
 registerAdapterCommands({
   parentCommand: copilotAgents,
   adapter: copilotAgentsAdapter,
@@ -595,12 +595,12 @@ registerAdapterCommands({
 // copilot install - install all copilot entries
 copilot
   .command('install')
-  .description('Install all Copilot instructions, skills, prompts, and agents from config')
+  .description('Install all GitHub Copilot instructions, prompts, skills, and agents from config')
   .action(async () => {
     try {
       await installEntriesForTool(adapterRegistry.getForTool('copilot'), process.cwd());
     } catch (error: any) {
-      console.error(chalk.red('Error installing Copilot entries:'), error.message);
+      console.error(chalk.red('Error installing GitHub Copilot entries:'), error.message);
       process.exit(1);
     }
   });
@@ -691,6 +691,10 @@ claude
     }
   });
 
+// claude rules subgroup
+const claudeRules = claude.command('rules').description('Manage Claude rules (.claude/rules/)');
+registerAdapterCommands({ adapter: getAdapter('claude', 'rules'), parentCommand: claudeRules, programOpts: () => program.opts() });
+
 // claude skills subgroup
 const claudeSkills = claude.command('skills').description('Manage Claude skills');
 registerAdapterCommands({ adapter: getAdapter('claude', 'skills'), parentCommand: claudeSkills, programOpts: () => program.opts() });
@@ -698,10 +702,6 @@ registerAdapterCommands({ adapter: getAdapter('claude', 'skills'), parentCommand
 // claude agents subgroup
 const claudeAgents = claude.command('agents').description('Manage Claude agents');
 registerAdapterCommands({ adapter: getAdapter('claude', 'agents'), parentCommand: claudeAgents, programOpts: () => program.opts() });
-
-// claude rules subgroup
-const claudeRules = claude.command('rules').description('Manage Claude rules (.claude/rules/)');
-registerAdapterCommands({ adapter: getAdapter('claude', 'rules'), parentCommand: claudeRules, programOpts: () => program.opts() });
 
 // ============ Trae command group ============
 const trae = program
@@ -921,14 +921,14 @@ opencode
     }
   });
 
-const opencodeAgents = opencode.command('agents').description('Manage OpenCode agents');
-registerAdapterCommands({ adapter: getAdapter('opencode', 'agents'), parentCommand: opencodeAgents, programOpts: () => program.opts() });
+const opencodeCommands = opencode.command('commands').description('Manage OpenCode commands');
+registerAdapterCommands({ adapter: getAdapter('opencode', 'commands'), parentCommand: opencodeCommands, programOpts: () => program.opts() });
 
 const opencodeSkills = opencode.command('skills').description('Manage OpenCode skills');
 registerAdapterCommands({ adapter: getAdapter('opencode', 'skills'), parentCommand: opencodeSkills, programOpts: () => program.opts() });
 
-const opencodeCommands = opencode.command('commands').description('Manage OpenCode commands');
-registerAdapterCommands({ adapter: getAdapter('opencode', 'commands'), parentCommand: opencodeCommands, programOpts: () => program.opts() });
+const opencodeAgents = opencode.command('agents').description('Manage OpenCode agents');
+registerAdapterCommands({ adapter: getAdapter('opencode', 'agents'), parentCommand: opencodeAgents, programOpts: () => program.opts() });
 
 const opencodeTools = opencode.command('tools').description('Manage OpenCode tools');
 registerAdapterCommands({ adapter: getAdapter('opencode', 'tools'), parentCommand: opencodeTools, programOpts: () => program.opts() });

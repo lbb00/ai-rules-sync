@@ -10,7 +10,7 @@
 
 不再复制粘贴 `.mdc` 文件。在 Git 仓库中管理规则，通过软链接同步。
 
-**支持：** Cursor（规则、命令、技能、subagents）、Copilot（指令、技能、提示词、代理）、Claude Code（技能、subagents、规则）、Trae（规则、技能）、OpenCode（代理、技能、命令、工具）、Codex（规则、技能）、Gemini CLI（命令、技能、代理）、Warp（规则 via AGENTS.md、技能）以及通用的 AGENTS.md。
+**支持：** Cursor（规则、命令、技能、subagents）、GitHub Copilot（指令、提示词、技能、代理）、Claude Code（规则、技能、subagents）、Trae（规则、技能）、OpenCode（命令、技能、代理、工具）、Codex（规则、技能）、Gemini CLI（命令、技能、代理）、Warp（规则 via AGENTS.md、技能）以及通用的 AGENTS.md。
 
 ---
 
@@ -135,18 +135,18 @@ ais completion install
 | Cursor | Commands | file | `.cursor/commands/` | `.md` | [文档](https://cursor.com/docs/context/commands) |
 | Cursor | Skills | directory | `.cursor/skills/` | - | [文档](https://cursor.com/docs/context/skills) |
 | Cursor | subagents | directory | `.cursor/agents/` | - | [文档](https://cursor.com/docs/context/subagents) |
-| Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [文档](https://docs.github.com/copilot) |
-| Copilot | Skills | directory | `.github/skills/` | - | [文档](https://docs.github.com/en/copilot/using-github-copilot/using-extensions-to-integrate-external-tools-with-copilot-chat) |
-| Copilot | Prompts | file | `.github/prompts/` | `.prompt.md`, `.md` | [文档](https://docs.github.com/copilot) |
-| Copilot | Agents | file | `.github/agents/` | `.agent.md`, `.md` | [文档](https://docs.github.com/copilot) |
+| GitHub Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [文档](https://docs.github.com/copilot) |
+| GitHub Copilot | Prompts | file | `.github/prompts/` | `.prompt.md`, `.md` | [文档](https://docs.github.com/copilot) |
+| GitHub Copilot | Skills | directory | `.github/skills/` | - | [文档](https://docs.github.com/en/copilot/using-github-copilot/using-extensions-to-integrate-external-tools-with-copilot-chat) |
+| GitHub Copilot | Agents | file | `.github/agents/` | `.agent.md`, `.md` | [文档](https://docs.github.com/copilot) |
+| Claude Code | Rules | file | `.claude/rules/` | `.md` | [文档](https://code.claude.com/docs/en/memory) |
 | Claude Code | Skills | directory | `.claude/skills/` | - | [文档](https://code.claude.com/docs/en/skills) |
 | Claude Code | Subagents | directory | `.claude/agents/` | - | [文档](https://code.claude.com/docs/en/sub-agents) |
-| Claude Code | Rules | file | `.claude/rules/` | `.md` | [文档](https://code.claude.com/docs/en/memory) |
 | Trae | Rules | file | `.trae/rules/` | `.md` | [网站](https://trae.ai/) |
 | Trae | Skills | directory | `.trae/skills/` | - | [网站](https://trae.ai/) |
-| OpenCode | Agents | file | `.opencode/agents/` | `.md` | [网站](https://opencode.ing/) |
-| OpenCode | Skills | directory | `.opencode/skills/` | - | [网站](https://opencode.ing/) |
 | OpenCode | Commands | file | `.opencode/commands/` | `.md` | [网站](https://opencode.ing/) |
+| OpenCode | Skills | directory | `.opencode/skills/` | - | [网站](https://opencode.ing/) |
+| OpenCode | Agents | file | `.opencode/agents/` | `.md` | [网站](https://opencode.ing/) |
 | OpenCode | Tools | file | `.opencode/tools/` | `.ts`, `.js` | [网站](https://opencode.ing/) |
 | Codex | Rules | file | `.codex/rules/` | `.rules` | [文档](https://developers.openai.com/codex/rules) |
 | Codex | Skills | directory | `.agents/skills/` | - | [文档](https://developers.openai.com/codex/skills) |
@@ -443,7 +443,7 @@ ais cursor agents add code-analyzer
 ais cursor agents remove code-analyzer
 ```
 
-### Copilot
+### GitHub Copilot
 
 ```bash
 # 添加指令
@@ -453,19 +453,19 @@ ais copilot instructions add coding-style
 ais copilot instructions add style.md               # 明确指定
 ais copilot instructions add style.instructions.md  # 明确指定
 
-# 添加技能
-ais copilot skills add web-scraping
-
 # 添加提示词文件
 ais copilot prompts add generate-tests
+
+# 添加技能
+ais copilot skills add web-scraping
 
 # 添加自定义代理
 ais copilot agents add code-reviewer
 
 # 移除
 ais copilot instructions remove coding-style
-ais copilot skills remove web-scraping
 ais copilot prompts remove generate-tests
+ais copilot skills remove web-scraping
 ais copilot agents remove code-reviewer
 ```
 
