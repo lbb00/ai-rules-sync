@@ -1,6 +1,6 @@
 {
   "name": "ai-rules-sync",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Synchronize, manage, and share your agent rules (Cursor rules and commands, Copilot instructions) with ease.",
   "type": "module",
   "bin": {
@@ -34,6 +34,7 @@
     "linkany": "^0.0.3"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.8",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^25.0.3",
     "typescript": "^5.9.3",
