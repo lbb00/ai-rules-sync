@@ -3,6 +3,8 @@ import { cursorRulesAdapter } from './cursor-rules.js';
 import { cursorCommandsAdapter } from './cursor-commands.js';
 import { copilotInstructionsAdapter } from './copilot-instructions.js';
 import { copilotSkillsAdapter } from './copilot-skills.js';
+import { copilotPromptsAdapter } from './copilot-prompts.js';
+import { copilotAgentsAdapter } from './copilot-agents.js';
 import { claudeSkillsAdapter } from './claude-skills.js';
 import { claudeAgentsAdapter } from './claude-agents.js';
 import { claudeRulesAdapter } from './claude-rules.js';
@@ -43,6 +45,8 @@ class DefaultAdapterRegistry implements AdapterRegistry {
         this.register(cursorAgentsAdapter);
         this.register(copilotInstructionsAdapter);
         this.register(copilotSkillsAdapter);
+        this.register(copilotPromptsAdapter);
+        this.register(copilotAgentsAdapter);
         this.register(claudeSkillsAdapter);
         this.register(claudeAgentsAdapter);
         this.register(claudeRulesAdapter);
@@ -148,6 +152,12 @@ export function findAdapterForAlias(
     }
     if (cfg.copilot?.skills?.[alias]) {
         return { adapter: copilotSkillsAdapter, section: 'copilot.skills' };
+    }
+    if (cfg.copilot?.prompts?.[alias]) {
+        return { adapter: copilotPromptsAdapter, section: 'copilot.prompts' };
+    }
+    if (cfg.copilot?.agents?.[alias]) {
+        return { adapter: copilotAgentsAdapter, section: 'copilot.agents' };
     }
     if (cfg.claude?.skills?.[alias]) {
         return { adapter: claudeSkillsAdapter, section: 'claude.skills' };

@@ -10,7 +10,7 @@
 
 Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links.
 
-**Supports:** Cursor (rules, commands, skills, subagents), Copilot (instructions, skills), Claude Code (skills, subagents, rules), Trae (rules, skills), OpenCode (agents, skills, commands, tools), Codex (rules, skills), Gemini CLI (commands, skills, agents), Warp (rules via AGENTS.md, skills), and universal AGENTS.md.
+**Supports:** Cursor (rules, commands, skills, subagents), GitHub Copilot (instructions, prompts, skills, agents), Claude Code (rules, skills, subagents), Trae (rules, skills), OpenCode (commands, skills, agents, tools), Codex (rules, skills), Gemini CLI (commands, skills, agents), Warp (rules via AGENTS.md, skills), and universal AGENTS.md.
 
 ---
 
@@ -135,16 +135,18 @@ ais completion install
 | Cursor | Commands | file | `.cursor/commands/` | `.md` | [Docs](https://cursor.com/docs/context/commands) |
 | Cursor | Skills | directory | `.cursor/skills/` | - | [Docs](https://cursor.com/docs/context/skills) |
 | Cursor | Subagents | directory | `.cursor/agents/` | - | [Docs](https://cursor.com/docs/context/subagents) |
-| Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [Docs](https://docs.github.com/copilot) |
-| Copilot | Skills | directory | `.github/skills/` | - | [Docs](https://docs.github.com/en/copilot/using-github-copilot/using-extensions-to-integrate-external-tools-with-copilot-chat) |
+| GitHub Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [Docs](https://docs.github.com/copilot) |
+| GitHub Copilot | Prompts | file | `.github/prompts/` | `.prompt.md`, `.md` | [Docs](https://docs.github.com/copilot) |
+| GitHub Copilot | Skills | directory | `.github/skills/` | - | [Docs](https://docs.github.com/en/copilot/using-github-copilot/using-extensions-to-integrate-external-tools-with-copilot-chat) |
+| GitHub Copilot | Agents | file | `.github/agents/` | `.agent.md`, `.md` | [Docs](https://docs.github.com/copilot) |
+| Claude Code | Rules | file | `.claude/rules/` | `.md` | [Docs](https://code.claude.com/docs/en/memory) |
 | Claude Code | Skills | directory | `.claude/skills/` | - | [Docs](https://code.claude.com/docs/en/skills) |
 | Claude Code | Subagents | directory | `.claude/agents/` | - | [Docs](https://code.claude.com/docs/en/sub-agents) |
-| Claude Code | Rules | file | `.claude/rules/` | `.md` | [Docs](https://code.claude.com/docs/en/memory) |
 | Trae | Rules | file | `.trae/rules/` | `.md` | [Website](https://trae.ai/) |
 | Trae | Skills | directory | `.trae/skills/` | - | [Website](https://trae.ai/) |
-| OpenCode | Agents | file | `.opencode/agents/` | `.md` | [Website](https://opencode.ing/) |
-| OpenCode | Skills | directory | `.opencode/skills/` | - | [Website](https://opencode.ing/) |
 | OpenCode | Commands | file | `.opencode/commands/` | `.md` | [Website](https://opencode.ing/) |
+| OpenCode | Skills | directory | `.opencode/skills/` | - | [Website](https://opencode.ing/) |
+| OpenCode | Agents | file | `.opencode/agents/` | `.md` | [Website](https://opencode.ing/) |
 | OpenCode | Tools | file | `.opencode/tools/` | `.ts`, `.js` | [Website](https://opencode.ing/) |
 | Codex | Rules | file | `.codex/rules/` | `.rules` | [Docs](https://developers.openai.com/codex/rules) |
 | Codex | Skills | directory | `.agents/skills/` | - | [Docs](https://developers.openai.com/codex/skills) |
@@ -441,7 +443,7 @@ ais cursor agents add code-analyzer
 ais cursor agents remove code-analyzer
 ```
 
-### Copilot
+### GitHub Copilot
 
 ```bash
 # Add instruction
@@ -451,12 +453,20 @@ ais copilot instructions add coding-style
 ais copilot instructions add style.md               # Explicit
 ais copilot instructions add style.instructions.md  # Explicit
 
+# Add prompt file
+ais copilot prompts add generate-tests
+
 # Add skill
 ais copilot skills add web-scraping
 
+# Add custom agent
+ais copilot agents add code-reviewer
+
 # Remove
 ais copilot instructions remove coding-style
+ais copilot prompts remove generate-tests
 ais copilot skills remove web-scraping
+ais copilot agents remove code-reviewer
 ```
 
 ### Claude Code
