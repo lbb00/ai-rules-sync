@@ -1394,6 +1394,16 @@ configRepo
     }
   });
 
+// ============ UI Command ============
+program
+  .command('ui')
+  .description('Start the web dashboard')
+  .option('-p, --port <port>', 'Port to listen on', '3847')
+  .action(async (options) => {
+    const { handleUi } = await import('./commands/ui.js');
+    await handleUi({ port: parseInt(options.port, 10) });
+  });
+
 // ============ Run CLI ============
 async function main() {
   await checkAndPromptCompletion();
