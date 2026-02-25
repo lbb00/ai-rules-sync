@@ -1,0 +1,53 @@
+name: Update Homebrew Tap
+
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types:
+      - completed
+
+jobs:
+  update-tap:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get new version
+        id: version
+        run: |
+          VERSION=$(npm view ai-rules-sync version)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Compute tarball SHA256
+        id: sha256
+        run: |
+          URL="https://registry.npmjs.org/ai-rules-sync/-/ai-rules-sync-${{ steps.version.outputs.version }}.tgz"
+          SHA=$(curl -fsSL "$URL" | sha256sum | awk '{print $1}')
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout Tap repository
+        uses: actions/checkout@v4
+        with:
+          repository: lbb00/homebrew-ai-rules-sync
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+
+      - name: Update Formula
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          SHA="${{ steps.sha256.outputs.sha256 }}"
+          sed -i "s|url \"https://registry.npmjs.org/ai-rules-sync/-/ai-rules-sync-.*\.tgz\"|url \"https://registry.npmjs.org/ai-rules-sync/-/ai-rules-sync-${VERSION}.tgz\"|" tap/Formula/ais.rb
+          sed -i "s|sha256 \".*\"|sha256 \"${SHA}\"|" tap/Formula/ais.rb
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+          commit-message: "chore: update ais to v${{ steps.version.outputs.version }}"
+          title: "chore: update ais to v${{ steps.version.outputs.version }}"
+          body: |
+            Automated update for ai-rules-sync v${{ steps.version.outputs.version }}.
+
+            - url: `https://registry.npmjs.org/ai-rules-sync/-/ai-rules-sync-${{ steps.version.outputs.version }}.tgz`
+            - sha256: `${{ steps.sha256.outputs.sha256 }}`
+          branch: "update-ais-${{ steps.version.outputs.version }}"
