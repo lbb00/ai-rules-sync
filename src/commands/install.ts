@@ -3,11 +3,12 @@
  */
 
 import path from 'path';
+import os from 'os';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 import { SyncAdapter } from '../adapters/types.js';
 import { getCombinedProjectConfig, getConfigSource, RuleEntry, ProjectConfig } from '../project-config.js';
-import { getConfig, setConfig, getReposBaseDir, RepoConfig } from '../config.js';
+import { getConfig, setConfig, getReposBaseDir, getGlobalProjectConfig, getGlobalConfigPath, RepoConfig } from '../config.js';
 import { cloneOrUpdateRepo } from '../git.js';
 import { parseConfigEntry } from './helpers.js';
 
@@ -148,3 +149,77 @@ export async function installEntriesForTool(
         await installEntriesForAdapter(adapter, projectPath);
     }
 }
+
+/**
+ * Install entries for an adapter from global config (global.json)
+ */
+export async function installGlobalEntriesForAdapter(
+    adapter: SyncAdapter
+): Promise<void> {
+    const globalConfig = await getGlobalProjectConfig();
+    const [topLevel, subLevel] = adapter.configPath;
+    const entries = (globalConfig as any)?.[topLevel]?.[subLevel] as Record<string, RuleEntry> | undefined;
+
+    if (!entries || Object.keys(entries).length === 0) {
+        console.log(chalk.yellow(`No global ${adapter.tool} ${adapter.subtype} found in global config.`));
+        return;
+    }
+
+    const config = await getConfig();
+    const repos = config.repos || {};
+    const projectPath = os.homedir();
+
+    for (const [key, value] of Object.entries(entries)) {
+        const { repoUrl, entryName, alias } = parseConfigEntry(key, value);
+
+        console.log(chalk.blue(`Installing ${adapter.tool} ${adapter.subtype} "${entryName}" (as "${key}") from ${repoUrl}...`));
+
+        const repoConfig = await findOrCreateRepo(repos, repoUrl, entryName);
+
+        const targetDir = typeof value === 'object' && value.targetDir ? value.targetDir : undefined;
+
+        await adapter.link({
+            projectPath,
+            name: entryName,
+            repo: repoConfig,
+            alias,
+            isLocal: false,
+            targetDir,
+            skipIgnore: true
+        });
+    }
+
+    console.log(chalk.green(`All global ${adapter.tool} ${adapter.subtype} installed successfully.`));
+}
+
+/**
+ * Install all global entries for all adapters
+ */
+export async function installAllGlobalEntries(
+    adapters: SyncAdapter[]
+): Promise<{ total: number }> {
+    const globalConfigPath = await getGlobalConfigPath();
+    const globalConfig = await getGlobalProjectConfig();
+
+    let total = 0;
+
+    for (const adapter of adapters) {
+        const [topLevel, subLevel] = adapter.configPath;
+        const entries = (globalConfig as any)?.[topLevel]?.[subLevel] as Record<string, RuleEntry> | undefined;
+        if (entries && Object.keys(entries).length > 0) {
+            await installGlobalEntriesForAdapter(adapter);
+            total += Object.keys(entries).length;
+        }
+    }
+
+    if (total === 0) {
+        console.log(chalk.yellow(`No global config found. Use "ais claude md add <name> --global" to add entries.`));
+    } else {
+        const displayPath = globalConfigPath.replace(os.homedir(), '~');
+        console.log(chalk.gray(`\nGlobal config: ${displayPath}`));
+        console.log(chalk.green(`Installed ${total} entries.`));
+    }
+
+    return { total };
+}
+

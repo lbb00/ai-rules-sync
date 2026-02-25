@@ -9,6 +9,7 @@ import { RepoConfig } from '../config.js';
 import { SyncAdapter } from '../adapters/types.js';
 import { linkEntry, unlinkEntry, importEntry, ImportOptions } from '../sync-engine.js';
 import { addIgnoreEntry } from '../utils.js';
+import { addGlobalDependency, removeGlobalDependency } from '../project-config.js';
 
 /**
  * Context for command execution
@@ -17,6 +18,10 @@ export interface CommandContext {
   projectPath: string;
   repo: RepoConfig;
   isLocal: boolean;
+  /** When true, uses global config (global.json) instead of project config */
+  global?: boolean;
+  /** When true, skip gitignore management (used for global mode) */
+  skipIgnore?: boolean;
 }
 
 /**
@@ -25,6 +30,8 @@ export interface CommandContext {
 export interface AddOptions {
   local?: boolean;
   targetDir?: string;
+  /** When true, uses global config (global.json) instead of project config */
+  global?: boolean;
 }
 
 /**
@@ -91,32 +98,49 @@ export async function handleAdd(
     repo: ctx.repo,
     alias,
     isLocal: ctx.isLocal,
-    targetDir: options?.targetDir
+    targetDir: options?.targetDir,
+    skipIgnore: ctx.skipIgnore
   });
 
   // Use the provided alias if given, otherwise use targetName if different from sourceName
   const depAlias = alias || (result.targetName === result.sourceName ? undefined : result.targetName);
-  const { migrated } = await adapter.addDependency(
-    ctx.projectPath,
-    result.sourceName,
-    ctx.repo.url,
-    depAlias,
-    ctx.isLocal,
-    options?.targetDir
-  );
 
-  const configFileName = ctx.isLocal ? 'ai-rules-sync.local.json' : 'ai-rules-sync.json';
-  console.log(chalk.green(`Updated ${configFileName} dependency.`));
+  let migrated = false;
+  if (ctx.global) {
+    // Global mode: write to global.json
+    await addGlobalDependency(
+      adapter.configPath,
+      result.sourceName,
+      ctx.repo.url,
+      depAlias,
+      options?.targetDir
+    );
+    console.log(chalk.green(`Updated global config dependency.`));
+  } else {
+    // Project mode: write to project's ai-rules-sync.json
+    const migration = await adapter.addDependency(
+      ctx.projectPath,
+      result.sourceName,
+      ctx.repo.url,
+      depAlias,
+      ctx.isLocal,
+      options?.targetDir
+    );
+    migrated = migration.migrated;
 
-  if (migrated) {
-    console.log(chalk.yellow('Detected legacy "cursor-rules*.json". Migrated to "ai-rules-sync*.json". Consider deleting the legacy files to avoid ambiguity.'));
-  }
+    const configFileName = ctx.isLocal ? 'ai-rules-sync.local.json' : 'ai-rules-sync.json';
+    console.log(chalk.green(`Updated ${configFileName} dependency.`));
 
-  if (ctx.isLocal) {
-    const gitignorePath = path.join(ctx.projectPath, '.gitignore');
-    const added = await addIgnoreEntry(gitignorePath, 'ai-rules-sync.local.json', '# Local AI Rules Sync Config');
-    if (added) {
-      console.log(chalk.green(`Added "ai-rules-sync.local.json" to .gitignore.`));
+    if (migrated) {
+      console.log(chalk.yellow('Detected legacy "cursor-rules*.json". Migrated to "ai-rules-sync*.json". Consider deleting the legacy files to avoid ambiguity.'));
+    }
+
+    if (ctx.isLocal) {
+      const gitignorePath = path.join(ctx.projectPath, '.gitignore');
+      const added = await addIgnoreEntry(gitignorePath, 'ai-rules-sync.local.json', '# Local AI Rules Sync Config');
+      if (added) {
+        console.log(chalk.green(`Added "ai-rules-sync.local.json" to .gitignore.`));
+      }
     }
   }
 
@@ -142,9 +166,22 @@ export interface RemoveResult {
 export async function handleRemove(
   adapter: SyncAdapter,
   projectPath: string,
-  alias: string
+  alias: string,
+  isGlobal: boolean = false
 ): Promise<RemoveResult> {
   await adapter.unlink(projectPath, alias);
+
+  if (isGlobal) {
+    const { removedFrom } = await removeGlobalDependency(adapter.configPath, alias);
+
+    if (removedFrom.length > 0) {
+      console.log(chalk.green(`Removed "${alias}" from global config: ${removedFrom.join(', ')}`));
+    } else {
+      console.log(chalk.yellow(`"${alias}" was not found in global config.`));
+    }
+
+    return { removedFrom, migrated: false };
+  }
 
   const { removedFrom, migrated } = await adapter.removeDependency(projectPath, alias);
 

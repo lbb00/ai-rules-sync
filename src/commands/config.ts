@@ -3,8 +3,10 @@
  * Manage global sourceDir configuration for repositories
  */
 
+import path from 'path';
+import os from 'os';
 import chalk from 'chalk';
-import { getConfig, setConfig } from '../config.js';
+import { getConfig, setConfig, getGlobalConfigPath } from '../config.js';
 import { SourceDirConfig } from '../project-config.js';
 
 /**
@@ -126,5 +128,45 @@ export async function listRepos(): Promise<void> {
                 }
             }
         }
+    }
+}
+
+/**
+ * Show the current global config path
+ */
+export async function handleGlobalConfigShow(): Promise<void> {
+    const config = await getConfig();
+    const globalPath = await getGlobalConfigPath();
+    const isCustom = !!config.globalConfigPath;
+    const displayPath = globalPath.replace(os.homedir(), '~');
+    const label = isCustom ? chalk.yellow('(custom)') : chalk.gray('(default)');
+    console.log(`Global config path: ${chalk.cyan(displayPath)} ${label}`);
+}
+
+/**
+ * Set a custom global config path
+ */
+export async function handleGlobalConfigSet(customPath: string): Promise<void> {
+    // Normalize: store with ~ if path starts with homedir
+    const expanded = customPath.replace(/^~/, os.homedir());
+    const stored = expanded.startsWith(os.homedir())
+        ? `~${expanded.slice(os.homedir().length)}`
+        : expanded;
+
+    await setConfig({ globalConfigPath: stored });
+    console.log(chalk.green(`✓ Global config path set to: ${chalk.cyan(stored)}`));
+}
+
+/**
+ * Reset global config path to default
+ */
+export async function handleGlobalConfigReset(): Promise<void> {
+    const config = await getConfig();
+    if (config.globalConfigPath) {
+        delete config.globalConfigPath;
+        await setConfig(config);
+        console.log(chalk.green('✓ Global config path reset to default.'));
+    } else {
+        console.log(chalk.gray('Global config path is already at default.'));
     }
 }

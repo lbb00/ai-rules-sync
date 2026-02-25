@@ -1,13 +1,17 @@
 # Project Knowledge Base
 
 ## Project Overview
-**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor subagents**, **Copilot instructions**, **Claude Code skills/subagents**, **Trae rules/skills**, **OpenCode agents/skills/commands/tools**, **Codex rules/skills**, **Gemini CLI commands/skills/agents**, and **universal AGENTS.md support**, keeping projects up-to-date across teams.
+**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor subagents**, **Copilot instructions**, **Claude Code rules/skills/subagents/CLAUDE.md**, **Trae rules/skills**, **OpenCode agents/skills/commands/tools**, **Codex rules/skills**, **Gemini CLI commands/skills/agents**, and **universal AGENTS.md support**, keeping projects up-to-date across teams.
+
+A key feature is **Global Mode** (`--global` / `-g`): use `$HOME` as project root to manage AI config files in `~/.claude/`, `~/.cursor/`, etc. Entries are tracked in `~/.config/ai-rules-sync/global.json` (or a user-configured custom path for dotfiles integration) and gitignore management is skipped automatically.
 
 ## Core Concepts
-- **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/commands/`, `.cursor/skills/`, `.cursor/agents/`, `.github/instructions/`, `.claude/skills/`, `.claude/agents/`, `.trae/rules/`, `.trae/skills/`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, `.opencode/tools/`, `.codex/rules/`, `.agents/skills/`, `.gemini/commands/`, `.gemini/skills/`, `.gemini/agents/`, `agents-md/`).
+- **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/commands/`, `.cursor/skills/`, `.cursor/agents/`, `.github/instructions/`, `.claude/skills/`, `.claude/agents/`, `.claude/` (for CLAUDE.md), `.trae/rules/`, `.trae/skills/`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, `.opencode/tools/`, `.codex/rules/`, `.agents/skills/`, `.gemini/commands/`, `.gemini/skills/`, `.gemini/agents/`, `agents-md/`).
 - **Symbolic Links**: Entries are linked from the local cache of the repo to project directories, avoiding file duplication and drift.
-- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills/subagents, Copilot instructions, Claude Code skills/subagents, Trae rules/skills, OpenCode agents/skills/commands/tools, Codex rules/skills, Gemini CLI commands/skills/agents, AGENTS.md).
+- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills/subagents, Copilot instructions, Claude Code rules/skills/subagents/CLAUDE.md, Trae rules/skills, OpenCode agents/skills/commands/tools, Codex rules/skills, Gemini CLI commands/skills/agents, AGENTS.md).
 - **Privacy**: Supports private/local entries via `ai-rules-sync.local.json` and `.git/info/exclude`.
+- **Global Mode**: `--global` / `-g` flag on add/remove/install commands. Sets `projectPath = $HOME`, stores dependencies in `~/.config/ai-rules-sync/global.json`, skips gitignore management. Enables `ais global install` to restore all global symlinks on a new machine.
+- **Global Config Path**: Configurable via `ais config global set <path>` for dotfiles integration (e.g. `~/dotfiles/ai-rules-sync/global.json`).
 
 ## Architecture
 - **Language**: TypeScript (Node.js).
@@ -32,6 +36,8 @@ src/
 │   ├── copilot-instructions.ts # Copilot instructions adapter
 │   ├── claude-skills.ts     # Claude skills adapter
 │   ├── claude-agents.ts     # Claude agents adapter
+│   ├── claude-rules.ts      # Claude rules adapter (.claude/rules/)
+│   ├── claude-md.ts         # Claude CLAUDE.md adapter (.claude/, global mode)
 │   ├── trae-rules.ts        # Trae rules adapter
 │   ├── trae-skills.ts       # Trae skills adapter
 │   ├── opencode-agents.ts   # OpenCode agents adapter (file mode)
@@ -201,6 +207,8 @@ interface SourceDirConfig {
   claude?: {
     skills?: string;      // Default: ".claude/skills"
     agents?: string;      // Default: ".claude/agents"
+    rules?: string;       // Default: ".claude/rules"
+    md?: string;          // Default: ".claude"
   };
   trae?: {
     rules?: string;       // Default: ".trae/rules"
@@ -247,6 +255,8 @@ interface ProjectConfig {
   claude?: {
     skills?: Record<string, RuleEntry>;
     agents?: Record<string, RuleEntry>;
+    rules?: Record<string, RuleEntry>;
+    md?: Record<string, RuleEntry>;
   };
   trae?: {
     rules?: Record<string, RuleEntry>;
@@ -323,6 +333,19 @@ interface ProjectConfig {
 - **Syntax**: `ais claude agents add <agentName> [alias]`
 - Links `<repo>/.claude/agents/<agentName>` to `.claude/agents/<alias>`.
 - Directory-based synchronization.
+
+### 8b. Claude Code Rule Synchronization
+- **Syntax**: `ais claude rules add <ruleName> [alias]`
+- Links `<repo>/.claude/rules/<ruleName>` to `.claude/rules/<alias>`.
+- File-based synchronization for Claude Code project rules.
+- Supports `.md` suffix.
+
+### 8c. Claude Code CLAUDE.md Synchronization
+- **Syntax**: `ais claude md add <name> [alias]`
+- Links `<repo>/.claude/<name>.md` to `.claude/<name>.md`.
+- File-based synchronization for CLAUDE.md-style configuration files.
+- Supports `.md` suffix; resolves `CLAUDE` → `CLAUDE.md` automatically.
+- **Global Mode**: `ais claude md add CLAUDE --global` links to `~/.claude/CLAUDE.md`.
 
 ### 9. Trae Rule Synchronization
 - **Syntax**: `ais trae rules add <ruleName> [alias]`
@@ -426,13 +449,14 @@ Gemini CLI (https://geminicli.com/) is supported with three entry types:
 ### 16. Installation
 - `ais cursor install` - Install all Cursor rules, commands, skills, and agents.
 - `ais copilot install` - Install all Copilot instructions.
-- `ais claude install` - Install all Claude Code skills and subagents.
+- `ais claude install` - Install all Claude Code skills, agents, rules, and CLAUDE.md files.
 - `ais trae install` - Install all Trae rules and skills.
 - `ais opencode install` - Install all OpenCode agents, skills, commands, and tools.
 - `ais codex install` - Install all Codex rules and skills.
 - `ais gemini install` - Install all Gemini CLI commands, skills, and agents.
 - `ais agents-md install` - Install AGENTS.md files.
 - `ais install` - Install everything (smart dispatch).
+- `ais install --global` / `ais global install` - Install all global AI config files from `~/.config/ai-rules-sync/global.json`.
 
 ### 17. Bulk Discovery and Installation (add-all)
 
@@ -636,7 +660,85 @@ ais cursor add-all
 ais cursor rules add-all -s experimental/rules
 ```
 
-### 19. Configuration Files
+### 19. Global Mode (Personal AI Config Files)
+
+**Global Mode** allows managing personal AI config files (`~/.claude/CLAUDE.md`, `~/.cursor/rules/`, etc.) with version control and cross-machine sync.
+
+**How it works:**
+- `--global` / `-g` flag sets `projectPath = $HOME` and stores dependencies in `~/.config/ai-rules-sync/global.json` instead of a project's `ai-rules-sync.json`
+- Gitignore management is skipped automatically (home dir is not a git repo)
+- symlinks are created at absolute paths (e.g., `~/.claude/CLAUDE.md`)
+
+**Commands:**
+```bash
+# Add entries to global config
+ais claude md add CLAUDE --global       # ~/.claude/CLAUDE.md
+ais cursor rules add my-style --global  # ~/.cursor/rules/my-style.mdc
+ais claude rules add general --global   # ~/.claude/rules/general.md
+
+# Install all global entries (restore on new machine)
+ais global install
+ais install --global   # equivalent
+
+# Remove from global config
+ais claude md remove CLAUDE --global
+```
+
+**Global Config Path Management:**
+By default, global dependencies are stored in `~/.config/ai-rules-sync/global.json`. For dotfiles integration (to track global.json in git), the path can be customized:
+
+```bash
+# View current global config path
+ais config global show
+
+# Set custom path (e.g., inside dotfiles git repo)
+ais config global set ~/dotfiles/ai-rules-sync/global.json
+
+# Reset to default
+ais config global reset
+```
+
+**Multi-machine Workflow:**
+```bash
+# Machine A: initial setup
+ais use git@github.com:me/my-rules.git
+ais config global set ~/dotfiles/ai-rules-sync/global.json
+ais claude md add CLAUDE --global
+ais cursor rules add my-style --global
+
+# Machine B: restore all global symlinks
+ais use git@github.com:me/my-rules.git
+ais config global set ~/dotfiles/ai-rules-sync/global.json  # if using dotfiles
+ais global install
+```
+
+**global.json format** — same as `ai-rules-sync.json`:
+```json
+{
+  "claude": {
+    "md": { "CLAUDE": "https://github.com/me/my-rules.git" },
+    "rules": { "general": "https://github.com/me/my-rules.git" }
+  },
+  "cursor": {
+    "rules": { "my-style": "https://github.com/me/my-rules.git" }
+  }
+}
+```
+
+**New Config Fields:**
+- `Config.globalConfigPath?: string` - Custom path for `global.json` (stored in `config.json`)
+- `SyncOptions.skipIgnore?: boolean` - Skip gitignore management (set automatically in global mode)
+
+**New Functions:**
+- `getGlobalConfigPath()` - Returns custom or default global.json path
+- `getGlobalProjectConfig()` - Reads global.json as `ProjectConfig`
+- `saveGlobalProjectConfig()` - Writes to global.json
+- `addGlobalDependency()` - Adds entry to global.json (in `project-config.ts`)
+- `removeGlobalDependency()` - Removes entry from global.json (in `project-config.ts`)
+- `installGlobalEntriesForAdapter()` - Installs all global entries for one adapter
+- `installAllGlobalEntries()` - Installs global entries for all adapters
+
+### 20. Configuration Files
 
 **Rules Repository Config** (`ai-rules-sync.json` in the rules repo):
 ```json
@@ -654,7 +756,9 @@ ais cursor rules add-all -s experimental/rules
     },
     "claude": {
       "skills": ".claude/skills",
-      "agents": ".claude/agents"
+      "agents": ".claude/agents",
+      "rules": ".claude/rules",
+      "md": ".claude"
     },
     "trae": {
       "rules": ".trae/rules",
@@ -696,7 +800,9 @@ ais cursor rules add-all -s experimental/rules
   },
   "claude": {
     "skills": { "my-skill": "https://..." },
-    "agents": { "debugger": "https://..." }
+    "agents": { "debugger": "https://..." },
+    "rules": { "general": "https://..." },
+    "md": { "CLAUDE": "https://..." }
   },
   "trae": {
     "rules": { "project-rules": "https://..." },
@@ -734,7 +840,7 @@ ais cursor rules add-all -s experimental/rules
 - **Legacy format**: Old configs with `cursor.rules` as string are still supported.
 - **Legacy files**: `cursor-rules*.json` are read-only compatible; write operations migrate to new format.
 
-### 20. Shell Completion
+### 21. Shell Completion
 - **Auto-Install**: On first run, AIS prompts to install shell completion automatically.
 - **Manual Install**: `ais completion install` - Installs completion to shell config file.
 - **Script Output**: `ais completion [bash|zsh|fish]` - Outputs raw completion script.
@@ -752,6 +858,8 @@ ais cursor rules add-all -s experimental/rules
 | copilot-instructions | copilot | instructions | file | .github/instructions | .instructions.md, .md | [Copilot Instructions](https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot) |
 | claude-skills | claude | skills | directory | .claude/skills | - | [Claude Code Skills](https://code.claude.com/docs/en/skills) |
 | claude-agents | claude | subagents | directory | .claude/agents | - | [Claude Code Subagents](https://code.claude.com/docs/en/sub-agents) |
+| claude-rules | claude | rules | file | .claude/rules | .md | [Claude Code](https://claude.ai/code) |
+| claude-md | claude | md | file | .claude | .md | [Claude Code CLAUDE.md](https://claude.ai/code) |
 | trae-rules | trae | rules | file | .trae/rules | .md | [Trae AI](https://trae.ai/) |
 | trae-skills | trae | skills | directory | .trae/skills | - | [Trae AI](https://trae.ai/) |
 | **agents-md** | **agents-md** | **file** | **file** | **.** (root) | **.md** | **[agents.md standard](https://agents.md/)** |
@@ -782,6 +890,61 @@ ais cursor rules add-all -s experimental/rules
 - Use **hybrid** mode when entries can be either files or directories (cursor-rules)
 
 ## Recent Changes
+
+### Global Mode & claude-md Adapter (2026-02)
+
+**Added Global Mode for managing personal AI config files (`~/.claude/CLAUDE.md`, etc.):**
+
+**Problem Solved:**
+- Personal AI config files like `~/.claude/CLAUDE.md` had no version control or cross-machine sync
+- Each machine required manual setup of global AI tool configurations
+
+**Features Implemented:**
+
+1. **Global Mode (`--global` / `-g` flag)**:
+   - All add/remove/install commands accept `--global` flag
+   - Sets `projectPath = $HOME` automatically
+   - Stores dependencies in `~/.config/ai-rules-sync/global.json`
+   - Skips gitignore management (home dir isn't a git repo)
+
+2. **claude-md Adapter**:
+   - New adapter for CLAUDE.md-style files (`.claude/<name>.md`)
+   - File mode with `.md` suffix; resolves `CLAUDE` → `CLAUDE.md`
+   - CLI: `ais claude md [add|remove|install|import]`
+   - Global usage: `ais claude md add CLAUDE --global`
+
+3. **One-click Global Install**:
+   - `ais global install` / `ais install --global`
+   - Reads all entries from `global.json` and recreates symlinks (perfect for new machine setup)
+
+4. **Global Config Path Management**:
+   - `ais config global show` - View current global.json path
+   - `ais config global set <path>` - Set custom path (for dotfiles integration)
+   - `ais config global reset` - Reset to default path
+   - Stored as `globalConfigPath` in `~/.config/ai-rules-sync/config.json`
+
+5. **claude-rules Adapter** (formalized):
+   - Adapter for `.claude/rules/` files (`.md` suffix)
+   - CLI: `ais claude rules [add|remove|install|import]`
+
+6. **`skipIgnore` in SyncOptions**:
+   - New optional field prevents gitignore management in global mode
+   - Set automatically when `--global` is used
+
+**Implementation:**
+- `src/adapters/claude-md.ts` - New claude-md adapter
+- `src/config.ts` - Added `globalConfigPath`, `getGlobalConfigPath()`, `getGlobalProjectConfig()`, `saveGlobalProjectConfig()`
+- `src/project-config.ts` - Added `claude.md` and `claude.rules` to config interfaces; added `addGlobalDependency()`, `removeGlobalDependency()`
+- `src/adapters/types.ts` - Added `skipIgnore?: boolean` to `SyncOptions`
+- `src/sync-engine.ts` - Respect `skipIgnore` in `linkEntry()`
+- `src/adapters/index.ts` - Registered `claudeMdAdapter`
+- `src/commands/handlers.ts` - Added `global?` and `skipIgnore?` to `CommandContext`; global path for `handleAdd`/`handleRemove`
+- `src/commands/install.ts` - Added `installGlobalEntriesForAdapter()`, `installAllGlobalEntries()`
+- `src/commands/config.ts` - Added `handleGlobalConfigShow/Set/Reset()`
+- `src/cli/register.ts` - Added `-g, --global` flag to add/remove/install commands
+- `src/index.ts` - Added `ais claude md` subgroup, `ais global install`, `ais config global` commands
+
+**Files Changed:** 11 modified/new, all tests passing (206/206)
 
 ### OpenAI Codex Support (2026-02)
 

@@ -3,11 +3,12 @@
  * Reduces command registration duplication by generating commands from adapter configuration
  */
 
+import os from 'os';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { SyncAdapter } from '../adapters/types.js';
 import { handleAdd, handleRemove, handleImport, ImportCommandOptions } from '../commands/handlers.js';
-import { installEntriesForAdapter } from '../commands/install.js';
+import { installEntriesForAdapter, installGlobalEntriesForAdapter } from '../commands/install.js';
 import { getTargetRepo } from '../commands/helpers.js';
 import { handleAddAll } from '../commands/add-all.js';
 import { adapterRegistry } from '../adapters/index.js';
@@ -41,16 +42,22 @@ export function registerAdapterCommands(options: RegisterCommandsOptions): void 
     .command('add <name> [alias]')
     .description(`Sync ${adapter.tool} ${entityName} to project`)
     .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
+    .option('-g, --global', 'Add to global config (~/.config/ai-rules-sync/global.json)')
     .option('-d, --target-dir <dir>', 'Custom target directory for this entry')
-    .action(async (name: string, alias: string | undefined, cmdOptions: { local?: boolean; targetDir?: string }) => {
+    .action(async (name: string, alias: string | undefined, cmdOptions: { local?: boolean; global?: boolean; targetDir?: string }) => {
       try {
         const repo = await getTargetRepo(programOpts());
+        const isGlobal = cmdOptions.global || false;
+        const projectPath = isGlobal ? os.homedir() : process.cwd();
         await handleAdd(adapter, {
-          projectPath: process.cwd(),
+          projectPath,
           repo,
-          isLocal: cmdOptions.local || false
+          isLocal: cmdOptions.local || false,
+          global: isGlobal,
+          skipIgnore: isGlobal
         }, name, alias, {
           local: cmdOptions.local,
+          global: isGlobal,
           targetDir: cmdOptions.targetDir
         });
       } catch (error: any) {
@@ -63,9 +70,12 @@ export function registerAdapterCommands(options: RegisterCommandsOptions): void 
   parentCommand
     .command('remove <alias>')
     .description(`Remove a ${adapter.tool} ${entityName} from project`)
-    .action(async (alias: string) => {
+    .option('-g, --global', 'Remove from global config')
+    .action(async (alias: string, cmdOptions: { global?: boolean }) => {
       try {
-        await handleRemove(adapter, process.cwd(), alias);
+        const isGlobal = cmdOptions.global || false;
+        const projectPath = isGlobal ? os.homedir() : process.cwd();
+        await handleRemove(adapter, projectPath, alias, isGlobal);
       } catch (error: any) {
         console.error(chalk.red(`Error removing ${adapter.tool} ${entityName}:`), error.message);
         process.exit(1);
@@ -76,9 +86,14 @@ export function registerAdapterCommands(options: RegisterCommandsOptions): void 
   parentCommand
     .command('install')
     .description(`Install all ${adapter.tool} ${adapter.subtype} from config`)
-    .action(async () => {
+    .option('-g, --global', 'Install from global config')
+    .action(async (cmdOptions: { global?: boolean }) => {
       try {
-        await installEntriesForAdapter(adapter, process.cwd());
+        if (cmdOptions.global) {
+          await installGlobalEntriesForAdapter(adapter);
+        } else {
+          await installEntriesForAdapter(adapter, process.cwd());
+        }
       } catch (error: any) {
         console.error(chalk.red(`Error installing ${adapter.tool} ${adapter.subtype}:`), error.message);
         process.exit(1);

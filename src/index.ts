@@ -2,6 +2,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import path from 'path';
+import os from 'os';
 import fs from 'fs-extra';
 import { getConfig, setConfig, getReposBaseDir, getCurrentRepo, RepoConfig } from './config.js';
 import { cloneOrUpdateRepo, runGitCommand } from './git.js';
@@ -24,10 +25,10 @@ import {
   DefaultMode
 } from './commands/helpers.js';
 import { handleAdd, handleRemove, handleImport } from './commands/handlers.js';
-import { installEntriesForAdapter, installEntriesForTool } from './commands/install.js';
+import { installEntriesForAdapter, installEntriesForTool, installAllGlobalEntries } from './commands/install.js';
 import { handleAddAll } from './commands/add-all.js';
 import { parseSourceDirParams } from './cli/source-dir-parser.js';
-import { setRepoSourceDir, clearRepoSourceDir, showRepoConfig, listRepos } from './commands/config.js';
+import { setRepoSourceDir, clearRepoSourceDir, showRepoConfig, listRepos, handleGlobalConfigShow, handleGlobalConfigSet, handleGlobalConfigReset } from './commands/config.js';
 import { getFormattedVersion } from './commands/version.js';
 
 // Intercept version flags to show detailed version info before Commander processes them
@@ -235,9 +236,15 @@ program
 
 program
   .command('install')
-  .description('Install all entries from config (cursor + copilot + claude + trae)')
-  .action(async () => {
+  .description('Install all entries from config (cursor + copilot + claude + trae), or --global for global config')
+  .option('-g, --global', 'Install all global config entries (~/.config/ai-rules-sync/global.json)')
+  .action(async (cmdOptions: { global?: boolean }) => {
     try {
+      if (cmdOptions.global) {
+        await installAllGlobalEntries(adapterRegistry.all());
+        return;
+      }
+
       const projectPath = process.cwd();
       const mode = await inferDefaultMode(projectPath);
 
@@ -702,6 +709,10 @@ registerAdapterCommands({ adapter: getAdapter('claude', 'skills'), parentCommand
 // claude agents subgroup
 const claudeAgents = claude.command('agents').description('Manage Claude agents');
 registerAdapterCommands({ adapter: getAdapter('claude', 'agents'), parentCommand: claudeAgents, programOpts: () => program.opts() });
+
+// claude md subgroup (for CLAUDE.md files, supports --global)
+const claudeMd = claude.command('md').description('Manage Claude CLAUDE.md files (.claude/CLAUDE.md)');
+registerAdapterCommands({ adapter: getAdapter('claude', 'md'), parentCommand: claudeMd, programOpts: () => program.opts() });
 
 // ============ Trae command group ============
 const trae = program
@@ -1390,6 +1401,64 @@ configRepo
       await listRepos();
     } catch (error: any) {
       console.error(chalk.red('Error listing repositories:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// config global subgroup
+const configGlobal = configCmd
+  .command('global')
+  .description('Manage global config path (~/.config/ai-rules-sync/global.json)');
+
+configGlobal
+  .command('show')
+  .description('Show current global config path')
+  .action(async () => {
+    try {
+      await handleGlobalConfigShow();
+    } catch (error: any) {
+      console.error(chalk.red('Error showing global config path:'), error.message);
+      process.exit(1);
+    }
+  });
+
+configGlobal
+  .command('set <path>')
+  .description('Set custom global config path (supports ~ for home dir)')
+  .action(async (customPath: string) => {
+    try {
+      await handleGlobalConfigSet(customPath);
+    } catch (error: any) {
+      console.error(chalk.red('Error setting global config path:'), error.message);
+      process.exit(1);
+    }
+  });
+
+configGlobal
+  .command('reset')
+  .description('Reset global config path to default')
+  .action(async () => {
+    try {
+      await handleGlobalConfigReset();
+    } catch (error: any) {
+      console.error(chalk.red('Error resetting global config path:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// ============ Global command group ============
+const globalCmd = program
+  .command('global')
+  .description('Manage global AI config files (~/.claude/CLAUDE.md, etc.)');
+
+globalCmd
+  .command('install')
+  .description('Install all global config entries from global.json')
+  .action(async () => {
+    try {
+      await installAllGlobalEntries(adapterRegistry.all());
+    } catch (error: any) {
+      console.error(chalk.red('Error installing global entries:'), error.message);
       process.exit(1);
     }
   });
