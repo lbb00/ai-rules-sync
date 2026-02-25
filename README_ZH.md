@@ -111,6 +111,17 @@ ais git push
 
 ## 安装
 
+### 通过 Homebrew（macOS/Linux）
+
+```bash
+brew install lbb00/ai-rules-sync/ais
+# 或先 tap，之后命令更简洁：
+brew tap lbb00/ai-rules-sync
+brew install ais
+```
+
+### 通过 npm
+
 ```bash
 npm install -g ai-rules-sync
 ```
