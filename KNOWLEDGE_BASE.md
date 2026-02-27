@@ -1,14 +1,14 @@
 # Project Knowledge Base
 
 ## Project Overview
-**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor subagents**, **Copilot instructions**, **Claude Code rules/skills/subagents/CLAUDE.md**, **Trae rules/skills**, **OpenCode agents/skills/commands/tools**, **Codex rules/skills**, **Gemini CLI commands/skills/subagents**, **Windsurf rules**, **Cline rules**, and **universal AGENTS.md support**, keeping projects up-to-date across teams.
+**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor subagents**, **Copilot instructions**, **Claude Code rules/skills/subagents/CLAUDE.md**, **Trae rules/skills**, **OpenCode agents/skills/commands/tools**, **Codex rules/skills**, **Gemini CLI commands/skills/subagents**, **Windsurf rules/skills**, **Cline rules/skills**, and **universal AGENTS.md support**, keeping projects up-to-date across teams.
 
 A key feature is **User Mode** (`--user` / `-u`): use `$HOME` as project root to manage AI config files in `~/.claude/`, `~/.cursor/`, etc. Entries are tracked in `~/.config/ai-rules-sync/user.json` (or a user-configured custom path for dotfiles integration) and gitignore management is skipped automatically.
 
 ## Core Concepts
-- **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/commands/`, `.cursor/skills/`, `.cursor/agents/`, `.github/instructions/`, `.claude/skills/`, `.claude/agents/`, `.claude/` (for CLAUDE.md), `.trae/rules/`, `.trae/skills/`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, `.opencode/tools/`, `.codex/rules/`, `.agents/skills/`, `.gemini/commands/`, `.gemini/skills/`, `.gemini/agents/`, `.windsurf/rules/`, `.clinerules/`, `agents-md/`).
+- **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/commands/`, `.cursor/skills/`, `.cursor/agents/`, `.github/instructions/`, `.claude/skills/`, `.claude/agents/`, `.claude/` (for CLAUDE.md), `.trae/rules/`, `.trae/skills/`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, `.opencode/tools/`, `.codex/rules/`, `.agents/skills/`, `.gemini/commands/`, `.gemini/skills/`, `.gemini/agents/`, `.windsurf/rules/`, `.windsurf/skills/`, `.clinerules/`, `.cline/skills/`, `agents-md/`).
 - **Symbolic Links**: Entries are linked from the local cache of the repo to project directories, avoiding file duplication and drift.
-- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills/subagents, Copilot instructions, Claude Code rules/skills/subagents/CLAUDE.md, Trae rules/skills, OpenCode agents/skills/commands/tools, Codex rules/skills, Gemini CLI commands/skills/subagents, Windsurf rules, Cline rules, AGENTS.md).
+- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills/subagents, Copilot instructions, Claude Code rules/skills/subagents/CLAUDE.md, Trae rules/skills, OpenCode agents/skills/commands/tools, Codex rules/skills, Gemini CLI commands/skills/subagents, Windsurf rules/skills, Cline rules/skills, AGENTS.md).
 - **Privacy**: Supports private/local entries via `ai-rules-sync.local.json` and `.git/info/exclude`.
 - **User Mode**: `--user` / `-u` flag on add/remove/install commands. Sets `projectPath = $HOME`, stores dependencies in `~/.config/ai-rules-sync/user.json`, skips gitignore management. Enables `ais user install` to restore all user-scope symlinks on a new machine. (`--global`/`-g` kept as deprecated aliases.)
 - **User Config Path**: Configurable via `ais config user set <path>` for dotfiles integration (e.g. `~/dotfiles/ai-rules-sync/user.json`).
@@ -50,7 +50,9 @@ src/
 │   ├── gemini-skills.ts     # Gemini CLI skills adapter (directory mode)
 │   ├── gemini-agents.ts     # Gemini CLI agents adapter (file mode)
 │   ├── windsurf-rules.ts    # Windsurf rules adapter (file mode)
+│   ├── windsurf-skills.ts   # Windsurf skills adapter (directory mode)
 │   ├── cline-rules.ts       # Cline rules adapter (file mode)
+│   ├── cline-skills.ts      # Cline skills adapter (directory mode)
 │   └── agents-md.ts         # Universal AGENTS.md adapter (file mode)
 ├── cli/                     # CLI registration layer
 │   └── register.ts          # Declarative command registration (registerAdapterCommands)
@@ -236,9 +238,11 @@ interface SourceDirConfig {
   };
   windsurf?: {
     rules?: string;       // Default: ".windsurf/rules"
+    skills?: string;      // Default: ".windsurf/skills"
   };
   cline?: {
     rules?: string;       // Default: ".clinerules"
+    skills?: string;      // Default: ".cline/skills"
   };
   agentsMd?: {
     file?: string;        // Default: "." (repository root)
@@ -293,9 +297,11 @@ interface ProjectConfig {
   };
   windsurf?: {
     rules?: Record<string, RuleEntry>;
+    skills?: Record<string, RuleEntry>;
   };
   cline?: {
     rules?: Record<string, RuleEntry>;
+    skills?: Record<string, RuleEntry>;
   };
   // Universal AGENTS.md support (tool-agnostic)
   agentsMd?: Record<string, RuleEntry>;
@@ -456,10 +462,20 @@ Gemini CLI (https://geminicli.com/) is supported with three entry types:
 - Links `<repo>/.windsurf/rules/<ruleName>` to `.windsurf/rules/<alias>`.
 - File-based synchronization with `.md` suffix for Windsurf workspace rules.
 
-### 14.5. Cline Rule Synchronization
+### 14.5. Windsurf Skill Synchronization
+- **Syntax**: `ais windsurf skills add <skillName> [alias]`
+- Links `<repo>/.windsurf/skills/<skillName>` to `.windsurf/skills/<alias>`.
+- Directory-based synchronization for Windsurf Cascade skills (`SKILL.md` inside each skill folder).
+
+### 14.6. Cline Rule Synchronization
 - **Syntax**: `ais cline add <ruleName> [alias]`
 - Links `<repo>/.clinerules/<ruleName>` to `.clinerules/<alias>`.
 - File-based synchronization with `.md`/`.txt` suffixes for Cline rules.
+
+### 14.7. Cline Skill Synchronization
+- **Syntax**: `ais cline skills add <skillName> [alias]`
+- Links `<repo>/.cline/skills/<skillName>` to `.cline/skills/<alias>`.
+- Directory-based synchronization for Cline skills (`SKILL.md` inside each skill folder).
 
 ### 15. Import Command
 - **Syntax**: `ais import <tool> <subtype> <name>` or `ais <tool> <subtype> import <name>`
@@ -484,8 +500,8 @@ Gemini CLI (https://geminicli.com/) is supported with three entry types:
 - `ais opencode install` - Install all OpenCode agents, skills, commands, and tools.
 - `ais codex install` - Install all Codex rules and skills.
 - `ais gemini install` - Install all Gemini CLI commands, skills, and subagents.
-- `ais windsurf install` - Install all Windsurf rules.
-- `ais cline install` - Install all Cline rules.
+- `ais windsurf install` - Install all Windsurf rules and skills.
+- `ais cline install` - Install all Cline rules and skills.
 - `ais agents-md install` - Install AGENTS.md files.
 - `ais install` - Install everything (smart dispatch).
 - `ais install --user` / `ais user install` - Install all user-scope AI config files from `~/.config/ai-rules-sync/user.json`. (`--global` and `ais global install` kept as deprecated aliases.)
@@ -907,8 +923,10 @@ ais user install
 | gemini-commands | gemini | commands | file | .gemini/commands | .toml | [Gemini Commands](https://geminicli.com/docs/cli/custom-commands/) |
 | gemini-skills | gemini | skills | directory | .gemini/skills | - | [Gemini Skills](https://geminicli.com/docs/cli/skills/) |
 | gemini-agents | gemini | subagents | file | .gemini/agents | .md | [Gemini Subagents](https://geminicli.com/docs/core/subagents/) |
-| windsurf-rules | windsurf | rules | file | .windsurf/rules | .md | [Windsurf Docs](https://docs.windsurf.com/) |
+| windsurf-rules | windsurf | rules | file | .windsurf/rules | .md | [Windsurf Memories & Rules](https://docs.windsurf.com/windsurf/cascade/memories) |
+| windsurf-skills | windsurf | skills | directory | .windsurf/skills | - | [Windsurf Skills](https://docs.windsurf.com/windsurf/cascade/skills) |
 | cline-rules | cline | rules | file | .clinerules | .md, .txt | [Cline Rules](https://docs.cline.bot/customization/cline-rules) |
+| cline-skills | cline | skills | directory | .cline/skills | - | [Cline Skills](https://docs.cline.bot/customization/skills) |
 
 ## Development Guidelines
 - **TypeScript**: Strict mode enabled.
@@ -929,8 +947,8 @@ ais user install
 ## Changelog
 
 ### 2026-02
-- Added **Windsurf support**: rules (`.windsurf/rules`, `.md`) with full CLI/completion integration
-- Added **Cline support**: rules (`.clinerules`, `.md`/`.txt`) with full CLI/completion integration
+- Added **Windsurf support**: rules (`.windsurf/rules`, `.md`) and skills (`.windsurf/skills`) with full CLI/completion integration
+- Added **Cline support**: rules (`.clinerules`, `.md`/`.txt`) and skills (`.cline/skills`) with full CLI/completion integration
 - Added **User Mode** (`--user` / `-u`): manage personal AI config files (`~/.claude/CLAUDE.md`, etc.) with version control; `ais user install` restores all symlinks on new machines
 - Added **claude-md adapter**: sync CLAUDE.md-style files; `ais claude md add CLAUDE --user`
 - Added **User Config Path**: `ais config user set <path>` for dotfiles integration

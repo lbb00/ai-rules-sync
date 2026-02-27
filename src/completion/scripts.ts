@@ -214,9 +214,33 @@ _ais_complete() {
     return 0
   fi
 
+  # windsurf rules subcommand add
+  if [[ "\$ppprev" == "windsurf" && "\$pprev" == "rules" && "\$prev" == "add" ]]; then
+    COMPREPLY=( $(compgen -W "$(ais _complete windsurf-rules 2>/dev/null)" -- "\$cur") )
+    return 0
+  fi
+
+  # windsurf skills add
+  if [[ "\$ppprev" == "windsurf" && "\$pprev" == "skills" && "\$prev" == "add" ]]; then
+    COMPREPLY=( $(compgen -W "$(ais _complete windsurf-skills 2>/dev/null)" -- "\$cur") )
+    return 0
+  fi
+
   # cline rules add
   if [[ "\$pprev" == "cline" && "\$prev" == "add" ]]; then
     COMPREPLY=( $(compgen -W "$(ais _complete cline-rules 2>/dev/null)" -- "\$cur") )
+    return 0
+  fi
+
+  # cline rules subcommand add
+  if [[ "\$ppprev" == "cline" && "\$pprev" == "rules" && "\$prev" == "add" ]]; then
+    COMPREPLY=( $(compgen -W "$(ais _complete cline-rules 2>/dev/null)" -- "\$cur") )
+    return 0
+  fi
+
+  # cline skills add
+  if [[ "\$ppprev" == "cline" && "\$pprev" == "skills" && "\$prev" == "add" ]]; then
+    COMPREPLY=( $(compgen -W "$(ais _complete cline-skills 2>/dev/null)" -- "\$cur") )
     return 0
   fi
 
@@ -288,13 +312,37 @@ _ais_complete() {
 
   # windsurf
   if [[ "\$prev" == "windsurf" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install add-all import" -- "\$cur") )
+    COMPREPLY=( $(compgen -W "add remove install add-all import rules skills" -- "\$cur") )
     return 0
   fi
 
   # cline
   if [[ "\$prev" == "cline" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install add-all import" -- "\$cur") )
+    COMPREPLY=( $(compgen -W "add remove install add-all import rules skills" -- "\$cur") )
+    return 0
+  fi
+
+  # windsurf rules
+  if [[ "\$pprev" == "windsurf" && "\$prev" == "rules" ]]; then
+    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
+    return 0
+  fi
+
+  # windsurf skills
+  if [[ "\$pprev" == "windsurf" && "\$prev" == "skills" ]]; then
+    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
+    return 0
+  fi
+
+  # cline rules
+  if [[ "\$pprev" == "cline" && "\$prev" == "rules" ]]; then
+    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
+    return 0
+  fi
+
+  # cline skills
+  if [[ "\$pprev" == "cline" && "\$prev" == "skills" ]]; then
+    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
     return 0
   fi
 
@@ -389,8 +437,8 @@ subcmds=(
     'codex:Manage Codex rules and skills'
     'gemini:Manage Gemini CLI commands, skills, and agents'
     'warp:Manage Warp agent skills'
-    'windsurf:Manage Windsurf rules'
-    'cline:Manage Cline rules'
+    'windsurf:Manage Windsurf rules and skills'
+    'cline:Manage Cline rules and skills'
     'agents-md:Manage AGENTS.md files (agents.md standard)'
     'use:Configure rules repository'
     'list:List configured repositories'
@@ -402,7 +450,7 @@ subcmds=(
     'completion:Output shell completion script'
   )
 
-  local -a cursor_subcmds copilot_subcmds claude_subcmds trae_subcmds opencode_subcmds codex_subcmds gemini_subcmds warp_subcmds windsurf_subcmds cline_subcmds agents_md_subcmds cursor_rules_subcmds cursor_commands_subcmds cursor_skills_subcmds cursor_agents_subcmds copilot_instructions_subcmds copilot_skills_subcmds copilot_prompts_subcmds copilot_agents_subcmds claude_skills_subcmds claude_agents_subcmds trae_rules_subcmds trae_skills_subcmds opencode_agents_subcmds opencode_skills_subcmds opencode_commands_subcmds opencode_tools_subcmds codex_rules_subcmds codex_skills_subcmds gemini_commands_subcmds gemini_skills_subcmds gemini_agents_subcmds warp_skills_subcmds
+  local -a cursor_subcmds copilot_subcmds claude_subcmds trae_subcmds opencode_subcmds codex_subcmds gemini_subcmds warp_subcmds windsurf_subcmds cline_subcmds agents_md_subcmds cursor_rules_subcmds cursor_commands_subcmds cursor_skills_subcmds cursor_agents_subcmds copilot_instructions_subcmds copilot_skills_subcmds copilot_prompts_subcmds copilot_agents_subcmds claude_skills_subcmds claude_agents_subcmds trae_rules_subcmds trae_skills_subcmds opencode_agents_subcmds opencode_skills_subcmds opencode_commands_subcmds opencode_tools_subcmds codex_rules_subcmds codex_skills_subcmds gemini_commands_subcmds gemini_skills_subcmds gemini_agents_subcmds warp_skills_subcmds windsurf_rules_subcmds windsurf_skills_subcmds cline_rules_subcmds cline_skills_subcmds
   cursor_subcmds=('add:Add a Cursor rule' 'remove:Remove a Cursor rule' 'install:Install all Cursor entries' 'import:Import entry to repository' 'rules:Manage rules explicitly' 'commands:Manage commands' 'skills:Manage skills' 'agents:Manage agents')
   copilot_subcmds=('instructions:Manage GitHub Copilot instructions' 'prompts:Manage GitHub Copilot prompt files' 'skills:Manage GitHub Copilot skills' 'agents:Manage GitHub Copilot custom agents' 'install:Install all GitHub Copilot entries')
   copilot_instructions_subcmds=('add:Add a GitHub Copilot instruction' 'remove:Remove a GitHub Copilot instruction' 'install:Install all GitHub Copilot instructions' 'import:Import instruction to repository')
@@ -434,8 +482,12 @@ subcmds=(
   gemini_agents_subcmds=('add:Add a Gemini agent' 'remove:Remove a Gemini agent' 'install:Install all Gemini agents' 'import:Import agent to repository')
   warp_subcmds=('skills:Manage Warp skills' 'install:Install all Warp entries' 'import:Import entry to repository')
   warp_skills_subcmds=('add:Add a Warp skill' 'remove:Remove a Warp skill' 'install:Install all Warp skills' 'import:Import skill to repository')
-  windsurf_subcmds=('add:Add a Windsurf rule' 'remove:Remove a Windsurf rule' 'install:Install all Windsurf rules' 'add-all:Add all Windsurf rules' 'import:Import rule to repository')
-  cline_subcmds=('add:Add a Cline rule' 'remove:Remove a Cline rule' 'install:Install all Cline rules' 'add-all:Add all Cline rules' 'import:Import rule to repository')
+  windsurf_subcmds=('add:Add a Windsurf rule' 'remove:Remove a Windsurf rule' 'install:Install all Windsurf entries' 'add-all:Add all Windsurf entries' 'import:Import entry to repository' 'rules:Manage Windsurf rules' 'skills:Manage Windsurf skills')
+  windsurf_rules_subcmds=('add:Add a Windsurf rule' 'remove:Remove a Windsurf rule' 'install:Install all Windsurf rules' 'import:Import rule to repository')
+  windsurf_skills_subcmds=('add:Add a Windsurf skill' 'remove:Remove a Windsurf skill' 'install:Install all Windsurf skills' 'import:Import skill to repository')
+  cline_subcmds=('add:Add a Cline rule' 'remove:Remove a Cline rule' 'install:Install all Cline entries' 'add-all:Add all Cline entries' 'import:Import entry to repository' 'rules:Manage Cline rules' 'skills:Manage Cline skills')
+  cline_rules_subcmds=('add:Add a Cline rule' 'remove:Remove a Cline rule' 'install:Install all Cline rules' 'import:Import rule to repository')
+  cline_skills_subcmds=('add:Add a Cline skill' 'remove:Remove a Cline skill' 'install:Install all Cline skills' 'import:Import skill to repository')
 
   _arguments -C \\
     '1:command:->command' \\
@@ -625,6 +677,12 @@ subcmds=(
                 compadd "\$windsurf_rules[@]"
               fi
               ;;
+            rules)
+              _describe 'subsubcommand' windsurf_rules_subcmds
+              ;;
+            skills)
+              _describe 'subsubcommand' windsurf_skills_subcmds
+              ;;
             *)
               _describe 'subsubcommand' windsurf_subcmds
               ;;
@@ -638,6 +696,12 @@ subcmds=(
               if (( \$#cline_rules )); then
                 compadd "\$cline_rules[@]"
               fi
+              ;;
+            rules)
+              _describe 'subsubcommand' cline_rules_subcmds
+              ;;
+            skills)
+              _describe 'subsubcommand' cline_skills_subcmds
               ;;
             *)
               _describe 'subsubcommand' cline_subcmds
@@ -963,6 +1027,28 @@ subcmds=(
                 compadd \"\$windsurf_rules[@]\"
               fi
               ;;
+            rules)
+              case \"\$words[4]\" in
+                add)
+                  local -a windsurf_rules
+                  windsurf_rules=(\${(f)\"$(ais _complete windsurf-rules 2>/dev/null)\"})
+                  if (( \$#windsurf_rules )); then
+                    compadd \"\$windsurf_rules[@]\"
+                  fi
+                  ;;
+              esac
+              ;;
+            skills)
+              case \"\$words[4]\" in
+                add)
+                  local -a windsurf_skills
+                  windsurf_skills=(\${(f)\"$(ais _complete windsurf-skills 2>/dev/null)\"})
+                  if (( \$#windsurf_skills )); then
+                    compadd \"\$windsurf_skills[@]\"
+                  fi
+                  ;;
+              esac
+              ;;
           esac
           ;;
         cline)
@@ -973,6 +1059,28 @@ subcmds=(
               if (( \$#cline_rules )); then
                 compadd \"\$cline_rules[@]\"
               fi
+              ;;
+            rules)
+              case \"\$words[4]\" in
+                add)
+                  local -a cline_rules
+                  cline_rules=(\${(f)\"$(ais _complete cline-rules 2>/dev/null)\"})
+                  if (( \$#cline_rules )); then
+                    compadd \"\$cline_rules[@]\"
+                  fi
+                  ;;
+              esac
+              ;;
+            skills)
+              case \"\$words[4]\" in
+                add)
+                  local -a cline_skills
+                  cline_skills=(\${(f)\"$(ais _complete cline-skills 2>/dev/null)\"})
+                  if (( \$#cline_skills )); then
+                    compadd \"\$cline_skills[@]\"
+                  fi
+                  ;;
+              esac
               ;;
           esac
           ;;
@@ -1012,8 +1120,8 @@ complete -c ais -n "__fish_use_subcommand" -a "opencode" -d "Manage OpenCode age
 complete -c ais -n "__fish_use_subcommand" -a "codex" -d "Manage Codex rules and skills"
 complete -c ais -n "__fish_use_subcommand" -a "gemini" -d "Manage Gemini CLI commands, skills, and agents"
 complete -c ais -n "__fish_use_subcommand" -a "warp" -d "Manage Warp agent skills"
-complete -c ais -n "__fish_use_subcommand" -a "windsurf" -d "Manage Windsurf rules"
-complete -c ais -n "__fish_use_subcommand" -a "cline" -d "Manage Cline rules"
+complete -c ais -n "__fish_use_subcommand" -a "windsurf" -d "Manage Windsurf rules and skills"
+complete -c ais -n "__fish_use_subcommand" -a "cline" -d "Manage Cline rules and skills"
 complete -c ais -n "__fish_use_subcommand" -a "agents-md" -d "Manage AGENTS.md files (agents.md standard)"
 complete -c ais -n "__fish_use_subcommand" -a "use" -d "Configure rules repository"
 complete -c ais -n "__fish_use_subcommand" -a "list" -d "List configured repositories"
@@ -1212,18 +1320,46 @@ complete -c ais -n "__fish_seen_subcommand_from warp; and __fish_seen_subcommand
 complete -c ais -n "__fish_seen_subcommand_from warp; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import skill to repository"
 
 # windsurf subcommands
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import" -a "add" -d "Add a Windsurf rule"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import" -a "remove" -d "Remove a Windsurf rule"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import" -a "install" -d "Install all Windsurf rules"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import" -a "add-all" -d "Add all Windsurf rules"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import" -a "import" -d "Import rule to repository"
+complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "add" -d "Add a Windsurf rule"
+complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "remove" -d "Remove a Windsurf rule"
+complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "install" -d "Install all Windsurf entries"
+complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "add-all" -d "Add all Windsurf entries"
+complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "import" -d "Import entry to repository"
+complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "rules" -d "Manage Windsurf rules"
+complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "skills" -d "Manage Windsurf skills"
+
+# windsurf rules subcommands
+complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Windsurf rule"
+complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Windsurf rule"
+complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Windsurf rules"
+complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import rule to repository"
+
+# windsurf skills subcommands
+complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Windsurf skill"
+complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Windsurf skill"
+complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Windsurf skills"
+complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import skill to repository"
 
 # cline subcommands
-complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import" -a "add" -d "Add a Cline rule"
-complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import" -a "remove" -d "Remove a Cline rule"
-complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import" -a "install" -d "Install all Cline rules"
-complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import" -a "add-all" -d "Add all Cline rules"
-complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import" -a "import" -d "Import rule to repository"
+complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "add" -d "Add a Cline rule"
+complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "remove" -d "Remove a Cline rule"
+complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "install" -d "Install all Cline entries"
+complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "add-all" -d "Add all Cline entries"
+complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "import" -d "Import entry to repository"
+complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "rules" -d "Manage Cline rules"
+complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "skills" -d "Manage Cline skills"
+
+# cline rules subcommands
+complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Cline rule"
+complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Cline rule"
+complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Cline rules"
+complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import rule to repository"
+
+# cline skills subcommands
+complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Cline skill"
+complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Cline skill"
+complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Cline skills"
+complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import skill to repository"
 
 # agents-md subcommands
 complete -c ais -n "__fish_seen_subcommand_from agents-md; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add an AGENTS.md file"
@@ -1256,7 +1392,11 @@ complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcomma
 complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from agents; and __fish_seen_subcommand_from add" -a "(ais _complete gemini-agents 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from warp; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete warp-skills 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from add" -a "(ais _complete windsurf-rules 2>/dev/null)"
+complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from rules; and __fish_seen_subcommand_from add" -a "(ais _complete windsurf-rules 2>/dev/null)"
+complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete windsurf-skills 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from add" -a "(ais _complete cline-rules 2>/dev/null)"
+complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from rules; and __fish_seen_subcommand_from add" -a "(ais _complete cline-rules 2>/dev/null)"
+complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete cline-skills 2>/dev/null)"
 complete -c ais -n "__fish_seen_subcommand_from agents-md; and __fish_seen_subcommand_from add" -a "(ais _complete agents-md 2>/dev/null)"
 `;
 

@@ -98,8 +98,10 @@ ais completion install
 | Gemini CLI | Subagents | file | `.gemini/agents/` | `.md` | [Docs](https://geminicli.com/docs/core/subagents/) |
 | Warp | Rules | file | `.` (root) | `.md` | [Docs](https://docs.warp.dev/agent-platform/capabilities/rules) — same as AGENTS.md, use `ais agents-md` |
 | Warp | Skills | directory | `.agents/skills/` | - | [Docs](https://docs.warp.dev/agent-platform/capabilities/skills) |
-| Windsurf | Rules | file | `.windsurf/rules/` | `.md` | [Docs](https://docs.windsurf.com/) |
+| Windsurf | Rules | file | `.windsurf/rules/` | `.md` | [Docs](https://docs.windsurf.com/windsurf/cascade/memories) |
+| Windsurf | Skills | directory | `.windsurf/skills/` | - | [Docs](https://docs.windsurf.com/windsurf/cascade/skills) |
 | Cline | Rules | file | `.clinerules/` | `.md`, `.txt` | [Docs](https://docs.cline.bot/customization/cline-rules) |
+| Cline | Skills | directory | `.cline/skills/` | - | [Docs](https://docs.cline.bot/customization/skills) |
 | **Universal** | **AGENTS.md** | file | `.` (root) | `.md` | [Standard](https://agents.md/) |
 
 **Modes:**
@@ -603,6 +605,9 @@ ais warp skills install
 # Add rule
 ais windsurf add project-style
 
+# Add skill
+ais windsurf skills add deploy-staging
+
 # Remove
 ais windsurf remove project-style
 
@@ -610,11 +615,16 @@ ais windsurf remove project-style
 ais windsurf install
 ```
 
+> Note: Windsurf Memories are managed inside Cascade UI/runtime. AIS syncs file-based artifacts (`.windsurf/rules` and `.windsurf/skills`).
+
 ### Cline
 
 ```bash
 # Add rule
 ais cline add coding
+
+# Add skill
+ais cline skills add release-checklist
 
 # Remove
 ais cline remove coding
@@ -888,10 +898,12 @@ Create `ai-rules-sync.json` in your rules repository:
       "skills": ".agents/skills"
     },
     "windsurf": {
-      "rules": ".windsurf/rules"
+      "rules": ".windsurf/rules",
+      "skills": ".windsurf/skills"
     },
     "cline": {
-      "rules": ".clinerules"
+      "rules": ".clinerules",
+      "skills": ".cline/skills"
     },
     "agentsMd": {
       "file": "."

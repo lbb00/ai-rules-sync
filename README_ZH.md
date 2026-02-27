@@ -98,8 +98,10 @@ ais completion install
 | Gemini CLI | Subagents | file | `.gemini/agents/` | `.md` | [文档](https://geminicli.com/docs/core/subagents/) |
 | Warp | Rules | file | `.`（根目录） | `.md` | [文档](https://docs.warp.dev/agent-platform/capabilities/rules) — 与 AGENTS.md 相同，使用 `ais agents-md` |
 | Warp | Skills | directory | `.agents/skills/` | - | [文档](https://docs.warp.dev/agent-platform/capabilities/skills) |
-| Windsurf | Rules | file | `.windsurf/rules/` | `.md` | [文档](https://docs.windsurf.com/) |
+| Windsurf | Rules | file | `.windsurf/rules/` | `.md` | [文档](https://docs.windsurf.com/windsurf/cascade/memories) |
+| Windsurf | Skills | directory | `.windsurf/skills/` | - | [文档](https://docs.windsurf.com/windsurf/cascade/skills) |
 | Cline | Rules | file | `.clinerules/` | `.md`, `.txt` | [文档](https://docs.cline.bot/customization/cline-rules) |
+| Cline | Skills | directory | `.cline/skills/` | - | [文档](https://docs.cline.bot/customization/skills) |
 | **通用** | **AGENTS.md** | file | `.`（根目录） | `.md` | [标准](https://agents.md/) |
 
 **模式说明：**
@@ -603,6 +605,9 @@ ais warp skills install
 # 添加规则
 ais windsurf add project-style
 
+# 添加技能
+ais windsurf skills add deploy-staging
+
 # 移除
 ais windsurf remove project-style
 
@@ -610,11 +615,16 @@ ais windsurf remove project-style
 ais windsurf install
 ```
 
+> 说明：Windsurf Memories 由 Cascade 运行时/界面管理。AIS 仅同步可文件化内容（`.windsurf/rules` 与 `.windsurf/skills`）。
+
 ### Cline
 
 ```bash
 # 添加规则
 ais cline add coding
+
+# 添加技能
+ais cline skills add release-checklist
 
 # 移除
 ais cline remove coding
@@ -888,10 +898,12 @@ ais user install
       "skills": ".agents/skills"
     },
     "windsurf": {
-      "rules": ".windsurf/rules"
+      "rules": ".windsurf/rules",
+      "skills": ".windsurf/skills"
     },
     "cline": {
-      "rules": ".clinerules"
+      "rules": ".clinerules",
+      "skills": ".cline/skills"
     },
     "agentsMd": {
       "file": "."

@@ -26,6 +26,8 @@ import { geminiAgentsAdapter } from './gemini-agents.js';
 import { warpSkillsAdapter } from './warp-skills.js';
 import { windsurfRulesAdapter } from './windsurf-rules.js';
 import { clineRulesAdapter } from './cline-rules.js';
+import { windsurfSkillsAdapter } from './windsurf-skills.js';
+import { clineSkillsAdapter } from './cline-skills.js';
 import { ProjectConfig } from '../project-config.js';
 
 // Re-export types and utilities
@@ -69,6 +71,8 @@ class DefaultAdapterRegistry implements AdapterRegistry {
         this.register(warpSkillsAdapter);
         this.register(windsurfRulesAdapter);
         this.register(clineRulesAdapter);
+        this.register(windsurfSkillsAdapter);
+        this.register(clineSkillsAdapter);
     }
 
     register(adapter: SyncAdapter): void {
@@ -219,8 +223,14 @@ export function findAdapterForAlias(
     if (cfg.windsurf?.rules?.[alias]) {
         return { adapter: windsurfRulesAdapter, section: 'windsurf.rules' };
     }
+    if (cfg.windsurf?.skills?.[alias]) {
+        return { adapter: windsurfSkillsAdapter, section: 'windsurf.skills' };
+    }
     if (cfg.cline?.rules?.[alias]) {
         return { adapter: clineRulesAdapter, section: 'cline.rules' };
+    }
+    if (cfg.cline?.skills?.[alias]) {
+        return { adapter: clineSkillsAdapter, section: 'cline.skills' };
     }
     return null;
 }

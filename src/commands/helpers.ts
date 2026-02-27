@@ -122,8 +122,12 @@ export async function inferDefaultMode(projectPath: string): Promise<DefaultMode
       Object.keys(cfg.gemini?.skills || {}).length +
       Object.keys(cfg.gemini?.agents || {}).length,
     warp: Object.keys(cfg.warp?.skills || {}).length,
-    windsurf: Object.keys(cfg.windsurf?.rules || {}).length,
-    cline: Object.keys(cfg.cline?.rules || {}).length,
+    windsurf:
+      Object.keys(cfg.windsurf?.rules || {}).length +
+      Object.keys(cfg.windsurf?.skills || {}).length,
+    cline:
+      Object.keys(cfg.cline?.rules || {}).length +
+      Object.keys(cfg.cline?.skills || {}).length,
     'agents-md': Object.keys(cfg.agentsMd || {}).length
   };
 
