@@ -1,13 +1,17 @@
 # Project Knowledge Base
 
 ## Project Overview
-**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor subagents**, **Copilot instructions**, **Claude Code skills/subagents**, **Trae rules/skills**, **OpenCode agents/skills/commands/tools**, **Codex rules/skills**, **Gemini CLI commands/skills/agents**, and **universal AGENTS.md support**, keeping projects up-to-date across teams.
+**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor subagents**, **Copilot instructions**, **Claude Code rules/skills/subagents/CLAUDE.md**, **Trae rules/skills**, **OpenCode agents/skills/commands/tools**, **Codex rules/skills**, **Gemini CLI commands/skills/agents**, and **universal AGENTS.md support**, keeping projects up-to-date across teams.
+
+A key feature is **User Mode** (`--user` / `-u`): use `$HOME` as project root to manage AI config files in `~/.claude/`, `~/.cursor/`, etc. Entries are tracked in `~/.config/ai-rules-sync/user.json` (or a user-configured custom path for dotfiles integration) and gitignore management is skipped automatically.
 
 ## Core Concepts
-- **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/commands/`, `.cursor/skills/`, `.cursor/agents/`, `.github/instructions/`, `.claude/skills/`, `.claude/agents/`, `.trae/rules/`, `.trae/skills/`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, `.opencode/tools/`, `.codex/rules/`, `.agents/skills/`, `.gemini/commands/`, `.gemini/skills/`, `.gemini/agents/`, `agents-md/`).
+- **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/commands/`, `.cursor/skills/`, `.cursor/agents/`, `.github/instructions/`, `.claude/skills/`, `.claude/agents/`, `.claude/` (for CLAUDE.md), `.trae/rules/`, `.trae/skills/`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, `.opencode/tools/`, `.codex/rules/`, `.agents/skills/`, `.gemini/commands/`, `.gemini/skills/`, `.gemini/agents/`, `agents-md/`).
 - **Symbolic Links**: Entries are linked from the local cache of the repo to project directories, avoiding file duplication and drift.
-- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills/subagents, Copilot instructions, Claude Code skills/subagents, Trae rules/skills, OpenCode agents/skills/commands/tools, Codex rules/skills, Gemini CLI commands/skills/agents, AGENTS.md).
+- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills/subagents, Copilot instructions, Claude Code rules/skills/subagents/CLAUDE.md, Trae rules/skills, OpenCode agents/skills/commands/tools, Codex rules/skills, Gemini CLI commands/skills/agents, AGENTS.md).
 - **Privacy**: Supports private/local entries via `ai-rules-sync.local.json` and `.git/info/exclude`.
+- **User Mode**: `--user` / `-u` flag on add/remove/install commands. Sets `projectPath = $HOME`, stores dependencies in `~/.config/ai-rules-sync/user.json`, skips gitignore management. Enables `ais user install` to restore all user-scope symlinks on a new machine. (`--global`/`-g` kept as deprecated aliases.)
+- **User Config Path**: Configurable via `ais config user set <path>` for dotfiles integration (e.g. `~/dotfiles/ai-rules-sync/user.json`).
 
 ## Architecture
 - **Language**: TypeScript (Node.js).
@@ -32,6 +36,8 @@ src/
 │   ├── copilot-instructions.ts # Copilot instructions adapter
 │   ├── claude-skills.ts     # Claude skills adapter
 │   ├── claude-agents.ts     # Claude agents adapter
+│   ├── claude-rules.ts      # Claude rules adapter (.claude/rules/)
+│   ├── claude-md.ts         # Claude CLAUDE.md adapter (.claude/, global mode)
 │   ├── trae-rules.ts        # Trae rules adapter
 │   ├── trae-skills.ts       # Trae skills adapter
 │   ├── opencode-agents.ts   # OpenCode agents adapter (file mode)
@@ -201,6 +207,8 @@ interface SourceDirConfig {
   claude?: {
     skills?: string;      // Default: ".claude/skills"
     agents?: string;      // Default: ".claude/agents"
+    rules?: string;       // Default: ".claude/rules"
+    md?: string;          // Default: ".claude"
   };
   trae?: {
     rules?: string;       // Default: ".trae/rules"
@@ -247,6 +255,8 @@ interface ProjectConfig {
   claude?: {
     skills?: Record<string, RuleEntry>;
     agents?: Record<string, RuleEntry>;
+    rules?: Record<string, RuleEntry>;
+    md?: Record<string, RuleEntry>;
   };
   trae?: {
     rules?: Record<string, RuleEntry>;
@@ -323,6 +333,19 @@ interface ProjectConfig {
 - **Syntax**: `ais claude agents add <agentName> [alias]`
 - Links `<repo>/.claude/agents/<agentName>` to `.claude/agents/<alias>`.
 - Directory-based synchronization.
+
+### 8b. Claude Code Rule Synchronization
+- **Syntax**: `ais claude rules add <ruleName> [alias]`
+- Links `<repo>/.claude/rules/<ruleName>` to `.claude/rules/<alias>`.
+- File-based synchronization for Claude Code project rules.
+- Supports `.md` suffix.
+
+### 8c. Claude Code CLAUDE.md Synchronization
+- **Syntax**: `ais claude md add <name> [alias]`
+- Links `<repo>/.claude/<name>.md` to `.claude/<name>.md`.
+- File-based synchronization for CLAUDE.md-style configuration files.
+- Supports `.md` suffix; resolves `CLAUDE` → `CLAUDE.md` automatically.
+- **User Mode**: `ais claude md add CLAUDE --user` links to `~/.claude/CLAUDE.md`.
 
 ### 9. Trae Rule Synchronization
 - **Syntax**: `ais trae rules add <ruleName> [alias]`
@@ -426,13 +449,14 @@ Gemini CLI (https://geminicli.com/) is supported with three entry types:
 ### 16. Installation
 - `ais cursor install` - Install all Cursor rules, commands, skills, and agents.
 - `ais copilot install` - Install all Copilot instructions.
-- `ais claude install` - Install all Claude Code skills and subagents.
+- `ais claude install` - Install all Claude Code skills, agents, rules, and CLAUDE.md files.
 - `ais trae install` - Install all Trae rules and skills.
 - `ais opencode install` - Install all OpenCode agents, skills, commands, and tools.
 - `ais codex install` - Install all Codex rules and skills.
 - `ais gemini install` - Install all Gemini CLI commands, skills, and agents.
 - `ais agents-md install` - Install AGENTS.md files.
 - `ais install` - Install everything (smart dispatch).
+- `ais install --user` / `ais user install` - Install all user-scope AI config files from `~/.config/ai-rules-sync/user.json`. (`--global` and `ais global install` kept as deprecated aliases.)
 
 ### 17. Bulk Discovery and Installation (add-all)
 
@@ -636,7 +660,88 @@ ais cursor add-all
 ais cursor rules add-all -s experimental/rules
 ```
 
-### 19. Configuration Files
+### 19. User Mode (Personal AI Config Files)
+
+**User Mode** allows managing personal AI config files (`~/.claude/CLAUDE.md`, `~/.cursor/rules/`, etc.) with version control and cross-machine sync. Aligns with Claude Code's official terminology: *user scope* = `~/.claude/`, *project scope* = `.claude/`.
+
+**How it works:**
+- `--user` / `-u` flag sets `projectPath = $HOME` and stores dependencies in `~/.config/ai-rules-sync/user.json` instead of a project's `ai-rules-sync.json`
+- Gitignore management is skipped automatically (home dir is not a git repo)
+- Symlinks are created at absolute paths (e.g., `~/.claude/CLAUDE.md`)
+- `--global` / `-g` are kept as deprecated backward-compatible aliases
+
+**Commands:**
+```bash
+# Add entries to user config
+ais claude md add CLAUDE --user       # ~/.claude/CLAUDE.md
+ais cursor rules add my-style --user  # ~/.cursor/rules/my-style.mdc
+ais claude rules add general --user   # ~/.claude/rules/general.md
+
+# Install all user entries (restore on new machine)
+ais user install
+ais install --user   # equivalent
+
+# Remove from user config
+ais claude md remove CLAUDE --user
+```
+
+**User Config Path Management:**
+By default, user-scope dependencies are stored in `~/.config/ai-rules-sync/user.json`. For dotfiles integration (to track user.json in git), the path can be customized:
+
+```bash
+# View current user config path
+ais config user show
+
+# Set custom path (e.g., inside dotfiles git repo)
+ais config user set ~/dotfiles/ai-rules-sync/user.json
+
+# Reset to default
+ais config user reset
+```
+
+**Multi-machine Workflow:**
+```bash
+# Machine A: initial setup
+ais use git@github.com:me/my-rules.git
+ais config user set ~/dotfiles/ai-rules-sync/user.json
+ais claude md add CLAUDE --user
+ais cursor rules add my-style --user
+
+# Machine B: restore all user-scope symlinks
+ais use git@github.com:me/my-rules.git
+ais config user set ~/dotfiles/ai-rules-sync/user.json  # if using dotfiles
+ais user install
+```
+
+**user.json format** — same as `ai-rules-sync.json`:
+```json
+{
+  "claude": {
+    "md": { "CLAUDE": "https://github.com/me/my-rules.git" },
+    "rules": { "general": "https://github.com/me/my-rules.git" }
+  },
+  "cursor": {
+    "rules": { "my-style": "https://github.com/me/my-rules.git" }
+  }
+}
+```
+
+**Migration:** On first use after upgrading, AIS automatically renames `global.json` → `user.json` and `globalConfigPath` → `userConfigPath` in `config.json`.
+
+**Config Fields:**
+- `Config.userConfigPath?: string` - Custom path for `user.json` (stored in `config.json`; replaces deprecated `globalConfigPath`)
+- `SyncOptions.skipIgnore?: boolean` - Skip gitignore management (set automatically in user mode)
+
+**Functions:**
+- `getUserConfigPath()` - Returns custom or default user.json path (replaces `getGlobalConfigPath()`)
+- `getUserProjectConfig()` - Reads user.json as `ProjectConfig` (replaces `getGlobalProjectConfig()`)
+- `saveUserProjectConfig()` - Writes to user.json (replaces `saveGlobalProjectConfig()`)
+- `addUserDependency()` - Adds entry to user.json (in `project-config.ts`; replaces `addGlobalDependency()`)
+- `removeUserDependency()` - Removes entry from user.json (in `project-config.ts`; replaces `removeGlobalDependency()`)
+- `installUserEntriesForAdapter()` - Installs all user entries for one adapter (replaces `installGlobalEntriesForAdapter()`)
+- `installAllUserEntries()` - Installs user entries for all adapters (replaces `installAllGlobalEntries()`)
+
+### 20. Configuration Files
 
 **Rules Repository Config** (`ai-rules-sync.json` in the rules repo):
 ```json
@@ -654,7 +759,9 @@ ais cursor rules add-all -s experimental/rules
     },
     "claude": {
       "skills": ".claude/skills",
-      "agents": ".claude/agents"
+      "agents": ".claude/agents",
+      "rules": ".claude/rules",
+      "md": ".claude"
     },
     "trae": {
       "rules": ".trae/rules",
@@ -696,7 +803,9 @@ ais cursor rules add-all -s experimental/rules
   },
   "claude": {
     "skills": { "my-skill": "https://..." },
-    "agents": { "debugger": "https://..." }
+    "agents": { "debugger": "https://..." },
+    "rules": { "general": "https://..." },
+    "md": { "CLAUDE": "https://..." }
   },
   "trae": {
     "rules": { "project-rules": "https://..." },
@@ -734,7 +843,7 @@ ais cursor rules add-all -s experimental/rules
 - **Legacy format**: Old configs with `cursor.rules` as string are still supported.
 - **Legacy files**: `cursor-rules*.json` are read-only compatible; write operations migrate to new format.
 
-### 20. Shell Completion
+### 21. Shell Completion
 - **Auto-Install**: On first run, AIS prompts to install shell completion automatically.
 - **Manual Install**: `ais completion install` - Installs completion to shell config file.
 - **Script Output**: `ais completion [bash|zsh|fish]` - Outputs raw completion script.
@@ -752,6 +861,8 @@ ais cursor rules add-all -s experimental/rules
 | copilot-instructions | copilot | instructions | file | .github/instructions | .instructions.md, .md | [Copilot Instructions](https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot) |
 | claude-skills | claude | skills | directory | .claude/skills | - | [Claude Code Skills](https://code.claude.com/docs/en/skills) |
 | claude-agents | claude | subagents | directory | .claude/agents | - | [Claude Code Subagents](https://code.claude.com/docs/en/sub-agents) |
+| claude-rules | claude | rules | file | .claude/rules | .md | [Claude Code](https://claude.ai/code) |
+| claude-md | claude | md | file | .claude | .md | [Claude Code CLAUDE.md](https://claude.ai/code) |
 | trae-rules | trae | rules | file | .trae/rules | .md | [Trae AI](https://trae.ai/) |
 | trae-skills | trae | skills | directory | .trae/skills | - | [Trae AI](https://trae.ai/) |
 | **agents-md** | **agents-md** | **file** | **file** | **.** (root) | **.md** | **[agents.md standard](https://agents.md/)** |
@@ -782,6 +893,68 @@ ais cursor rules add-all -s experimental/rules
 - Use **hybrid** mode when entries can be either files or directories (cursor-rules)
 
 ## Recent Changes
+
+### User Mode & claude-md Adapter (2026-02)
+
+**Added User Mode for managing personal AI config files (`~/.claude/CLAUDE.md`, etc.):**
+
+**Problem Solved:**
+- Personal AI config files like `~/.claude/CLAUDE.md` had no version control or cross-machine sync
+- Each machine required manual setup of global AI tool configurations
+
+**Features Implemented:**
+
+1. **User Mode (`--user` / `-u` flag)**:
+   - All add/remove/install commands accept `--user` flag
+   - Sets `projectPath = $HOME` automatically
+   - Stores dependencies in `~/.config/ai-rules-sync/user.json`
+   - Skips gitignore management (home dir isn't a git repo)
+   - `--global` / `-g` kept as deprecated backward-compatible aliases
+
+2. **claude-md Adapter**:
+   - New adapter for CLAUDE.md-style files (`.claude/<name>.md`)
+   - File mode with `.md` suffix; resolves `CLAUDE` → `CLAUDE.md`
+   - CLI: `ais claude md [add|remove|install|import]`
+   - User mode usage: `ais claude md add CLAUDE --user`
+
+3. **One-click User Install**:
+   - `ais user install` / `ais install --user`
+   - Reads all entries from `user.json` and recreates symlinks (perfect for new machine setup)
+   - `ais global install` and `ais install --global` kept as deprecated aliases
+
+4. **User Config Path Management**:
+   - `ais config user show` - View current user.json path
+   - `ais config user set <path>` - Set custom path (for dotfiles integration)
+   - `ais config user reset` - Reset to default path
+   - Stored as `userConfigPath` in `~/.config/ai-rules-sync/config.json`
+   - `ais config global show|set|reset` kept as deprecated aliases
+
+5. **claude-rules Adapter** (formalized):
+   - Adapter for `.claude/rules/` files (`.md` suffix)
+   - CLI: `ais claude rules [add|remove|install|import]`
+
+6. **`skipIgnore` in SyncOptions**:
+   - New optional field prevents gitignore management in user mode
+   - Set automatically when `--user` is used
+
+7. **Automatic Migration**:
+   - On first use, auto-renames `global.json` → `user.json` in the config directory
+   - Auto-renames `globalConfigPath` → `userConfigPath` in `config.json`
+
+**Implementation:**
+- `src/adapters/claude-md.ts` - New claude-md adapter
+- `src/config.ts` - Added `userConfigPath`, `getUserConfigPath()`, `getUserProjectConfig()`, `saveUserProjectConfig()` (replacing `global*` equivalents)
+- `src/project-config.ts` - Added `claude.md` and `claude.rules` to config interfaces; added `addUserDependency()`, `removeUserDependency()`
+- `src/adapters/types.ts` - Added `skipIgnore?: boolean` to `SyncOptions`
+- `src/sync-engine.ts` - Respect `skipIgnore` in `linkEntry()`
+- `src/adapters/index.ts` - Registered `claudeMdAdapter`
+- `src/commands/handlers.ts` - Added `user?` and `skipIgnore?` to `CommandContext`; user path for `handleAdd`/`handleRemove`
+- `src/commands/install.ts` - Added `installUserEntriesForAdapter()`, `installAllUserEntries()`
+- `src/commands/config.ts` - Added `handleUserConfigShow/Set/Reset()`
+- `src/cli/register.ts` - Added `-u, --user` flag to add/remove/install commands (with `-g, --global` as deprecated aliases)
+- `src/index.ts` - Added `ais claude md` subgroup, `ais user install`, `ais config user` commands
+
+**Files Changed:** 11 modified/new, all tests passing (206/206)
 
 ### OpenAI Codex Support (2026-02)
 

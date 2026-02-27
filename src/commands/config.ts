@@ -3,8 +3,10 @@
  * Manage global sourceDir configuration for repositories
  */
 
+import path from 'path';
+import os from 'os';
 import chalk from 'chalk';
-import { getConfig, setConfig } from '../config.js';
+import { getConfig, setConfig, getUserConfigPath } from '../config.js';
 import { SourceDirConfig } from '../project-config.js';
 
 /**
@@ -127,4 +129,59 @@ export async function listRepos(): Promise<void> {
             }
         }
     }
+}
+
+/**
+ * Show the current user config path
+ */
+export async function handleUserConfigShow(): Promise<void> {
+    const config = await getConfig();
+    const userPath = await getUserConfigPath();
+    const isCustom = !!config.userConfigPath;
+    const displayPath = userPath.replace(os.homedir(), '~');
+    const label = isCustom ? chalk.yellow('(custom)') : chalk.gray('(default)');
+    console.log(`User config path: ${chalk.cyan(displayPath)} ${label}`);
+}
+
+/** @deprecated Use handleUserConfigShow() instead */
+export async function handleGlobalConfigShow(): Promise<void> {
+    return handleUserConfigShow();
+}
+
+/**
+ * Set a custom user config path
+ */
+export async function handleUserConfigSet(customPath: string): Promise<void> {
+    // Normalize: store with ~ if path starts with homedir
+    const expanded = customPath.replace(/^~/, os.homedir());
+    const stored = expanded.startsWith(os.homedir())
+        ? `~${expanded.slice(os.homedir().length)}`
+        : expanded;
+
+    await setConfig({ userConfigPath: stored });
+    console.log(chalk.green(`✓ User config path set to: ${chalk.cyan(stored)}`));
+}
+
+/** @deprecated Use handleUserConfigSet() instead */
+export async function handleGlobalConfigSet(customPath: string): Promise<void> {
+    return handleUserConfigSet(customPath);
+}
+
+/**
+ * Reset user config path to default
+ */
+export async function handleUserConfigReset(): Promise<void> {
+    const config = await getConfig();
+    if (config.userConfigPath) {
+        delete config.userConfigPath;
+        await setConfig(config);
+        console.log(chalk.green('✓ User config path reset to default.'));
+    } else {
+        console.log(chalk.gray('User config path is already at default.'));
+    }
+}
+
+/** @deprecated Use handleUserConfigReset() instead */
+export async function handleGlobalConfigReset(): Promise<void> {
+    return handleUserConfigReset();
 }

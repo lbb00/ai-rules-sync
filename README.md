@@ -10,7 +10,7 @@
 
 Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links.
 
-**Supports:** Cursor (rules, commands, skills, subagents), GitHub Copilot (instructions, prompts, skills, agents), Claude Code (rules, skills, subagents), Trae (rules, skills), OpenCode (commands, skills, agents, tools), Codex (rules, skills), Gemini CLI (commands, skills, agents), Warp (rules via AGENTS.md, skills), and universal AGENTS.md.
+**Supports:** Cursor (rules, commands, skills, subagents), GitHub Copilot (instructions, prompts, skills, agents), Claude Code (rules, skills, subagents, CLAUDE.md), Trae (rules, skills), OpenCode (commands, skills, agents, tools), Codex (rules, skills), Gemini CLI (commands, skills, agents), Warp (rules via AGENTS.md, skills), and universal AGENTS.md. Also supports **User Mode** for personal AI config files (`~/.claude/CLAUDE.md`, etc.).
 
 ---
 
@@ -24,6 +24,7 @@ Stop copying `.mdc` files around. Manage your rules in Git repositories and sync
 - [Basic Usage](#basic-usage)
 - [Tool-Specific Guides](#tool-specific-guides)
 - [Advanced Features](#advanced-features)
+  - [User Mode](#user-mode-personal-ai-config-files)
 - [Configuration Reference](#configuration-reference)
 - [Architecture](#architecture)
 
@@ -153,6 +154,7 @@ ais completion install
 | Claude Code | Rules | file | `.claude/rules/` | `.md` | [Docs](https://code.claude.com/docs/en/memory) |
 | Claude Code | Skills | directory | `.claude/skills/` | - | [Docs](https://code.claude.com/docs/en/skills) |
 | Claude Code | Subagents | directory | `.claude/agents/` | - | [Docs](https://code.claude.com/docs/en/sub-agents) |
+| Claude Code | CLAUDE.md | file | `.claude/` | `.md` | [Docs](https://docs.anthropic.com/en/docs/claude-code/memory) |
 | Trae | Rules | file | `.trae/rules/` | `.md` | [Website](https://trae.ai/) |
 | Trae | Skills | directory | `.trae/skills/` | - | [Website](https://trae.ai/) |
 | OpenCode | Commands | file | `.opencode/commands/` | `.md` | [Website](https://opencode.ing/) |
@@ -483,15 +485,27 @@ ais copilot agents remove code-reviewer
 ### Claude Code
 
 ```bash
+# Add rule
+ais claude rules add general
+
 # Add skill
 ais claude skills add code-review
 
 # Add subagent
 ais claude agents add debugger
 
+# Add CLAUDE.md (personal user config with --user)
+ais claude md add CLAUDE --user           # → ~/.claude/CLAUDE.md
+ais claude md add CLAUDE                  # → .claude/CLAUDE.md (project)
+
+# Install all
+ais claude install
+
 # Remove
+ais claude rules remove general
 ais claude skills remove code-review
 ais claude agents remove debugger
+ais claude md remove CLAUDE --user
 ```
 
 ### Trae
@@ -748,6 +762,66 @@ ais cursor add auth-rules -d packages/frontend/.cursor/rules
 ais cursor add auth-rules backend-auth -d packages/backend/.cursor/rules
 ```
 
+### User Mode (Personal AI Config Files)
+
+**Manage personal AI config files (`~/.claude/CLAUDE.md`, `~/.cursor/rules/`, etc.) with version control:**
+
+```bash
+# Add personal CLAUDE.md to user config
+ais claude md add CLAUDE --user
+
+# Add personal Cursor rules
+ais cursor rules add my-style --user
+
+# Install all user entries on a new machine
+ais user install
+# or equivalently:
+ais install --user
+```
+
+**Manage user config path** (for dotfiles integration):
+
+```bash
+# View current user config path
+ais config user show
+
+# Store user.json inside your dotfiles repo (for git tracking)
+ais config user set ~/dotfiles/ai-rules-sync/user.json
+
+# Reset to default (~/.config/ai-rules-sync/user.json)
+ais config user reset
+```
+
+**Multi-machine workflow:**
+
+```bash
+# Machine A: initial setup
+ais use git@github.com:me/my-rules.git
+ais config user set ~/dotfiles/ai-rules-sync/user.json  # optional
+ais claude md add CLAUDE --user
+ais cursor rules add my-style --user
+# user.json tracks all dependencies (commit to dotfiles to share)
+
+# Machine B: restore everything with one command
+ais use git@github.com:me/my-rules.git
+ais config user set ~/dotfiles/ai-rules-sync/user.json  # if using dotfiles
+ais user install
+```
+
+**user.json format** (same as `ai-rules-sync.json`):
+
+```json
+{
+  "claude": {
+    "md": { "CLAUDE": "https://github.com/me/my-rules.git" },
+    "rules": { "general": "https://github.com/me/my-rules.git" }
+  },
+  "cursor": {
+    "rules": { "my-style": "https://github.com/me/my-rules.git" }
+  }
+}
+```
+
 ### Repository Configuration
 
 **Customize source paths in repository:**
@@ -769,7 +843,9 @@ Create `ai-rules-sync.json` in your rules repository:
     },
     "claude": {
       "skills": ".claude/skills",
-      "agents": ".claude/agents"
+      "agents": ".claude/agents",
+      "rules": ".claude/rules",
+      "md": ".claude"
     },
     "trae": {
       "rules": ".trae/rules",
@@ -881,6 +957,12 @@ ais copilot skills add <Tab>             # Lists available skills
     },
     "agents": {
       "debugger": "https://github.com/user/repo.git"
+    },
+    "rules": {
+      "general": "https://github.com/user/repo.git"
+    },
+    "md": {
+      "CLAUDE": "https://github.com/user/repo.git"
     }
   },
   "trae": {

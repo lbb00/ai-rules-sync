@@ -103,9 +103,11 @@ export async function linkEntry(
     await fs.ensureSymlink(sourcePath, targetPath);
     console.log(chalk.green(`Linked "${sourceName}" to project as "${targetName}".`));
 
-    // Handle ignore file
-    const ignoreEntry = `${targetDirPath}/${targetName}`;
-    await handleIgnoreEntry(absoluteProjectPath, ignoreEntry, isLocal, true);
+    // Handle ignore file (skip for global mode)
+    if (!options.skipIgnore) {
+        const ignoreEntry = `${targetDirPath}/${targetName}`;
+        await handleIgnoreEntry(absoluteProjectPath, ignoreEntry, isLocal, true);
+    }
 
     return { sourceName, targetName, linked: true };
 }

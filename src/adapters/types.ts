@@ -121,6 +121,9 @@ export interface SyncOptions {
 
     /** Optional custom target directory for this entry */
     targetDir?: string;
+
+    /** When true, skip gitignore/.git/info/exclude management (used for global mode) */
+    skipIgnore?: boolean;
 }
 
 /**

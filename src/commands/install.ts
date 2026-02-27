@@ -3,11 +3,12 @@
  */
 
 import path from 'path';
+import os from 'os';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 import { SyncAdapter } from '../adapters/types.js';
 import { getCombinedProjectConfig, getConfigSource, RuleEntry, ProjectConfig } from '../project-config.js';
-import { getConfig, setConfig, getReposBaseDir, RepoConfig } from '../config.js';
+import { getConfig, setConfig, getReposBaseDir, getUserProjectConfig, getUserConfigPath, RepoConfig } from '../config.js';
 import { cloneOrUpdateRepo } from '../git.js';
 import { parseConfigEntry } from './helpers.js';
 
@@ -148,3 +149,91 @@ export async function installEntriesForTool(
         await installEntriesForAdapter(adapter, projectPath);
     }
 }
+
+/**
+ * Install entries for an adapter from user config (user.json)
+ */
+export async function installUserEntriesForAdapter(
+    adapter: SyncAdapter
+): Promise<void> {
+    const userConfig = await getUserProjectConfig();
+    const [topLevel, subLevel] = adapter.configPath;
+    const entries = (userConfig as any)?.[topLevel]?.[subLevel] as Record<string, RuleEntry> | undefined;
+
+    if (!entries || Object.keys(entries).length === 0) {
+        console.log(chalk.yellow(`No user ${adapter.tool} ${adapter.subtype} found in user config.`));
+        return;
+    }
+
+    const config = await getConfig();
+    const repos = config.repos || {};
+    const projectPath = os.homedir();
+
+    for (const [key, value] of Object.entries(entries)) {
+        const { repoUrl, entryName, alias } = parseConfigEntry(key, value);
+
+        console.log(chalk.blue(`Installing ${adapter.tool} ${adapter.subtype} "${entryName}" (as "${key}") from ${repoUrl}...`));
+
+        const repoConfig = await findOrCreateRepo(repos, repoUrl, entryName);
+
+        const targetDir = typeof value === 'object' && value.targetDir ? value.targetDir : undefined;
+
+        await adapter.link({
+            projectPath,
+            name: entryName,
+            repo: repoConfig,
+            alias,
+            isLocal: false,
+            targetDir,
+            skipIgnore: true
+        });
+    }
+
+    console.log(chalk.green(`All user ${adapter.tool} ${adapter.subtype} installed successfully.`));
+}
+
+/** @deprecated Use installUserEntriesForAdapter() instead */
+export async function installGlobalEntriesForAdapter(
+    adapter: SyncAdapter
+): Promise<void> {
+    return installUserEntriesForAdapter(adapter);
+}
+
+/**
+ * Install all user entries for all adapters
+ */
+export async function installAllUserEntries(
+    adapters: SyncAdapter[]
+): Promise<{ total: number }> {
+    const userConfigPath = await getUserConfigPath();
+    const userConfig = await getUserProjectConfig();
+
+    let total = 0;
+
+    for (const adapter of adapters) {
+        const [topLevel, subLevel] = adapter.configPath;
+        const entries = (userConfig as any)?.[topLevel]?.[subLevel] as Record<string, RuleEntry> | undefined;
+        if (entries && Object.keys(entries).length > 0) {
+            await installUserEntriesForAdapter(adapter);
+            total += Object.keys(entries).length;
+        }
+    }
+
+    if (total === 0) {
+        console.log(chalk.yellow(`No user config found. Use "ais claude md add <name> --user" to add entries.`));
+    } else {
+        const displayPath = userConfigPath.replace(os.homedir(), '~');
+        console.log(chalk.gray(`\nUser config: ${displayPath}`));
+        console.log(chalk.green(`Installed ${total} entries.`));
+    }
+
+    return { total };
+}
+
+/** @deprecated Use installAllUserEntries() instead */
+export async function installAllGlobalEntries(
+    adapters: SyncAdapter[]
+): Promise<{ total: number }> {
+    return installAllUserEntries(adapters);
+}
+

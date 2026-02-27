@@ -10,7 +10,7 @@
 
 不再复制粘贴 `.mdc` 文件。在 Git 仓库中管理规则，通过软链接同步。
 
-**支持：** Cursor（规则、命令、技能、subagents）、GitHub Copilot（指令、提示词、技能、代理）、Claude Code（规则、技能、subagents）、Trae（规则、技能）、OpenCode（命令、技能、代理、工具）、Codex（规则、技能）、Gemini CLI（命令、技能、代理）、Warp（规则 via AGENTS.md、技能）以及通用的 AGENTS.md。
+**支持：** Cursor（规则、命令、技能、subagents）、GitHub Copilot（指令、提示词、技能、代理）、Claude Code（规则、技能、subagents、CLAUDE.md）、Trae（规则、技能）、OpenCode（命令、技能、代理、工具）、Codex（规则、技能）、Gemini CLI（命令、技能、代理）、Warp（规则 via AGENTS.md、技能）以及通用的 AGENTS.md。另支持 **User 模式**，用于管理个人 AI 配置文件（如 `~/.claude/CLAUDE.md`）。
 
 ---
 
@@ -24,6 +24,7 @@
 - [基础使用](#基础使用)
 - [各工具使用指南](#各工具使用指南)
 - [高级功能](#高级功能)
+  - [User 模式](#user-模式个人-ai-配置文件)
 - [配置参考](#配置参考)
 - [架构](#架构)
 
@@ -153,6 +154,7 @@ ais completion install
 | Claude Code | Rules | file | `.claude/rules/` | `.md` | [文档](https://code.claude.com/docs/en/memory) |
 | Claude Code | Skills | directory | `.claude/skills/` | - | [文档](https://code.claude.com/docs/en/skills) |
 | Claude Code | Subagents | directory | `.claude/agents/` | - | [文档](https://code.claude.com/docs/en/sub-agents) |
+| Claude Code | CLAUDE.md | file | `.claude/` | `.md` | [文档](https://docs.anthropic.com/en/docs/claude-code/memory) |
 | Trae | Rules | file | `.trae/rules/` | `.md` | [网站](https://trae.ai/) |
 | Trae | Skills | directory | `.trae/skills/` | - | [网站](https://trae.ai/) |
 | OpenCode | Commands | file | `.opencode/commands/` | `.md` | [网站](https://opencode.ing/) |
@@ -483,15 +485,27 @@ ais copilot agents remove code-reviewer
 ### Claude Code
 
 ```bash
+# 添加规则
+ais claude rules add general
+
 # 添加技能
 ais claude skills add code-review
 
 # 添加 subagent
 ais claude agents add debugger
 
+# 添加 CLAUDE.md（使用 --user 管理个人 user 级配置）
+ais claude md add CLAUDE --user           # → ~/.claude/CLAUDE.md
+ais claude md add CLAUDE                  # → .claude/CLAUDE.md（项目级）
+
+# 安装所有
+ais claude install
+
 # 移除
+ais claude rules remove general
 ais claude skills remove code-review
 ais claude agents remove debugger
+ais claude md remove CLAUDE --user
 ```
 
 ### Trae
@@ -748,6 +762,66 @@ ais cursor add auth-rules -d packages/frontend/.cursor/rules
 ais cursor add auth-rules backend-auth -d packages/backend/.cursor/rules
 ```
 
+### User 模式（个人 AI 配置文件）
+
+**使用版本控制管理个人 AI 配置文件（`~/.claude/CLAUDE.md`、`~/.cursor/rules/` 等）：**
+
+```bash
+# 将个人 CLAUDE.md 加入 user 配置
+ais claude md add CLAUDE --user
+
+# 添加个人 Cursor 规则
+ais cursor rules add my-style --user
+
+# 在新机器上一键恢复所有 user 配置
+ais user install
+# 等价于：
+ais install --user
+```
+
+**管理 user 配置路径**（用于 dotfiles 集成）：
+
+```bash
+# 查看当前 user 配置路径
+ais config user show
+
+# 将 user.json 存储在 dotfiles 仓库中（便于 git 跟踪）
+ais config user set ~/dotfiles/ai-rules-sync/user.json
+
+# 重置为默认路径（~/.config/ai-rules-sync/user.json）
+ais config user reset
+```
+
+**多机器工作流：**
+
+```bash
+# 机器 A：初始设置
+ais use git@github.com:me/my-rules.git
+ais config user set ~/dotfiles/ai-rules-sync/user.json  # 可选
+ais claude md add CLAUDE --user
+ais cursor rules add my-style --user
+# user.json 记录所有依赖（提交到 dotfiles 即可共享）
+
+# 机器 B：一键恢复
+ais use git@github.com:me/my-rules.git
+ais config user set ~/dotfiles/ai-rules-sync/user.json  # 若使用 dotfiles
+ais user install
+```
+
+**user.json 格式**（与 `ai-rules-sync.json` 相同）：
+
+```json
+{
+  "claude": {
+    "md": { "CLAUDE": "https://github.com/me/my-rules.git" },
+    "rules": { "general": "https://github.com/me/my-rules.git" }
+  },
+  "cursor": {
+    "rules": { "my-style": "https://github.com/me/my-rules.git" }
+  }
+}
+```
+
 ### 仓库配置
 
 **在仓库中自定义源路径：**
@@ -769,7 +843,9 @@ ais cursor add auth-rules backend-auth -d packages/backend/.cursor/rules
     },
     "claude": {
       "skills": ".claude/skills",
-      "agents": ".claude/agents"
+      "agents": ".claude/agents",
+      "rules": ".claude/rules",
+      "md": ".claude"
     },
     "trae": {
       "rules": ".trae/rules",
@@ -881,6 +957,12 @@ ais copilot skills add <Tab>             # 列出可用技能
     },
     "agents": {
       "debugger": "https://github.com/user/repo.git"
+    },
+    "rules": {
+      "general": "https://github.com/user/repo.git"
+    },
+    "md": {
+      "CLAUDE": "https://github.com/user/repo.git"
     }
   },
   "trae": {

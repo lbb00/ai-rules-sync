@@ -1,5 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
+import { getUserConfigPath, getUserProjectConfig, saveUserProjectConfig } from './config.js';
 
 const CONFIG_FILENAME = 'ai-rules-sync.json';
 const LOCAL_CONFIG_FILENAME = 'ai-rules-sync.local.json';
@@ -49,6 +50,8 @@ export interface SourceDirConfig {
         agents?: string;
         // Source directory for claude rules, default: ".claude/rules"
         rules?: string;
+        // Source directory for claude md files (CLAUDE.md), default: ".claude"
+        md?: string;
     };
     trae?: {
         // Source directory for trae rules, default: ".trae/rules"
@@ -127,6 +130,7 @@ export interface ProjectConfig {
         skills?: Record<string, RuleEntry>;
         agents?: Record<string, RuleEntry>;
         rules?: Record<string, RuleEntry>;
+        md?: Record<string, RuleEntry>;
     };
     trae?: {
         rules?: Record<string, RuleEntry>;
@@ -177,6 +181,7 @@ export interface RepoSourceConfig {
         skills?: string;
         agents?: string;
         rules?: string;
+        md?: string;
     };
     trae?: {
         rules?: string;
@@ -249,7 +254,8 @@ function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig
         claude: {
             skills: { ...(main.claude?.skills || {}), ...(local.claude?.skills || {}) },
             agents: { ...(main.claude?.agents || {}), ...(local.claude?.agents || {}) },
-            rules: { ...(main.claude?.rules || {}), ...(local.claude?.rules || {}) }
+            rules: { ...(main.claude?.rules || {}), ...(local.claude?.rules || {}) },
+            md: { ...(main.claude?.md || {}), ...(local.claude?.md || {}) }
         },
         trae: {
             rules: { ...(main.trae?.rules || {}), ...(local.trae?.rules || {}) },
@@ -325,9 +331,11 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
         const claudeSkills = config.claude?.skills;
         const claudeAgents = config.claude?.agents;
         const claudeRules = config.claude?.rules;
+        const claudeMd = (config.claude as any)?.md;
         const isClaudeSkillsString = typeof claudeSkills === 'string';
         const isClaudeAgentsString = typeof claudeAgents === 'string';
         const isClaudeRulesString = typeof claudeRules === 'string';
+        const isClaudeMdString = typeof claudeMd === 'string';
         const traeRules = config.trae?.rules;
         const traeSkills = config.trae?.skills;
         const isTraeRulesString = typeof traeRules === 'string';
@@ -348,7 +356,7 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
         const isAgentsMdFileString = typeof agentsMdFile === 'string';
 
         // If any of these are strings, treat as legacy rules repo config
-        if (isCursorRulesString || isCursorCommandsString || isCursorSkillsString || isCursorAgentsString || isCopilotInstructionsString || isCopilotSkillsString || isCopilotPromptsString || isCopilotAgentsString || isClaudeSkillsString || isClaudeAgentsString || isClaudeRulesString || isTraeRulesString || isTraeSkillsString || isOpencodeAgentsString || isOpencodeSkillsString || isOpencodeCommandsString || isOpencodeToolsString || isCodexRulesString || isCodexSkillsString || isAgentsMdFileString) {
+        if (isCursorRulesString || isCursorCommandsString || isCursorSkillsString || isCursorAgentsString || isCopilotInstructionsString || isCopilotSkillsString || isCopilotPromptsString || isCopilotAgentsString || isClaudeSkillsString || isClaudeAgentsString || isClaudeRulesString || isClaudeMdString || isTraeRulesString || isTraeSkillsString || isOpencodeAgentsString || isOpencodeSkillsString || isOpencodeCommandsString || isOpencodeToolsString || isCodexRulesString || isCodexSkillsString || isAgentsMdFileString) {
             return {
                 rootPath: config.rootPath,
                 cursor: {
@@ -366,7 +374,8 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
                 claude: {
                     skills: isClaudeSkillsString ? claudeSkills : undefined,
                     agents: isClaudeAgentsString ? claudeAgents : undefined,
-                    rules: isClaudeRulesString ? claudeRules : undefined
+                    rules: isClaudeRulesString ? claudeRules : undefined,
+                    md: isClaudeMdString ? claudeMd : undefined
                 },
                 trae: {
                     rules: isTraeRulesString ? traeRules : undefined,
@@ -449,6 +458,8 @@ export function getSourceDir(
             toolDir = repoConfig.claude?.agents;
         } else if (subtype === 'rules') {
             toolDir = repoConfig.claude?.rules;
+        } else if (subtype === 'md') {
+            toolDir = (repoConfig.claude as any)?.md;
         }
     } else if (tool === 'trae') {
         if (subtype === 'rules') {
@@ -668,4 +679,79 @@ export async function removeDependencyGeneric(
     }
 
     return { removedFrom, migrated: migration.migrated };
+}
+
+/**
+ * Add a dependency to the user project config (user.json).
+ * Used when --user flag is set.
+ */
+export async function addUserDependency(
+    configPath: [string, string],
+    name: string,
+    repoUrl: string,
+    alias?: string,
+    targetDir?: string
+): Promise<void> {
+    const config = await getUserProjectConfig();
+    const [topLevel, subLevel] = configPath;
+
+    (config as any)[topLevel] ??= {};
+    (config as any)[topLevel][subLevel] ??= {};
+
+    const targetName = alias || name;
+
+    let entryValue: RuleEntry;
+    if (targetDir || (alias && alias !== name)) {
+        entryValue = {
+            url: repoUrl,
+            ...(alias && alias !== name ? { rule: name } : {}),
+            ...(targetDir ? { targetDir } : {})
+        };
+    } else {
+        entryValue = repoUrl;
+    }
+
+    (config as any)[topLevel][subLevel][targetName] = entryValue;
+    await saveUserProjectConfig(config);
+}
+
+/** @deprecated Use addUserDependency() instead */
+export async function addGlobalDependency(
+    configPath: [string, string],
+    name: string,
+    repoUrl: string,
+    alias?: string,
+    targetDir?: string
+): Promise<void> {
+    return addUserDependency(configPath, name, repoUrl, alias, targetDir);
+}
+
+/**
+ * Remove a dependency from the user project config (user.json).
+ * Used when --user flag is set.
+ */
+export async function removeUserDependency(
+    configPath: [string, string],
+    alias: string
+): Promise<{ removedFrom: string[] }> {
+    const removedFrom: string[] = [];
+    const userPath = await getUserConfigPath();
+    const config = await getUserProjectConfig();
+    const [topLevel, subLevel] = configPath;
+
+    if ((config as any)[topLevel]?.[subLevel]?.[alias]) {
+        delete (config as any)[topLevel][subLevel][alias];
+        await saveUserProjectConfig(config);
+        removedFrom.push(path.basename(userPath));
+    }
+
+    return { removedFrom };
+}
+
+/** @deprecated Use removeUserDependency() instead */
+export async function removeGlobalDependency(
+    configPath: [string, string],
+    alias: string
+): Promise<{ removedFrom: string[] }> {
+    return removeUserDependency(configPath, alias);
 }
