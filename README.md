@@ -10,7 +10,7 @@
 
 Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links.
 
-**Supports:** Cursor (rules, commands, skills, subagents), GitHub Copilot (instructions, prompts, skills, agents), Claude Code (rules, skills, subagents, CLAUDE.md), Trae (rules, skills), OpenCode (commands, skills, agents, tools), Codex (rules, skills), Gemini CLI (commands, skills, agents), Warp (rules via AGENTS.md, skills), and universal AGENTS.md. Also supports **User Mode** for personal AI config files (`~/.claude/CLAUDE.md`, etc.).
+**Supports:** Cursor (rules, commands, skills, subagents), GitHub Copilot (instructions, prompts, skills, agents), Claude Code (rules, skills, subagents, CLAUDE.md), Trae (rules, skills), OpenCode (commands, skills, agents, tools), Codex (rules, skills), Gemini CLI (commands, skills, subagents), Warp (rules via AGENTS.md, skills), and universal AGENTS.md. Also supports **User Mode** for personal AI config files (`~/.claude/CLAUDE.md`, etc.).
 
 ---
 
@@ -147,25 +147,25 @@ ais completion install
 | Cursor | Commands | file | `.cursor/commands/` | `.md` | [Docs](https://cursor.com/docs/context/commands) |
 | Cursor | Skills | directory | `.cursor/skills/` | - | [Docs](https://cursor.com/docs/context/skills) |
 | Cursor | Subagents | directory | `.cursor/agents/` | - | [Docs](https://cursor.com/docs/context/subagents) |
-| GitHub Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [Docs](https://docs.github.com/copilot) |
-| GitHub Copilot | Prompts | file | `.github/prompts/` | `.prompt.md`, `.md` | [Docs](https://docs.github.com/copilot) |
+| GitHub Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [Docs](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions) |
+| GitHub Copilot | Prompts | file | `.github/prompts/` | `.prompt.md`, `.md` | [Docs](https://docs.github.com/en/copilot/tutorials/customization-library/prompt-files/your-first-prompt-file) |
 | GitHub Copilot | Skills | directory | `.github/skills/` | - | [Docs](https://docs.github.com/en/copilot/using-github-copilot/using-extensions-to-integrate-external-tools-with-copilot-chat) |
-| GitHub Copilot | Agents | file | `.github/agents/` | `.agent.md`, `.md` | [Docs](https://docs.github.com/copilot) |
+| GitHub Copilot | Agents | file | `.github/agents/` | `.agent.md`, `.md` | [Docs](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-custom-agents) |
 | Claude Code | Rules | file | `.claude/rules/` | `.md` | [Docs](https://code.claude.com/docs/en/memory) |
 | Claude Code | Skills | directory | `.claude/skills/` | - | [Docs](https://code.claude.com/docs/en/skills) |
 | Claude Code | Subagents | directory | `.claude/agents/` | - | [Docs](https://code.claude.com/docs/en/sub-agents) |
 | Claude Code | CLAUDE.md | file | `.claude/` | `.md` | [Docs](https://docs.anthropic.com/en/docs/claude-code/memory) |
-| Trae | Rules | file | `.trae/rules/` | `.md` | [Website](https://trae.ai/) |
-| Trae | Skills | directory | `.trae/skills/` | - | [Website](https://trae.ai/) |
-| OpenCode | Commands | file | `.opencode/commands/` | `.md` | [Website](https://opencode.ing/) |
-| OpenCode | Skills | directory | `.opencode/skills/` | - | [Website](https://opencode.ing/) |
-| OpenCode | Agents | file | `.opencode/agents/` | `.md` | [Website](https://opencode.ing/) |
-| OpenCode | Tools | file | `.opencode/tools/` | `.ts`, `.js` | [Website](https://opencode.ing/) |
+| Trae | Rules | file | `.trae/rules/` | `.md` | [Docs](https://docs.trae.ai/ide/rules) |
+| Trae | Skills | directory | `.trae/skills/` | - | [Docs](https://docs.trae.ai/ide/skills) |
+| OpenCode | Commands | file | `.opencode/commands/` | `.md` | [Docs](https://opencode.ai/docs/commands/) |
+| OpenCode | Skills | directory | `.opencode/skills/` | - | [Docs](https://opencode.ai/docs/skills/) |
+| OpenCode | Agents | file | `.opencode/agents/` | `.md` | [Docs](https://opencode.ai/docs/agents/) |
+| OpenCode | Tools | file | `.opencode/tools/` | `.ts`, `.js` | [Docs](https://opencode.ai/docs/tools/) |
 | Codex | Rules | file | `.codex/rules/` | `.rules` | [Docs](https://developers.openai.com/codex/rules) |
 | Codex | Skills | directory | `.agents/skills/` | - | [Docs](https://developers.openai.com/codex/skills) |
-| Gemini CLI | Commands | file | `.gemini/commands/` | `.toml` | [Website](https://geminicli.com/) |
-| Gemini CLI | Skills | directory | `.gemini/skills/` | - | [Website](https://geminicli.com/) |
-| Gemini CLI | Agents | file | `.gemini/agents/` | `.md` | [Website](https://geminicli.com/) |
+| Gemini CLI | Commands | file | `.gemini/commands/` | `.toml` | [Docs](https://geminicli.com/docs/cli/custom-commands/) |
+| Gemini CLI | Skills | directory | `.gemini/skills/` | - | [Docs](https://geminicli.com/docs/cli/skills/) |
+| Gemini CLI | Subagents | file | `.gemini/agents/` | `.md` | [Docs](https://geminicli.com/docs/core/subagents/) |
 | Warp | Rules | file | `.` (root) | `.md` | [Docs](https://docs.warp.dev/agent-platform/capabilities/rules) — same as AGENTS.md, use `ais agents-md` |
 | Warp | Skills | directory | `.agents/skills/` | - | [Docs](https://docs.warp.dev/agent-platform/capabilities/skills) |
 | **Universal** | **AGENTS.md** | file | `.` (root) | `.md` | [Standard](https://agents.md/) |

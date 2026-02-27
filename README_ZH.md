@@ -10,7 +10,7 @@
 
 不再复制粘贴 `.mdc` 文件。在 Git 仓库中管理规则，通过软链接同步。
 
-**支持：** Cursor（规则、命令、技能、subagents）、GitHub Copilot（指令、提示词、技能、代理）、Claude Code（规则、技能、subagents、CLAUDE.md）、Trae（规则、技能）、OpenCode（命令、技能、代理、工具）、Codex（规则、技能）、Gemini CLI（命令、技能、代理）、Warp（规则 via AGENTS.md、技能）以及通用的 AGENTS.md。另支持 **User 模式**，用于管理个人 AI 配置文件（如 `~/.claude/CLAUDE.md`）。
+**支持：** Cursor（规则、命令、技能、subagents）、GitHub Copilot（指令、提示词、技能、代理）、Claude Code（规则、技能、subagents、CLAUDE.md）、Trae（规则、技能）、OpenCode（命令、技能、代理、工具）、Codex（规则、技能）、Gemini CLI（命令、技能、subagents）、Warp（规则 via AGENTS.md、技能）以及通用的 AGENTS.md。另支持 **User 模式**，用于管理个人 AI 配置文件（如 `~/.claude/CLAUDE.md`）。
 
 ---
 
@@ -147,25 +147,25 @@ ais completion install
 | Cursor | Commands | file | `.cursor/commands/` | `.md` | [文档](https://cursor.com/docs/context/commands) |
 | Cursor | Skills | directory | `.cursor/skills/` | - | [文档](https://cursor.com/docs/context/skills) |
 | Cursor | subagents | directory | `.cursor/agents/` | - | [文档](https://cursor.com/docs/context/subagents) |
-| GitHub Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [文档](https://docs.github.com/copilot) |
-| GitHub Copilot | Prompts | file | `.github/prompts/` | `.prompt.md`, `.md` | [文档](https://docs.github.com/copilot) |
+| GitHub Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [文档](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions) |
+| GitHub Copilot | Prompts | file | `.github/prompts/` | `.prompt.md`, `.md` | [文档](https://docs.github.com/en/copilot/tutorials/customization-library/prompt-files/your-first-prompt-file) |
 | GitHub Copilot | Skills | directory | `.github/skills/` | - | [文档](https://docs.github.com/en/copilot/using-github-copilot/using-extensions-to-integrate-external-tools-with-copilot-chat) |
-| GitHub Copilot | Agents | file | `.github/agents/` | `.agent.md`, `.md` | [文档](https://docs.github.com/copilot) |
+| GitHub Copilot | Agents | file | `.github/agents/` | `.agent.md`, `.md` | [文档](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-custom-agents) |
 | Claude Code | Rules | file | `.claude/rules/` | `.md` | [文档](https://code.claude.com/docs/en/memory) |
 | Claude Code | Skills | directory | `.claude/skills/` | - | [文档](https://code.claude.com/docs/en/skills) |
 | Claude Code | Subagents | directory | `.claude/agents/` | - | [文档](https://code.claude.com/docs/en/sub-agents) |
 | Claude Code | CLAUDE.md | file | `.claude/` | `.md` | [文档](https://docs.anthropic.com/en/docs/claude-code/memory) |
-| Trae | Rules | file | `.trae/rules/` | `.md` | [网站](https://trae.ai/) |
-| Trae | Skills | directory | `.trae/skills/` | - | [网站](https://trae.ai/) |
-| OpenCode | Commands | file | `.opencode/commands/` | `.md` | [网站](https://opencode.ing/) |
-| OpenCode | Skills | directory | `.opencode/skills/` | - | [网站](https://opencode.ing/) |
-| OpenCode | Agents | file | `.opencode/agents/` | `.md` | [网站](https://opencode.ing/) |
-| OpenCode | Tools | file | `.opencode/tools/` | `.ts`, `.js` | [网站](https://opencode.ing/) |
+| Trae | Rules | file | `.trae/rules/` | `.md` | [文档](https://docs.trae.ai/ide/rules) |
+| Trae | Skills | directory | `.trae/skills/` | - | [文档](https://docs.trae.ai/ide/skills) |
+| OpenCode | Commands | file | `.opencode/commands/` | `.md` | [文档](https://opencode.ai/docs/commands/) |
+| OpenCode | Skills | directory | `.opencode/skills/` | - | [文档](https://opencode.ai/docs/skills/) |
+| OpenCode | Agents | file | `.opencode/agents/` | `.md` | [文档](https://opencode.ai/docs/agents/) |
+| OpenCode | Tools | file | `.opencode/tools/` | `.ts`, `.js` | [文档](https://opencode.ai/docs/tools/) |
 | Codex | Rules | file | `.codex/rules/` | `.rules` | [文档](https://developers.openai.com/codex/rules) |
 | Codex | Skills | directory | `.agents/skills/` | - | [文档](https://developers.openai.com/codex/skills) |
-| Gemini CLI | Commands | file | `.gemini/commands/` | `.toml` | [网站](https://geminicli.com/) |
-| Gemini CLI | Skills | directory | `.gemini/skills/` | - | [网站](https://geminicli.com/) |
-| Gemini CLI | Agents | file | `.gemini/agents/` | `.md` | [网站](https://geminicli.com/) |
+| Gemini CLI | Commands | file | `.gemini/commands/` | `.toml` | [文档](https://geminicli.com/docs/cli/custom-commands/) |
+| Gemini CLI | Skills | directory | `.gemini/skills/` | - | [文档](https://geminicli.com/docs/cli/skills/) |
+| Gemini CLI | Subagents | file | `.gemini/agents/` | `.md` | [文档](https://geminicli.com/docs/core/subagents/) |
 | Warp | Rules | file | `.`（根目录） | `.md` | [文档](https://docs.warp.dev/agent-platform/capabilities/rules) — 与 AGENTS.md 相同，使用 `ais agents-md` |
 | Warp | Skills | directory | `.agents/skills/` | - | [文档](https://docs.warp.dev/agent-platform/capabilities/skills) |
 | **通用** | **AGENTS.md** | file | `.`（根目录） | `.md` | [标准](https://agents.md/) |
