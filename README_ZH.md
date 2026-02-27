@@ -8,9 +8,7 @@
 
 **AI Rules Sync (AIS)** - 跨项目和团队同步、管理和共享你的 AI 代理规则。
 
-不再复制粘贴 `.mdc` 文件。在 Git 仓库中管理规则，通过软链接同步。
-
-**支持：** Cursor（规则、命令、技能、subagents）、GitHub Copilot（指令、提示词、技能、代理）、Claude Code（规则、技能、subagents、CLAUDE.md）、Trae（规则、技能）、OpenCode（命令、技能、代理、工具）、Codex（规则、技能）、Gemini CLI（命令、技能、subagents）、Warp（规则 via AGENTS.md、技能）以及通用的 AGENTS.md。另支持 **User 模式**，用于管理个人 AI 配置文件（如 `~/.claude/CLAUDE.md`）。
+不再复制粘贴 `.mdc` 文件。在 Git 仓库中管理规则，通过软链接同步。支持 9 款 AI 工具及 **User 模式**（管理个人配置文件）——详见[支持的工具](#支持的工具)。
 
 ---
 
@@ -27,6 +25,7 @@
   - [User 模式](#user-模式个人-ai-配置文件)
 - [配置参考](#配置参考)
 - [架构](#架构)
+- [故障排查](#故障排查)
 
 ---
 
@@ -115,13 +114,10 @@ ais completion install
 **你有一个规则仓库，想在项目中使用其规则。**
 
 ```bash
-# 1. 安装 AIS
-npm install -g ai-rules-sync
-
-# 2. 进入你的项目
+# 1. 进入你的项目
 cd your-project
 
-# 3. 添加规则（重要：第一次必须指定仓库 URL）
+# 2. 添加规则（重要：第一次必须指定仓库 URL）
 ais cursor add react -t https://github.com/your-org/rules-repo.git
 
 # 完成！规则现在已链接到你的项目
@@ -144,10 +140,7 @@ ais cursor add testing
 **你在项目中有规则，想通过仓库分享它们。**
 
 ```bash
-# 1. 安装 AIS
-npm install -g ai-rules-sync
-
-# 2. 创建规则仓库（或使用现有仓库）
+# 1. 创建规则仓库（或使用现有仓库）
 # 选项 A：创建新仓库
 git init ~/my-rules-repo
 ais use ~/my-rules-repo
@@ -155,7 +148,7 @@ ais use ~/my-rules-repo
 # 选项 B：使用现有仓库
 ais use https://github.com/your-org/rules-repo.git
 
-# 3. 导入你的现有规则
+# 2. 导入你的现有规则
 cd your-project
 ais cursor rules import my-custom-rule
 
@@ -219,38 +212,17 @@ ais use personal-rules
 ### 2. 获取规则的三种方式
 
 #### **`add`** - 从仓库使用规则
+将仓库中的条目链接到你的项目，并保存依赖到 `ai-rules-sync.json`。
 
-```bash
-# 第一次：指定仓库
-ais cursor add react -t https://github.com/org/rules.git
-
-# 之后：使用当前仓库
-ais cursor add vue
-```
-
-**何时使用：**你想使用仓库中的现有规则。
+**何时使用：**你想使用共享仓库中的现有规则。
 
 #### **`import`** - 通过仓库分享你的规则
-
-```bash
-# 从项目导入现有规则
-ais cursor rules import my-custom-rule
-
-# 带选项
-ais cursor rules import my-rule --message "添加我的规则" --push
-```
+将项目中已有的条目复制到仓库并提交，然后用软链接替换原文件。
 
 **何时使用：**你在项目中有规则并想分享它们。
 
-#### **`install`** - 从配置文件安装
-
-```bash
-# 从 ai-rules-sync.json 安装所有规则
-ais install
-
-# 安装特定工具
-ais cursor install
-```
+#### **`install`** - 从配置文件恢复
+读取 `ai-rules-sync.json` 并重建所有软链接，无需重新指定仓库地址。
 
 **何时使用：**你克隆了一个带有 `ai-rules-sync.json` 的项目，想设置所有规则。
 
@@ -562,6 +534,24 @@ ais codex rules remove default
 ```
 
 **注意：** Codex 技能使用 `.agents/skills/` 目录（而非 `.codex/skills/`），这是按照 OpenAI 文档的规定。
+
+### Gemini CLI
+
+```bash
+# 添加命令（.toml）
+ais gemini commands add deploy-docs
+
+# 添加技能（目录）
+ais gemini skills add code-review
+
+# 添加 subagent（.md）
+ais gemini agents add code-analyzer
+
+# 移除
+ais gemini commands remove deploy-docs
+ais gemini skills remove code-review
+ais gemini agents remove code-analyzer
+```
 
 ### AGENTS.md（通用）
 
@@ -888,34 +878,18 @@ ais git status -t company-rules
 
 ### Tab 补全
 
-**自动安装（推荐）：**
-
-首次运行时，AIS 会提供安装 Tab 补全。
-
-**手动安装：**
+首次运行时，AIS 会自动提示安装 Tab 补全。手动安装：
 
 ```bash
 ais completion install
 ```
 
-**或手动添加到 shell 配置：**
+安装后，在任意 `add` 命令后按 `<Tab>` 可列出仓库中的可用条目：
 
-**Bash/Zsh**（`~/.bashrc` 或 `~/.zshrc`）：
 ```bash
-eval "$(ais completion)"
-```
-
-**Fish**（`~/.config/fish/config.fish`）：
-```fish
-ais completion fish | source
-```
-
-**使用：**
-```bash
-ais cursor add <Tab>                     # 列出可用规则
-ais cursor commands add <Tab>            # 列出可用命令
-ais copilot instructions add <Tab>       # 列出可用指令
-ais copilot skills add <Tab>             # 列出可用技能
+ais cursor add <Tab>              # 列出可用规则
+ais cursor commands add <Tab>     # 列出可用命令
+ais copilot instructions add <Tab>
 ```
 
 ---
@@ -936,59 +910,20 @@ ais copilot skills add <Tab>             # 列出可用技能
         "rule": "react"
       }
     },
-    "commands": {
-      "deploy-docs": "https://github.com/user/repo.git"
-    },
-    "skills": {
-      "code-review": "https://github.com/user/repo.git"
-    },
-    "agents": {
-      "code-analyzer": "https://github.com/user/repo.git"
-    }
-  },
-  "copilot": {
-    "instructions": {
-      "general": "https://github.com/user/repo.git"
-    }
+    "commands": { "deploy-docs": "https://github.com/user/repo.git" },
+    "skills":   { "code-review": "https://github.com/user/repo.git" },
+    "agents":   { "code-analyzer": "https://github.com/user/repo.git" }
   },
   "claude": {
-    "skills": {
-      "code-review": "https://github.com/user/repo.git"
-    },
-    "agents": {
-      "debugger": "https://github.com/user/repo.git"
-    },
-    "rules": {
-      "general": "https://github.com/user/repo.git"
-    },
-    "md": {
-      "CLAUDE": "https://github.com/user/repo.git"
-    }
-  },
-  "trae": {
-    "rules": {
-      "project-rules": "https://github.com/user/repo.git"
-    },
-    "skills": {
-      "adapter-builder": "https://github.com/user/repo.git"
-    }
-  },
-  "opencode": {
-    "agents": {
-      "code-reviewer": "https://github.com/user/repo.git"
-    },
-    "skills": {
-      "refactor-helper": "https://github.com/user/repo.git"
-    },
-    "commands": {
-      "build-optimizer": "https://github.com/user/repo.git"
-    },
-    "tools": {
-      "project-analyzer": "https://github.com/user/repo.git"
-    }
+    "rules":  { "general": "https://github.com/user/repo.git" },
+    "skills": { "code-review": "https://github.com/user/repo.git" },
+    "agents": { "debugger": "https://github.com/user/repo.git" },
+    "md":     { "CLAUDE": "https://github.com/user/repo.git" }
   }
 }
 ```
+
+其他工具（`copilot`、`trae`、`opencode`、`codex`、`gemini`）的结构相同，键名参见[支持的工具](#支持的工具)。
 
 **格式类型：**
 
@@ -1027,34 +962,6 @@ ais cursor add company-secrets --local
 - 应在 `.gitignore` 中（AIS 自动添加）
 - 与主配置合并（本地优先）
 
-### 全局配置
-
-**位置：**`~/.config/ai-rules-sync/config.json`
-
-```json
-{
-  "currentRepo": "company-rules",
-  "repos": {
-    "company-rules": {
-      "name": "company-rules",
-      "url": "https://github.com/company/rules",
-      "path": "/Users/user/.config/ai-rules-sync/repos/company-rules",
-      "sourceDir": {
-        "cursor": {
-          "rules": "rules/cursor",
-          "commands": "commands/cursor"
-        }
-      }
-    },
-    "personal-rules": {
-      "name": "personal-rules",
-      "url": "https://github.com/me/rules",
-      "path": "/Users/user/.config/ai-rules-sync/repos/personal-rules"
-    }
-  }
-}
-```
-
 ### Legacy 兼容性
 
 **旧的 `cursor-rules.json` 格式仍然支持：**
@@ -1088,139 +995,7 @@ CLI 层
 3. **通用函数**：`addDependencyGeneric()` 和 `removeDependencyGeneric()` 适用于任何适配器
 4. **可扩展**：易于添加新 AI 工具支持
 
-### 添加新的 AI 工具适配器
-
-**1. 创建适配器文件**（`src/adapters/my-tool.ts`）：
-
-```typescript
-import { createBaseAdapter, createSingleSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
-
-// 目录模式（技能、代理）
-export const myToolSkillsAdapter = createBaseAdapter({
-  name: 'my-tool-skills',
-  tool: 'my-tool',
-  subtype: 'skills',
-  configPath: ['myTool', 'skills'],
-  defaultSourceDir: '.my-tool/skills',
-  targetDir: '.my-tool/skills',
-  mode: 'directory',
-});
-
-// 文件模式（单一后缀）
-export const myToolRulesAdapter = createBaseAdapter({
-  name: 'my-tool-rules',
-  tool: 'my-tool',
-  subtype: 'rules',
-  configPath: ['myTool', 'rules'],
-  defaultSourceDir: '.my-tool/rules',
-  targetDir: '.my-tool/rules',
-  mode: 'file',
-  fileSuffixes: ['.md'],
-  resolveSource: createSingleSuffixResolver('.md', 'Rule'),
-  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
-});
-```
-
-**2. 注册适配器**（`src/adapters/index.ts`）：
-
-```typescript
-import { myToolSkillsAdapter, myToolRulesAdapter } from './my-tool.js';
-
-// 在 DefaultAdapterRegistry 构造函数中：
-this.register(myToolSkillsAdapter);
-this.register(myToolRulesAdapter);
-```
-
-**3. 更新 ProjectConfig**（`src/project-config.ts`）：
-
-```typescript
-export interface ProjectConfig {
-  // ... 现有字段 ...
-  myTool?: {
-    skills?: Record<string, RuleEntry>;
-    rules?: Record<string, RuleEntry>;
-  };
-}
-```
-
-**完成！**你的适配器现在通过统一接口支持所有操作。
-
----
-
-## 常见工作流
-
-### 团队入职
-
-```bash
-# 新团队成员克隆项目
-git clone https://github.com/team/project.git
-cd project
-
-# 安装 AIS
-npm install -g ai-rules-sync
-
-# 安装所有规则
-ais install
-
-# 完成！所有规则现已链接
-```
-
-### 更新共享规则
-
-```bash
-# 拉取最新规则
-ais git pull
-
-# 规则自动更新（软链接指向仓库）
-```
-
-### 创建公司规则仓库
-
-```bash
-# 1. 创建仓库
-mkdir company-rules
-cd company-rules
-git init
-
-# 2. 创建结构
-mkdir -p .cursor/rules .cursor/commands .claude/skills
-
-# 3. 添加规则
-echo "# 公司编码标准" > .cursor/rules/coding-standards.mdc
-echo "# React 最佳实践" > .cursor/rules/react.mdc
-
-# 4. 提交
-git add .
-git commit -m "Initial company rules"
-
-# 5. 推送到远程
-git remote add origin https://github.com/company/rules.git
-git push -u origin main
-
-# 6. 团队成员现在可以使用
-ais cursor add coding-standards -t https://github.com/company/rules.git
-```
-
-### 迁移现有规则
-
-```bash
-# 1. 设置仓库
-ais use https://github.com/team/rules.git
-
-# 2. 导入所有现有规则
-cd your-project
-ais cursor rules import rule1
-ais cursor rules import rule2
-ais cursor commands import deploy
-ais claude skills import code-review
-
-# 3. 推送到远程
-ais git push
-
-# 4. 团队现在可以安装
-# 在 ai-rules-sync.json 中共享配置
-# 团队成员运行：ais install
-```
+添加新适配器的详细说明请参见 [KNOWLEDGE_BASE.md](./KNOWLEDGE_BASE.md)。
 
 ---
 
