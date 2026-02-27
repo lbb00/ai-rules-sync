@@ -1,14 +1,14 @@
 # Project Knowledge Base
 
 ## Project Overview
-**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor subagents**, **Copilot instructions**, **Claude Code rules/skills/subagents/CLAUDE.md**, **Trae rules/skills**, **OpenCode agents/skills/commands/tools**, **Codex rules/skills**, **Gemini CLI commands/skills/agents**, and **universal AGENTS.md support**, keeping projects up-to-date across teams.
+**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor subagents**, **Copilot instructions**, **Claude Code rules/skills/subagents/CLAUDE.md**, **Trae rules/skills**, **OpenCode agents/skills/commands/tools**, **Codex rules/skills**, **Gemini CLI commands/skills/subagents**, and **universal AGENTS.md support**, keeping projects up-to-date across teams.
 
 A key feature is **User Mode** (`--user` / `-u`): use `$HOME` as project root to manage AI config files in `~/.claude/`, `~/.cursor/`, etc. Entries are tracked in `~/.config/ai-rules-sync/user.json` (or a user-configured custom path for dotfiles integration) and gitignore management is skipped automatically.
 
 ## Core Concepts
 - **Rules Repository**: A Git repository containing rule definitions in official tool paths (`.cursor/rules/`, `.cursor/commands/`, `.cursor/skills/`, `.cursor/agents/`, `.github/instructions/`, `.claude/skills/`, `.claude/agents/`, `.claude/` (for CLAUDE.md), `.trae/rules/`, `.trae/skills/`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, `.opencode/tools/`, `.codex/rules/`, `.agents/skills/`, `.gemini/commands/`, `.gemini/skills/`, `.gemini/agents/`, `agents-md/`).
 - **Symbolic Links**: Entries are linked from the local cache of the repo to project directories, avoiding file duplication and drift.
-- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills/subagents, Copilot instructions, Claude Code rules/skills/subagents/CLAUDE.md, Trae rules/skills, OpenCode agents/skills/commands/tools, Codex rules/skills, Gemini CLI commands/skills/agents, AGENTS.md).
+- **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills/subagents, Copilot instructions, Claude Code rules/skills/subagents/CLAUDE.md, Trae rules/skills, OpenCode agents/skills/commands/tools, Codex rules/skills, Gemini CLI commands/skills/subagents, AGENTS.md).
 - **Privacy**: Supports private/local entries via `ai-rules-sync.local.json` and `.git/info/exclude`.
 - **User Mode**: `--user` / `-u` flag on add/remove/install commands. Sets `projectPath = $HOME`, stores dependencies in `~/.config/ai-rules-sync/user.json`, skips gitignore management. Enables `ais user install` to restore all user-scope symlinks on a new machine. (`--global`/`-g` kept as deprecated aliases.)
 - **User Config Path**: Configurable via `ais config user set <path>` for dotfiles integration (e.g. `~/dotfiles/ai-rules-sync/user.json`).
@@ -425,11 +425,11 @@ Gemini CLI (https://geminicli.com/) is supported with three entry types:
 - Directory-based synchronization for Gemini CLI skills (SKILL.md inside).
 - **Purpose**: Specialized expertise for specific tasks.
 
-### 14.3. Gemini Agent Synchronization
+### 14.3. Gemini Subagent Synchronization
 - **Syntax**: `ais gemini agents add <agentName> [alias]`
 - Links `<repo>/.gemini/agents/<agentName>` to `.gemini/agents/<alias>`.
-- File-based synchronization with `.md` suffix for Gemini CLI agents (Markdown with YAML frontmatter).
-- **Purpose**: Specialized agents with defined capabilities.
+- File-based synchronization with `.md` suffix for Gemini CLI subagents (Markdown with YAML frontmatter).
+- **Purpose**: Specialized subagents with defined capabilities.
 
 ### 15. Import Command
 - **Syntax**: `ais import <tool> <subtype> <name>` or `ais <tool> <subtype> import <name>`
@@ -453,7 +453,7 @@ Gemini CLI (https://geminicli.com/) is supported with three entry types:
 - `ais trae install` - Install all Trae rules and skills.
 - `ais opencode install` - Install all OpenCode agents, skills, commands, and tools.
 - `ais codex install` - Install all Codex rules and skills.
-- `ais gemini install` - Install all Gemini CLI commands, skills, and agents.
+- `ais gemini install` - Install all Gemini CLI commands, skills, and subagents.
 - `ais agents-md install` - Install AGENTS.md files.
 - `ais install` - Install everything (smart dispatch).
 - `ais install --user` / `ais user install` - Install all user-scope AI config files from `~/.config/ai-rules-sync/user.json`. (`--global` and `ais global install` kept as deprecated aliases.)
@@ -858,23 +858,23 @@ ais user install
 | cursor-commands | cursor | commands | file | .cursor/commands | .md | [Cursor Commands](https://cursor.com/docs/context/commands) |
 | cursor-skills | cursor | skills | directory | .cursor/skills | - | [Cursor Skills](https://cursor.com/docs/context/skills) |
 | cursor-agents | cursor | subagents | directory | .cursor/agents | - | [Cursor subagents](https://cursor.com/docs/context/subagents) |
-| copilot-instructions | copilot | instructions | file | .github/instructions | .instructions.md, .md | [Copilot Instructions](https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot) |
+| copilot-instructions | copilot | instructions | file | .github/instructions | .instructions.md, .md | [Copilot Instructions](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions) |
 | claude-skills | claude | skills | directory | .claude/skills | - | [Claude Code Skills](https://code.claude.com/docs/en/skills) |
 | claude-agents | claude | subagents | directory | .claude/agents | - | [Claude Code Subagents](https://code.claude.com/docs/en/sub-agents) |
-| claude-rules | claude | rules | file | .claude/rules | .md | [Claude Code](https://claude.ai/code) |
-| claude-md | claude | md | file | .claude | .md | [Claude Code CLAUDE.md](https://claude.ai/code) |
-| trae-rules | trae | rules | file | .trae/rules | .md | [Trae AI](https://trae.ai/) |
-| trae-skills | trae | skills | directory | .trae/skills | - | [Trae AI](https://trae.ai/) |
+| claude-rules | claude | rules | file | .claude/rules | .md | [Claude Code Memory](https://code.claude.com/docs/en/memory) |
+| claude-md | claude | md | file | .claude | .md | [Claude Code CLAUDE.md](https://docs.anthropic.com/en/docs/claude-code/memory) |
+| trae-rules | trae | rules | file | .trae/rules | .md | [Trae Rules](https://docs.trae.ai/ide/rules) |
+| trae-skills | trae | skills | directory | .trae/skills | - | [Trae Skills](https://docs.trae.ai/ide/skills) |
 | **agents-md** | **agents-md** | **file** | **file** | **.** (root) | **.md** | **[agents.md standard](https://agents.md/)** |
-| opencode-agents | opencode | agents | file | .opencode/agents | .md | [OpenCode](https://opencode.ing/) |
-| opencode-skills | opencode | skills | directory | .opencode/skills | - | [OpenCode](https://opencode.ing/) |
-| opencode-commands | opencode | commands | file | .opencode/commands | .md | [OpenCode](https://opencode.ing/) |
-| opencode-tools | opencode | tools | file | .opencode/tools | .ts, .js | [OpenCode](https://opencode.ing/) |
+| opencode-agents | opencode | agents | file | .opencode/agents | .md | [OpenCode Agents](https://opencode.ai/docs/agents/) |
+| opencode-skills | opencode | skills | directory | .opencode/skills | - | [OpenCode Skills](https://opencode.ai/docs/skills/) |
+| opencode-commands | opencode | commands | file | .opencode/commands | .md | [OpenCode Commands](https://opencode.ai/docs/commands/) |
+| opencode-tools | opencode | tools | file | .opencode/tools | .ts, .js | [OpenCode Tools](https://opencode.ai/docs/tools/) |
 | codex-rules | codex | rules | file | .codex/rules | .rules | [OpenAI Codex Rules](https://developers.openai.com/codex/rules) |
 | codex-skills | codex | skills | directory | .agents/skills | - | [OpenAI Codex Skills](https://developers.openai.com/codex/skills) |
-| gemini-commands | gemini | commands | file | .gemini/commands | .toml | [Gemini CLI](https://geminicli.com/) |
-| gemini-skills | gemini | skills | directory | .gemini/skills | - | [Gemini CLI](https://geminicli.com/) |
-| gemini-agents | gemini | agents | file | .gemini/agents | .md | [Gemini CLI](https://geminicli.com/) |
+| gemini-commands | gemini | commands | file | .gemini/commands | .toml | [Gemini Commands](https://geminicli.com/docs/cli/custom-commands/) |
+| gemini-skills | gemini | skills | directory | .gemini/skills | - | [Gemini Skills](https://geminicli.com/docs/cli/skills/) |
+| gemini-agents | gemini | subagents | file | .gemini/agents | .md | [Gemini Subagents](https://geminicli.com/docs/core/subagents/) |
 
 ## Development Guidelines
 - **TypeScript**: Strict mode enabled.
@@ -892,500 +892,28 @@ ais user install
 - Use **file** mode for tools with single files and consistent suffix (commands with `.md`)
 - Use **hybrid** mode when entries can be either files or directories (cursor-rules)
 
-## Recent Changes
-
-### User Mode & claude-md Adapter (2026-02)
-
-**Added User Mode for managing personal AI config files (`~/.claude/CLAUDE.md`, etc.):**
-
-**Problem Solved:**
-- Personal AI config files like `~/.claude/CLAUDE.md` had no version control or cross-machine sync
-- Each machine required manual setup of global AI tool configurations
-
-**Features Implemented:**
-
-1. **User Mode (`--user` / `-u` flag)**:
-   - All add/remove/install commands accept `--user` flag
-   - Sets `projectPath = $HOME` automatically
-   - Stores dependencies in `~/.config/ai-rules-sync/user.json`
-   - Skips gitignore management (home dir isn't a git repo)
-   - `--global` / `-g` kept as deprecated backward-compatible aliases
-
-2. **claude-md Adapter**:
-   - New adapter for CLAUDE.md-style files (`.claude/<name>.md`)
-   - File mode with `.md` suffix; resolves `CLAUDE` → `CLAUDE.md`
-   - CLI: `ais claude md [add|remove|install|import]`
-   - User mode usage: `ais claude md add CLAUDE --user`
-
-3. **One-click User Install**:
-   - `ais user install` / `ais install --user`
-   - Reads all entries from `user.json` and recreates symlinks (perfect for new machine setup)
-   - `ais global install` and `ais install --global` kept as deprecated aliases
-
-4. **User Config Path Management**:
-   - `ais config user show` - View current user.json path
-   - `ais config user set <path>` - Set custom path (for dotfiles integration)
-   - `ais config user reset` - Reset to default path
-   - Stored as `userConfigPath` in `~/.config/ai-rules-sync/config.json`
-   - `ais config global show|set|reset` kept as deprecated aliases
-
-5. **claude-rules Adapter** (formalized):
-   - Adapter for `.claude/rules/` files (`.md` suffix)
-   - CLI: `ais claude rules [add|remove|install|import]`
-
-6. **`skipIgnore` in SyncOptions**:
-   - New optional field prevents gitignore management in user mode
-   - Set automatically when `--user` is used
-
-7. **Automatic Migration**:
-   - On first use, auto-renames `global.json` → `user.json` in the config directory
-   - Auto-renames `globalConfigPath` → `userConfigPath` in `config.json`
-
-**Implementation:**
-- `src/adapters/claude-md.ts` - New claude-md adapter
-- `src/config.ts` - Added `userConfigPath`, `getUserConfigPath()`, `getUserProjectConfig()`, `saveUserProjectConfig()` (replacing `global*` equivalents)
-- `src/project-config.ts` - Added `claude.md` and `claude.rules` to config interfaces; added `addUserDependency()`, `removeUserDependency()`
-- `src/adapters/types.ts` - Added `skipIgnore?: boolean` to `SyncOptions`
-- `src/sync-engine.ts` - Respect `skipIgnore` in `linkEntry()`
-- `src/adapters/index.ts` - Registered `claudeMdAdapter`
-- `src/commands/handlers.ts` - Added `user?` and `skipIgnore?` to `CommandContext`; user path for `handleAdd`/`handleRemove`
-- `src/commands/install.ts` - Added `installUserEntriesForAdapter()`, `installAllUserEntries()`
-- `src/commands/config.ts` - Added `handleUserConfigShow/Set/Reset()`
-- `src/cli/register.ts` - Added `-u, --user` flag to add/remove/install commands (with `-g, --global` as deprecated aliases)
-- `src/index.ts` - Added `ais claude md` subgroup, `ais user install`, `ais config user` commands
-
-**Files Changed:** 11 modified/new, all tests passing (206/206)
-
-### OpenAI Codex Support (2026-02)
-
-**Added complete support for OpenAI Codex project-level rules and skills:**
-
-**Problem Solved:**
-- Teams using Codex needed to share rules and skills across projects
-- No centralized way to distribute Codex configurations
-- Manual copying led to drift and inconsistency
-
-**Features Implemented:**
-
-1. **Codex Rules Adapter**:
-   - File mode with `.rules` suffix
-   - Source: `.codex/rules/`
-   - Syntax: `ais codex rules add <ruleName> [alias]`
-   - Purpose: Control which commands can run outside sandbox using Starlark syntax
-
-2. **Codex Skills Adapter**:
-   - Directory mode (SKILL.md + optional scripts/assets)
-   - Source: `.agents/skills/` (non-standard location per Codex docs)
-   - Syntax: `ais codex skills add <skillName> [alias]`
-   - Purpose: Task-specific capabilities that extend Codex
-
-3. **CLI Commands**:
-   - `ais codex install` - Install all Codex rules and skills
-   - `ais codex add-all` - Discover and add all entries from repository
-   - `ais codex import <name>` - Import from project to repository (auto-detects subtype)
-   - `ais codex rules [add|remove|install|import]` - Rules management
-   - `ais codex skills [add|remove|install|import]` - Skills management
-
-4. **Configuration Support**:
-   - Extended `SourceDirConfig` with `codex.rules` and `codex.skills`
-   - Extended `ProjectConfig` with `codex.rules` and `codex.skills` records
-   - Full support for custom source directories via `-s` option
-   - Backward compatible with existing configs
-
-5. **Shell Completion**:
-   - Added Codex to bash, zsh, and fish completion scripts
-   - Dynamic completion for rule/skill names via `ais _complete codex-rules|codex-skills`
-   - Context-aware completions for all subcommands
-
-6. **Mode Detection**:
-   - Added 'codex' to `DefaultMode` type
-   - `ais install` smart dispatch includes Codex
-   - Auto-detect Codex-only projects
-
-**Implementation:**
-- `src/adapters/codex-rules.ts` - Rules adapter (file mode, `.rules` suffix)
-- `src/adapters/codex-skills.ts` - Skills adapter (directory mode, `.agents/skills`)
-- `src/adapters/index.ts` - Registered adapters and added to `findAdapterForAlias`
-- `src/project-config.ts` - Extended configuration interfaces and helpers
-- `src/commands/helpers.ts` - Added 'codex' mode type and inference
-- `src/index.ts` - Full CLI command hierarchy with install/add-all/import
-- `src/completion/scripts.ts` - Shell completion for all three shells
-- `tests/codex-adapters.test.ts` - Complete test coverage (9 tests)
-
-**Files Changed:** 9 new/modified, all tests passing (126/126)
-
-**Benefits:**
-- Centralized Codex configuration management
-- Team-wide consistency for sandbox rules
-- Easy sharing of skills across projects
-- Follows same pattern as other supported tools
-
-### Custom Source Directories for Third-Party Repositories (2026-01)
-
-**Added 4-layer priority system for custom source directory configuration:**
-
-**Problem Solved:**
-- Third-party repositories without `ai-rules-sync.json` were unusable
-- Repositories with non-standard directory structures (e.g., `rules/cursor/` instead of `.cursor/rules`) required forking
-- No way to override source directories without modifying the repository
-
-**Solution - 4-Layer Priority:**
-```
-CLI Parameters > Global Config > Repository Config > Adapter Defaults
-```
-
-**Features Implemented:**
-
-1. **CLI Parameters (`-s/--source-dir`)**:
-   - Simple format: `ais cursor rules add-all -s custom/rules`
-   - Dot notation: `ais add-all -s cursor.rules=custom/rules`
-   - Supports multiple `-s` flags
-   - Context-aware parsing (infers tool/subtype from command)
-
-2. **Global Configuration Commands**:
-   - `ais config repo set-source <name> <tool.subtype> <path>` - Persist custom sourceDir
-   - `ais config repo show <name>` - View repository configuration
-   - `ais config repo clear-source <name> [tool.subtype]` - Remove custom sourceDir
-   - `ais config repo list` - List all repositories with sourceDir
-
-3. **Enhanced Architecture**:
-   - Extended `RepoConfig` interface with `sourceDir?: SourceDirConfig`
-   - Enhanced `getSourceDir()` with `globalOverride` parameter (4-layer priority logic)
-   - All `add-all` commands support `-s` option (top-level, tool-level, subtype-level)
-   - Custom parser with simple and dot notation format support
-
-4. **Configuration Persistence**:
-   - Global config stored in `~/.config/ai-rules-sync/config.json`
-   - Per-repository `sourceDir` configuration
-   - CLI overrides have highest priority (temporary)
-   - Global config persists across sessions
-
-**Use Cases:**
-- **Exploration**: `ais cursor rules add-all -s custom/rules --dry-run`
-- **Persistent**: `ais config repo set-source my-repo cursor.rules custom/rules`
-- **Override**: CLI parameter overrides saved configuration
-
-**Files Changed:**
-- `src/config.ts` - Added `sourceDir` to `RepoConfig` interface
-- `src/project-config.ts` - Enhanced `getSourceDir()` with priority logic
-- `src/commands/add-all.ts` - Added `sourceDirOverrides` parameter throughout
-- `src/cli/source-dir-parser.ts` - New parameter parsing module
-- `src/commands/config.ts` - New config management commands
-- `src/cli/register.ts` - Added `-s` option to all adapter commands
-- `src/index.ts` - Added `-s` to all add-all commands + config command group
-- `README.md` - Added comprehensive documentation section
-
-**Benefits:**
-- Works with any repository (no ai-rules-sync.json required)
-- Flexible (CLI for quick tests, config for persistent use)
-- Non-destructive (doesn't modify third-party repositories)
-- User-friendly (smart context detection in simple format)
-
-### Configuration Directory Migration (2026-01)
-
-**Changed global configuration location to follow XDG Base Directory specification:**
-- **Old**: `~/.ai-rules-sync/`
-- **New**: `~/.config/ai-rules-sync/`
-
-**Impact:**
-- Global config file: `~/.config/ai-rules-sync/config.json`
-- Repository cache: `~/.config/ai-rules-sync/repos/`
-- No automatic migration provided - users must manually move files if needed
-- Aligns with Linux/macOS standards for configuration file placement
-
-**Files Changed:**
-- `src/config.ts` - Updated `CONFIG_DIR` constant
-- `tests/config.test.ts` - Updated test fixtures
-- Documentation updated to reflect new paths
-
-### OpenCode AI Support (2026-01)
-
-**Added complete support for OpenCode AI (https://opencode.ai) with 5 component types:**
-- **Rules** (`.opencode/rules/`) - File mode with `.md` suffix
-- **Agents** (`.opencode/agents/`) - Directory mode
-- **Skills** (`.opencode/skills/`) - Directory mode
-- **Commands** (`.opencode/commands/`) - Directory mode
-- **Custom-tools** (`.opencode/custom-tools/`) - Directory mode
-
-**Implementation:**
-- Created 5 new adapters following existing patterns
-- Extended `ProjectConfig` and `SourceDirConfig` interfaces
-- Added CLI commands: `ais opencode [rules|agents|skills|commands|custom-tools] [add|remove|install|import]`
-- Updated shell completion scripts (bash, zsh, fish)
-- Added `_complete` command support for all OpenCode types
-- Updated mode inference to recognize OpenCode projects
-
-**Files Changed:**
-- `src/adapters/opencode-rules.ts` - New adapter (file mode, .md)
-- `src/adapters/opencode-agents.ts` - New adapter (directory mode)
-- `src/adapters/opencode-skills.ts` - New adapter (directory mode)
-- `src/adapters/opencode-commands.ts` - New adapter (directory mode)
-- `src/adapters/opencode-custom-tools.ts` - New adapter (directory mode)
-- `src/adapters/index.ts` - Registered all 5 OpenCode adapters
-- `src/project-config.ts` - Extended configuration interfaces
-- `src/commands/helpers.ts` - Added 'opencode' mode type
-- `src/index.ts` - Added OpenCode CLI commands and completion
-- `src/completion/scripts.ts` - Added OpenCode to all shell completions
-- `README.md` - Documented OpenCode support
-- `KNOWLEDGE_BASE.md` - Updated architecture and feature documentation
-
-### OpenCode Adapters Fix & Universal AGENTS.md Support (2026-01)
-
-**Fixed OpenCode adapter modes to match official OpenCode documentation:**
-- **Removed** `opencode-rules` adapter (OpenCode doesn't have a rules type)
-- **Fixed** `opencode-agents` - Changed from directory to **file mode** with `.md` suffix
-- **Fixed** `opencode-commands` - Changed from directory to **file mode** with `.md` suffix
-- **Renamed** `opencode-custom-tools` → `opencode-tools` - Changed to **file mode** with `.ts`/`.js` suffixes
-- **Kept** `opencode-skills` - Remains **directory mode** (contains SKILL.md inside)
-
-**Added Universal AGENTS.md Support:**
-- **New adapter**: `agents-md` - Tool-agnostic support for the [agents.md standard](https://agents.md/)
-- Syncs AGENTS.md files from repository to project root
-- Makes agent definitions available to any AI coding tool supporting the agents.md format
-- **Mode**: File mode with `.md` suffix
-- **Target**: Project root (`.`)
-
-**Configuration Changes:**
-- Removed `opencode.rules` from all config interfaces
-- Renamed `opencode['custom-tools']` → `opencode.tools`
-- Added new top-level `agentsMd` configuration section
-- Updated `SourceDirConfig` and `ProjectConfig` interfaces
-
-**CLI Changes:**
-- Added new top-level command group: `ais agents-md [add|remove|install|import]`
-- Removed `ais opencode rules` subcommand
-- Changed `ais opencode custom-tools` → `ais opencode tools`
-- Updated all error messages and help text
-
-**Implementation:**
-- `src/adapters/agents-md.ts` - New universal adapter
-- `src/adapters/opencode-rules.ts` - Deleted
-- `src/adapters/opencode-custom-tools.ts` - Renamed to `opencode-tools.ts`
-- `src/adapters/opencode-agents.ts` - Fixed to file mode
-- `src/adapters/opencode-commands.ts` - Fixed to file mode
-- `src/adapters/opencode-tools.ts` - Updated to file mode with .ts/.js
-- `src/adapters/index.ts` - Updated registry
-- `src/project-config.ts` - Updated all config interfaces
-- `src/commands/helpers.ts` - Added 'agents-md' mode
-- `src/index.ts` - Updated CLI commands and completion
-- `src/completion/scripts.ts` - Updated all shell completions
-- `README.md` & `README_ZH.md` - Documented changes with reference links
-- `KNOWLEDGE_BASE.md` - Updated architecture documentation
-
-**Reference Links Added:**
-All documentation now includes links to official tool documentation for easy reference.
-
-### AGENTS.md Adapter Redesign (2026-01)
-
-**Redesigned agents-md adapter for flexible AGENTS.md location:**
-
-**Problem Solved:**
-- Old adapter required AGENTS.md files in fixed `agents-md/` directory
-- Didn't align with agents.md standard allowing files anywhere in repo
-- Limited name resolution didn't support path-based lookup
-
-**New Design:**
-- **Changed default source directory**: `agents-md` → `.` (repository root)
-- **Flexible path resolution** supports 4 patterns:
-  1. **Explicit file path**: `frontend/AGENTS.md` → `repo/frontend/AGENTS.md`
-  2. **Directory path**: `docs/team` → `repo/docs/team/AGENTS.md` (auto-appends /AGENTS.md)
-  3. **Simple name**: `frontend` → tries `repo/frontend/AGENTS.md`, then `repo/AGENTS.md`
-  4. **Root level**: `.` or `AGENTS` → `repo/AGENTS.md`
-- **Case insensitive**: Supports both `AGENTS.md` and `agents.md` variants
-- **Custom config management**: Uses flat `agentsMd` structure instead of nested like other tools
-
-**Configuration Changes:**
-```json
-// Old (rules repo)
-{ "sourceDir": { "agentsMd": { "file": "agents-md" } } }
-
-// New (rules repo) - supports any directory
-{ "sourceDir": { "agentsMd": { "file": "." } } }
-
-// Project config - flat structure with flexible paths
-{
-  "agentsMd": {
-    "root": { "url": "...", "rule": "AGENTS.md" },
-    "frontend": { "url": "...", "rule": "frontend/AGENTS.md" },
-    "platform": { "url": "...", "rule": "docs/teams/platform/AGENTS.md" }
-  }
-}
-```
-
-**Implementation Details:**
-- Custom `resolveSource` with multi-pattern path resolution
-- Custom `addDependency`/`removeDependency` for flat config structure
-- Fixed alias handling in `handleAdd` to prioritize user-provided aliases
-- Validates that only AGENTS.md files are supported (rejects other .md files)
-
-**Migration:**
-- **No breaking changes**: Old configs continue to work
-- Existing `agents-md/AGENTS.md` will still be found
-- Users can gradually migrate to new flexible structure
-- New projects can organize AGENTS.md files by directory (frontend/, backend/, etc.)
-
-**Files Changed:**
-- `src/adapters/agents-md.ts` - Complete rewrite with flexible resolution
-- `src/project-config.ts` - Updated default comment and config handling
-- `src/commands/handlers.ts` - Fixed alias handling for all adapters
-- `KNOWLEDGE_BASE.md`, `README.md`, `README_ZH.md` - Documentation updates
-
-### Custom Target Directories (2026-01)
-
-**Added support for custom target directories per entry:**
-
-**Feature Overview:**
-- Users can now specify custom target directories for each synced entry
-- Allows flexible organization beyond default tool directories
-- Perfect for documentation projects, monorepos, and custom team structures
-- Supports aliasing same rule to multiple locations
-
-**Implementation:**
-- **Entry-level configuration**: Each config entry can specify `targetDir` field
-- **CLI option**: Added `-d, --target-dir <dir>` to all `add` commands
-- **Priority resolution**: options.targetDir > config entry targetDir > adapter default
-- **Conflict detection**: Prevents overwriting when adding same rule to different locations without alias
-- **Suffix handling**: Properly resolves file suffixes when removing aliased entries
-
-**Configuration Examples:**
-
-```json
-{
-  "cursor": {
-    "rules": {
-      // Default target directory (.cursor/rules/)
-      "standard-rule": "https://github.com/company/rules",
-
-      // Custom target directory
-      "docs-rule": {
-        "url": "https://github.com/company/rules",
-        "targetDir": "docs/ai/rules"
-      },
-
-      // Same rule to multiple locations (requires alias)
-      "frontend-auth": {
-        "url": "https://github.com/company/rules",
-        "rule": "auth-rules",
-        "targetDir": "packages/frontend/.cursor/rules"
-      },
-      "backend-auth": {
-        "url": "https://github.com/company/rules",
-        "rule": "auth-rules",
-        "targetDir": "packages/backend/.cursor/rules"
-      }
-    }
-  }
-}
-```
-
-**CLI Usage:**
-
-```bash
-# Add rule to custom directory
-ais cursor add my-rule -d docs/ai/rules
-
-# Add same rule to multiple locations (requires alias)
-ais cursor add auth-rules frontend-auth -d packages/frontend/.cursor/rules
-ais cursor add auth-rules backend-auth -d packages/backend/.cursor/rules
-
-# Remove specific location (uses alias as config key)
-ais cursor remove frontend-auth
-
-# Install respects custom targetDir from config
-ais cursor install
-```
-
-**Key Behaviors:**
-- **No alias needed** for first-time adds or when targeting different source files
-- **Alias required** when adding same source file to different location (prevents config key conflicts)
-- **Backward compatible**: Entries without `targetDir` use adapter default
-- **Config format**: Uses simple string when no custom targetDir; object format when specified
-- **Install support**: `install` command reads and respects `targetDir` from config
-
-**Files Changed:**
-- `src/project-config.ts` - Extended `RuleEntry` type, added `getTargetDir()` and `getEntryConfig()`
-- `src/sync-engine.ts` - Dynamic target directory resolution in `linkEntry()`, `unlinkEntry()`, `importEntry()`
-- `src/adapters/types.ts` - Extended `SyncOptions` and `addDependency` signature
-- `src/adapters/base.ts` - Pass `targetDir` through to config functions
-- `src/adapters/agents-md.ts` - Updated custom `addDependency()` for `targetDir` support
-- `src/commands/handlers.ts` - Added `AddOptions` with conflict detection
-- `src/commands/install.ts` - Extract and pass `targetDir` during installation
-- `src/cli/register.ts` - Added `-d, --target-dir` option to adapter commands
-- `src/index.ts` - Added `-d, --target-dir` to hardcoded cursor/copilot commands
-- All tests passing (105/105)
-
-### Gemini CLI Support (2026-02)
-
-**Added complete support for Gemini CLI (https://geminicli.com/) with three entry types:**
-
-**Problem Solved:**
-- Teams using Gemini CLI needed to share commands, skills, and agents across projects
-- No centralized way to distribute Gemini CLI configurations
-- Manual copying led to drift and inconsistency
-
-**Features Implemented:**
-
-1. **Gemini Commands Adapter**:
-   - File mode with `.toml` suffix (native Gemini CLI format)
-   - Source: `.gemini/commands/`
-   - Syntax: `ais gemini commands add <commandName> [alias]`
-   - Purpose: Reusable prompts with argument substitution
-
-2. **Gemini Skills Adapter**:
-   - Directory mode (SKILL.md + optional assets)
-   - Source: `.gemini/skills/`
-   - Syntax: `ais gemini skills add <skillName> [alias]`
-   - Purpose: Specialized expertise for specific tasks
-
-3. **Gemini Agents Adapter**:
-   - File mode with `.md` suffix (Markdown with YAML frontmatter)
-   - Source: `.gemini/agents/`
-   - Syntax: `ais gemini agents add <agentName> [alias]`
-   - Purpose: Specialized agents with defined capabilities
-
-4. **CLI Commands**:
-   - `ais gemini install` - Install all Gemini commands, skills, and agents
-   - `ais gemini add-all` - Discover and add all entries from repository
-   - `ais gemini import <name>` - Import from project to repository (auto-detects subtype)
-   - `ais gemini commands [add|remove|install|import]` - Commands management
-   - `ais gemini skills [add|remove|install|import]` - Skills management
-   - `ais gemini agents [add|remove|install|import]` - Agents management
-
-5. **Configuration Support**:
-   - Extended `SourceDirConfig` with `gemini.commands`, `gemini.skills`, and `gemini.agents`
-   - Extended `ProjectConfig` with `gemini.commands`, `gemini.skills`, and `gemini.agents` records
-   - Full support for custom source directories via `-s` option
-   - Backward compatible with existing configs
-
-6. **Shell Completion**:
-   - Added Gemini CLI to bash, zsh, and fish completion scripts
-   - Dynamic completion for command/skill/agent names via `ais _complete gemini-commands|gemini-skills|gemini-agents`
-   - Context-aware completions for all subcommands
-
-7. **Mode Detection**:
-   - Added 'gemini' to `DefaultMode` type
-   - `ais install` smart dispatch includes Gemini CLI
-   - Auto-detect Gemini-only projects
-
-**Implementation:**
-- `src/adapters/gemini-commands.ts` - Commands adapter (file mode, `.toml` suffix)
-- `src/adapters/gemini-skills.ts` - Skills adapter (directory mode)
-- `src/adapters/gemini-agents.ts` - Agents adapter (file mode, `.md` suffix)
-- `src/adapters/index.ts` - Registered adapters and added to `findAdapterForAlias`
-- `src/project-config.ts` - Extended configuration interfaces and helpers
-- `src/commands/helpers.ts` - Added 'gemini' mode type and inference
-- `src/index.ts` - Full CLI command hierarchy with install/add-all/import
-- `src/completion/scripts.ts` - Shell completion for all three shells
-- `src/__tests__/gemini-commands.test.ts` - Commands adapter tests (5 tests)
-- `src/__tests__/gemini-skills.test.ts` - Skills adapter tests (5 tests)
-- `src/__tests__/gemini-agents.test.ts` - Agents adapter tests (5 tests)
-- `README.md`, `README_ZH.md` - Documentation updates
-
-**Files Changed:** 15 new/modified, all tests passing (166/166)
-
-**Benefits:**
-- Centralized Gemini CLI configuration management
-- Team-wide consistency for commands, skills, and agents
-- Easy sharing of configurations across projects
-- Native TOML support for commands
-- Follows same pattern as other supported tools (Cursor, OpenCode, Codex)
+## Changelog
+
+### 2026-02
+- Added **User Mode** (`--user` / `-u`): manage personal AI config files (`~/.claude/CLAUDE.md`, etc.) with version control; `ais user install` restores all symlinks on new machines
+- Added **claude-md adapter**: sync CLAUDE.md-style files; `ais claude md add CLAUDE --user`
+- Added **User Config Path**: `ais config user set <path>` for dotfiles integration
+- Added **Gemini CLI support**: commands (`.toml`), skills (directory), subagents (`.md`)
+- Added **OpenAI Codex support**: rules (`.rules`, Starlark), skills (`.agents/skills/`)
+- Renamed deprecated `--global` / `-g` flags to `--user` / `-u`
+
+### 2026-01
+- Added **Custom Source Directories**: 4-layer priority system (CLI > global config > repo config > adapter defaults); `ais config repo set-source`
+- Added **Custom Target Directories**: `-d` option on `add` commands; monorepo support
+- Added **Universal AGENTS.md support**: `ais agents-md` for [agents.md standard](https://agents.md/)
+- Fixed OpenCode adapters to match official docs (removed `rules`, fixed modes for agents/commands/tools)
+- Migrated config directory from `~/.ai-rules-sync/` to `~/.config/ai-rules-sync/` (XDG spec)
+
+### Previously
+- Added Warp skills support
+- Added Copilot prompt files and custom agents
+- Added Claude Code rules/skills/subagents/CLAUDE.md support
+- Added Trae rules and skills support
+- Added OpenCode agents/skills/commands/tools support
+- Added `add-all` bulk discovery and installation
+- Added shell tab completion
