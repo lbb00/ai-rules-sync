@@ -141,3 +141,11 @@ Use `/summarize-session` to generate artifacts.
 - `README_ZH.md` - Chinese documentation
 - `.cursor/rules/` - Cursor-specific rules (if any)
 - `ai-rules-sync.json` - Project configuration example
+
+## Cursor Cloud specific instructions
+
+- **No external services required.** This is a pure CLI tool with no databases, Docker, or APIs. Only Node.js, pnpm, and Git are needed.
+- **No dedicated lint script.** Use `npx tsc --noEmit` for type checking. The project does not have ESLint configured.
+- **Build before testing CLI.** Run `pnpm build` before `node dist/index.js <command>` — the CLI runs from compiled JS in `dist/`.
+- **Tests run on both `src/` and `dist/`.** Vitest picks up test files from both `src/__tests__/` and `dist/__tests__/`. A stale `dist/` may cause test failures; rebuild if in doubt.
+- **Standard commands:** See "Development Commands" section above for build/test/run commands.
