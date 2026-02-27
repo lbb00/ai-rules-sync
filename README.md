@@ -8,18 +8,16 @@
 
 **AI Rules Sync (AIS)** - Synchronize, manage, and share your AI agent rules across projects and teams.
 
-Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links.
-
-**Supports:** Cursor (rules, commands, skills, subagents), GitHub Copilot (instructions, prompts, skills, agents), Claude Code (rules, skills, subagents, CLAUDE.md), Trae (rules, skills), OpenCode (commands, skills, agents, tools), Codex (rules, skills), Gemini CLI (commands, skills, agents), Warp (rules via AGENTS.md, skills), and universal AGENTS.md. Also supports **User Mode** for personal AI config files (`~/.claude/CLAUDE.md`, etc.).
+Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links. Supports 9 AI tools and **User Mode** for personal config files — see [Supported Tools](#supported-tools).
 
 ---
 
 ## Table of Contents
 
 - [Why AIS?](#why-ais)
-- [Quick Start](#quick-start)
 - [Installation](#installation)
 - [Supported Tools](#supported-tools)
+- [Quick Start](#quick-start)
 - [Core Concepts](#core-concepts)
 - [Basic Usage](#basic-usage)
 - [Tool-Specific Guides](#tool-specific-guides)
@@ -27,6 +25,7 @@ Stop copying `.mdc` files around. Manage your rules in Git repositories and sync
   - [User Mode](#user-mode-personal-ai-config-files)
 - [Configuration Reference](#configuration-reference)
 - [Architecture](#architecture)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -38,75 +37,6 @@ Stop copying `.mdc` files around. Manage your rules in Git repositories and sync
 - **🔒 Privacy First**: Keep sensitive rules local with `ai-rules-sync.local.json`
 - **🛠️ Git Integration**: Manage repositories directly through CLI (`ais git`)
 - **🔌 Extensible**: Plugin architecture for adding new AI tools
-
----
-
-## Quick Start
-
-### Scenario 1: Use Existing Rules
-
-**You have a rules repository and want to use its rules in your project.**
-
-```bash
-# 1. Install AIS
-npm install -g ai-rules-sync
-
-# 2. Go to your project
-cd your-project
-
-# 3. Add a rule (IMPORTANT: specify repository URL the first time)
-ais cursor add react -t https://github.com/your-org/rules-repo.git
-
-# Done! The rule is now linked to your project
-```
-
-**What just happened?**
-- AIS cloned the repository to `~/.config/ai-rules-sync/repos/`
-- Set it as your current repository
-- Created a symlink: `rules-repo/.cursor/rules/react` → `your-project/.cursor/rules/react`
-- Saved the configuration to `ai-rules-sync.json`
-
-**Next time**, you can omit the `-t` flag:
-```bash
-ais cursor add vue
-ais cursor add testing
-```
-
-### Scenario 2: Share Your Existing Rules
-
-**You have rules in your project and want to share them via a repository.**
-
-```bash
-# 1. Install AIS
-npm install -g ai-rules-sync
-
-# 2. Create a rules repository (or use existing one)
-# Option A: Create new repository
-git init ~/my-rules-repo
-ais use ~/my-rules-repo
-
-# Option B: Use existing repository
-ais use https://github.com/your-org/rules-repo.git
-
-# 3. Import your existing rule
-cd your-project
-ais cursor rules import my-custom-rule
-
-# Done! Your rule is now in the repository and linked to your project
-```
-
-**What just happened?**
-- AIS copied `your-project/.cursor/rules/my-custom-rule` to the repository
-- Created a git commit
-- Replaced the original with a symlink
-- Saved the configuration to `ai-rules-sync.json`
-
-**Optional: Push to remote**
-```bash
-ais cursor rules import my-rule --push
-# or manually:
-ais git push
-```
 
 ---
 
@@ -147,25 +77,25 @@ ais completion install
 | Cursor | Commands | file | `.cursor/commands/` | `.md` | [Docs](https://cursor.com/docs/context/commands) |
 | Cursor | Skills | directory | `.cursor/skills/` | - | [Docs](https://cursor.com/docs/context/skills) |
 | Cursor | Subagents | directory | `.cursor/agents/` | - | [Docs](https://cursor.com/docs/context/subagents) |
-| GitHub Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [Docs](https://docs.github.com/copilot) |
-| GitHub Copilot | Prompts | file | `.github/prompts/` | `.prompt.md`, `.md` | [Docs](https://docs.github.com/copilot) |
+| GitHub Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [Docs](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions) |
+| GitHub Copilot | Prompts | file | `.github/prompts/` | `.prompt.md`, `.md` | [Docs](https://docs.github.com/en/copilot/tutorials/customization-library/prompt-files/your-first-prompt-file) |
 | GitHub Copilot | Skills | directory | `.github/skills/` | - | [Docs](https://docs.github.com/en/copilot/using-github-copilot/using-extensions-to-integrate-external-tools-with-copilot-chat) |
-| GitHub Copilot | Agents | file | `.github/agents/` | `.agent.md`, `.md` | [Docs](https://docs.github.com/copilot) |
+| GitHub Copilot | Agents | file | `.github/agents/` | `.agent.md`, `.md` | [Docs](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-custom-agents) |
 | Claude Code | Rules | file | `.claude/rules/` | `.md` | [Docs](https://code.claude.com/docs/en/memory) |
 | Claude Code | Skills | directory | `.claude/skills/` | - | [Docs](https://code.claude.com/docs/en/skills) |
 | Claude Code | Subagents | directory | `.claude/agents/` | - | [Docs](https://code.claude.com/docs/en/sub-agents) |
 | Claude Code | CLAUDE.md | file | `.claude/` | `.md` | [Docs](https://docs.anthropic.com/en/docs/claude-code/memory) |
-| Trae | Rules | file | `.trae/rules/` | `.md` | [Website](https://trae.ai/) |
-| Trae | Skills | directory | `.trae/skills/` | - | [Website](https://trae.ai/) |
-| OpenCode | Commands | file | `.opencode/commands/` | `.md` | [Website](https://opencode.ing/) |
-| OpenCode | Skills | directory | `.opencode/skills/` | - | [Website](https://opencode.ing/) |
-| OpenCode | Agents | file | `.opencode/agents/` | `.md` | [Website](https://opencode.ing/) |
-| OpenCode | Tools | file | `.opencode/tools/` | `.ts`, `.js` | [Website](https://opencode.ing/) |
+| Trae | Rules | file | `.trae/rules/` | `.md` | [Docs](https://docs.trae.ai/ide/rules) |
+| Trae | Skills | directory | `.trae/skills/` | - | [Docs](https://docs.trae.ai/ide/skills) |
+| OpenCode | Commands | file | `.opencode/commands/` | `.md` | [Docs](https://opencode.ai/docs/commands/) |
+| OpenCode | Skills | directory | `.opencode/skills/` | - | [Docs](https://opencode.ai/docs/skills/) |
+| OpenCode | Agents | file | `.opencode/agents/` | `.md` | [Docs](https://opencode.ai/docs/agents/) |
+| OpenCode | Tools | file | `.opencode/tools/` | `.ts`, `.js` | [Docs](https://opencode.ai/docs/tools/) |
 | Codex | Rules | file | `.codex/rules/` | `.rules` | [Docs](https://developers.openai.com/codex/rules) |
 | Codex | Skills | directory | `.agents/skills/` | - | [Docs](https://developers.openai.com/codex/skills) |
-| Gemini CLI | Commands | file | `.gemini/commands/` | `.toml` | [Website](https://geminicli.com/) |
-| Gemini CLI | Skills | directory | `.gemini/skills/` | - | [Website](https://geminicli.com/) |
-| Gemini CLI | Agents | file | `.gemini/agents/` | `.md` | [Website](https://geminicli.com/) |
+| Gemini CLI | Commands | file | `.gemini/commands/` | `.toml` | [Docs](https://geminicli.com/docs/cli/custom-commands/) |
+| Gemini CLI | Skills | directory | `.gemini/skills/` | - | [Docs](https://geminicli.com/docs/cli/skills/) |
+| Gemini CLI | Subagents | file | `.gemini/agents/` | `.md` | [Docs](https://geminicli.com/docs/core/subagents/) |
 | Warp | Rules | file | `.` (root) | `.md` | [Docs](https://docs.warp.dev/agent-platform/capabilities/rules) — same as AGENTS.md, use `ais agents-md` |
 | Warp | Skills | directory | `.agents/skills/` | - | [Docs](https://docs.warp.dev/agent-platform/capabilities/skills) |
 | **Universal** | **AGENTS.md** | file | `.` (root) | `.md` | [Standard](https://agents.md/) |
@@ -174,6 +104,69 @@ ais completion install
 - **directory**: Links entire directories (skills, agents)
 - **file**: Links individual files with automatic suffix resolution
 - **hybrid**: Links both files and directories (e.g., Cursor rules)
+
+---
+
+## Quick Start
+
+### Scenario 1: Use Existing Rules
+
+**You have a rules repository and want to use its rules in your project.**
+
+```bash
+# 1. Go to your project
+cd your-project
+
+# 2. Add a rule (IMPORTANT: specify repository URL the first time)
+ais cursor add react -t https://github.com/your-org/rules-repo.git
+
+# Done! The rule is now linked to your project
+```
+
+**What just happened?**
+- AIS cloned the repository to `~/.config/ai-rules-sync/repos/`
+- Set it as your current repository
+- Created a symlink: `rules-repo/.cursor/rules/react` → `your-project/.cursor/rules/react`
+- Saved the configuration to `ai-rules-sync.json`
+
+**Next time**, you can omit the `-t` flag:
+```bash
+ais cursor add vue
+ais cursor add testing
+```
+
+### Scenario 2: Share Your Existing Rules
+
+**You have rules in your project and want to share them via a repository.**
+
+```bash
+# 1. Create a rules repository (or use existing one)
+# Option A: Create new repository
+git init ~/my-rules-repo
+ais use ~/my-rules-repo
+
+# Option B: Use existing repository
+ais use https://github.com/your-org/rules-repo.git
+
+# 2. Import your existing rule
+cd your-project
+ais cursor rules import my-custom-rule
+
+# Done! Your rule is now in the repository and linked to your project
+```
+
+**What just happened?**
+- AIS copied `your-project/.cursor/rules/my-custom-rule` to the repository
+- Created a git commit
+- Replaced the original with a symlink
+- Saved the configuration to `ai-rules-sync.json`
+
+**Optional: Push to remote**
+```bash
+ais cursor rules import my-rule --push
+# or manually:
+ais git push
+```
 
 ---
 
@@ -219,38 +212,17 @@ ais use personal-rules
 ### 2. Three Ways to Get Rules
 
 #### **`add`** - Use rules from a repository
+Link an entry from a repository to your project. Saves the dependency to `ai-rules-sync.json`.
 
-```bash
-# First time: specify repository
-ais cursor add react -t https://github.com/org/rules.git
-
-# After that: use current repository
-ais cursor add vue
-```
-
-**When to use:** You want to use existing rules from a repository.
+**When to use:** You want to use existing rules from a shared repository.
 
 #### **`import`** - Share your rules via a repository
-
-```bash
-# Import existing rule from your project
-ais cursor rules import my-custom-rule
-
-# With options
-ais cursor rules import my-rule --message "Add my rule" --push
-```
+Copy an existing entry from your project into the repository, commit it, then replace the original with a symlink.
 
 **When to use:** You have rules in your project and want to share them.
 
-#### **`install`** - Install from config file
-
-```bash
-# Install all rules from ai-rules-sync.json
-ais install
-
-# Install specific tool
-ais cursor install
-```
+#### **`install`** - Restore from config file
+Read `ai-rules-sync.json` and recreate all symlinks. Use this after cloning a project that already has a config.
 
 **When to use:** You cloned a project with `ai-rules-sync.json` and want to set up all rules.
 
@@ -562,6 +534,24 @@ ais codex rules remove default
 ```
 
 **Note:** Codex skills use `.agents/skills/` (not `.codex/skills/`) per OpenAI documentation.
+
+### Gemini CLI
+
+```bash
+# Add command (.toml)
+ais gemini commands add deploy-docs
+
+# Add skill (directory)
+ais gemini skills add code-review
+
+# Add subagent (.md)
+ais gemini agents add code-analyzer
+
+# Remove
+ais gemini commands remove deploy-docs
+ais gemini skills remove code-review
+ais gemini agents remove code-analyzer
+```
 
 ### AGENTS.md (Universal)
 
@@ -888,34 +878,18 @@ ais git status -t company-rules
 
 ### Tab Completion
 
-**Automatic installation (recommended):**
-
-On first run, AIS will offer to install tab completion.
-
-**Manual installation:**
+On first run, AIS will offer to install tab completion automatically. To install manually:
 
 ```bash
 ais completion install
 ```
 
-**Or add to shell config manually:**
+Once installed, `<Tab>` after any `add` command lists available entries from your repository:
 
-**Bash/Zsh** (`~/.bashrc` or `~/.zshrc`):
 ```bash
-eval "$(ais completion)"
-```
-
-**Fish** (`~/.config/fish/config.fish`):
-```fish
-ais completion fish | source
-```
-
-**Usage:**
-```bash
-ais cursor add <Tab>                     # Lists available rules
-ais cursor commands add <Tab>            # Lists available commands
-ais copilot instructions add <Tab>       # Lists available instructions
-ais copilot skills add <Tab>             # Lists available skills
+ais cursor add <Tab>              # Lists available rules
+ais cursor commands add <Tab>     # Lists available commands
+ais copilot instructions add <Tab>
 ```
 
 ---
@@ -936,59 +910,20 @@ ais copilot skills add <Tab>             # Lists available skills
         "rule": "react"
       }
     },
-    "commands": {
-      "deploy-docs": "https://github.com/user/repo.git"
-    },
-    "skills": {
-      "code-review": "https://github.com/user/repo.git"
-    },
-    "agents": {
-      "code-analyzer": "https://github.com/user/repo.git"
-    }
-  },
-  "copilot": {
-    "instructions": {
-      "general": "https://github.com/user/repo.git"
-    }
+    "commands": { "deploy-docs": "https://github.com/user/repo.git" },
+    "skills":   { "code-review": "https://github.com/user/repo.git" },
+    "agents":   { "code-analyzer": "https://github.com/user/repo.git" }
   },
   "claude": {
-    "skills": {
-      "code-review": "https://github.com/user/repo.git"
-    },
-    "agents": {
-      "debugger": "https://github.com/user/repo.git"
-    },
-    "rules": {
-      "general": "https://github.com/user/repo.git"
-    },
-    "md": {
-      "CLAUDE": "https://github.com/user/repo.git"
-    }
-  },
-  "trae": {
-    "rules": {
-      "project-rules": "https://github.com/user/repo.git"
-    },
-    "skills": {
-      "adapter-builder": "https://github.com/user/repo.git"
-    }
-  },
-  "opencode": {
-    "agents": {
-      "code-reviewer": "https://github.com/user/repo.git"
-    },
-    "skills": {
-      "refactor-helper": "https://github.com/user/repo.git"
-    },
-    "commands": {
-      "build-optimizer": "https://github.com/user/repo.git"
-    },
-    "tools": {
-      "project-analyzer": "https://github.com/user/repo.git"
-    }
+    "rules":  { "general": "https://github.com/user/repo.git" },
+    "skills": { "code-review": "https://github.com/user/repo.git" },
+    "agents": { "debugger": "https://github.com/user/repo.git" },
+    "md":     { "CLAUDE": "https://github.com/user/repo.git" }
   }
 }
 ```
+
+All other tools (`copilot`, `trae`, `opencode`, `codex`, `gemini`) follow the same structure — see [Supported Tools](#supported-tools) for their key names.
 
 **Format types:**
 
@@ -1027,34 +962,6 @@ ais cursor add company-secrets --local
 - Should be in `.gitignore` (AIS adds it automatically)
 - Merges with main config (local takes precedence)
 
-### Global Configuration
-
-**Location:** `~/.config/ai-rules-sync/config.json`
-
-```json
-{
-  "currentRepo": "company-rules",
-  "repos": {
-    "company-rules": {
-      "name": "company-rules",
-      "url": "https://github.com/company/rules",
-      "path": "/Users/user/.config/ai-rules-sync/repos/company-rules",
-      "sourceDir": {
-        "cursor": {
-          "rules": "rules/cursor",
-          "commands": "commands/cursor"
-        }
-      }
-    },
-    "personal-rules": {
-      "name": "personal-rules",
-      "url": "https://github.com/me/rules",
-      "path": "/Users/user/.config/ai-rules-sync/repos/personal-rules"
-    }
-  }
-}
-```
-
 ### Legacy Compatibility
 
 **Old `cursor-rules.json` format is still supported:**
@@ -1088,139 +995,7 @@ Config Layer (ai-rules-sync.json)
 3. **Generic Functions**: `addDependencyGeneric()` and `removeDependencyGeneric()` work with any adapter
 4. **Extensible**: Easy to add support for new AI tools
 
-### Adding a New AI Tool Adapter
-
-**1. Create adapter file** (`src/adapters/my-tool.ts`):
-
-```typescript
-import { createBaseAdapter, createSingleSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
-
-// Directory mode (skills, agents)
-export const myToolSkillsAdapter = createBaseAdapter({
-  name: 'my-tool-skills',
-  tool: 'my-tool',
-  subtype: 'skills',
-  configPath: ['myTool', 'skills'],
-  defaultSourceDir: '.my-tool/skills',
-  targetDir: '.my-tool/skills',
-  mode: 'directory',
-});
-
-// File mode (single suffix)
-export const myToolRulesAdapter = createBaseAdapter({
-  name: 'my-tool-rules',
-  tool: 'my-tool',
-  subtype: 'rules',
-  configPath: ['myTool', 'rules'],
-  defaultSourceDir: '.my-tool/rules',
-  targetDir: '.my-tool/rules',
-  mode: 'file',
-  fileSuffixes: ['.md'],
-  resolveSource: createSingleSuffixResolver('.md', 'Rule'),
-  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
-});
-```
-
-**2. Register adapter** (`src/adapters/index.ts`):
-
-```typescript
-import { myToolSkillsAdapter, myToolRulesAdapter } from './my-tool.js';
-
-// In DefaultAdapterRegistry constructor:
-this.register(myToolSkillsAdapter);
-this.register(myToolRulesAdapter);
-```
-
-**3. Update ProjectConfig** (`src/project-config.ts`):
-
-```typescript
-export interface ProjectConfig {
-  // ... existing fields ...
-  myTool?: {
-    skills?: Record<string, RuleEntry>;
-    rules?: Record<string, RuleEntry>;
-  };
-}
-```
-
-**Done!** Your adapter now supports all operations through the unified interface.
-
----
-
-## Common Workflows
-
-### Team Onboarding
-
-```bash
-# New team member clones project
-git clone https://github.com/team/project.git
-cd project
-
-# Install AIS
-npm install -g ai-rules-sync
-
-# Install all rules
-ais install
-
-# Done! All rules are now linked
-```
-
-### Updating Shared Rules
-
-```bash
-# Pull latest rules
-ais git pull
-
-# Rules are automatically updated (symlinks point to repository)
-```
-
-### Creating a Company Rules Repository
-
-```bash
-# 1. Create repository
-mkdir company-rules
-cd company-rules
-git init
-
-# 2. Create structure
-mkdir -p .cursor/rules .cursor/commands .claude/skills
-
-# 3. Add rules
-echo "# Company Coding Standards" > .cursor/rules/coding-standards.mdc
-echo "# React Best Practices" > .cursor/rules/react.mdc
-
-# 4. Commit
-git add .
-git commit -m "Initial company rules"
-
-# 5. Push to remote
-git remote add origin https://github.com/company/rules.git
-git push -u origin main
-
-# 6. Team members can now use
-ais cursor add coding-standards -t https://github.com/company/rules.git
-```
-
-### Migrating Existing Rules
-
-```bash
-# 1. Set up repository
-ais use https://github.com/team/rules.git
-
-# 2. Import all existing rules
-cd your-project
-ais cursor rules import rule1
-ais cursor rules import rule2
-ais cursor commands import deploy
-ais claude skills import code-review
-
-# 3. Push to remote
-ais git push
-
-# 4. Team can now install
-# In ai-rules-sync.json, share the config
-# Team members run: ais install
-```
+For details on adding a new adapter, see [KNOWLEDGE_BASE.md](./KNOWLEDGE_BASE.md).
 
 ---
 
