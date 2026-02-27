@@ -87,6 +87,14 @@ export interface SourceDirConfig {
         // Source directory for warp skills, default: ".agents/skills"
         skills?: string;
     };
+    windsurf?: {
+        // Source directory for Windsurf rules, default: ".windsurf/rules"
+        rules?: string;
+    };
+    cline?: {
+        // Source directory for Cline rules, default: ".clinerules"
+        rules?: string;
+    };
     agentsMd?: {
         // Source directory for AGENTS.md files, default: "." (repository root)
         file?: string;
@@ -155,6 +163,12 @@ export interface ProjectConfig {
     warp?: {
         skills?: Record<string, RuleEntry>;
     };
+    windsurf?: {
+        rules?: Record<string, RuleEntry>;
+    };
+    cline?: {
+        rules?: Record<string, RuleEntry>;
+    };
     // Universal AGENTS.md support (tool-agnostic)
     agentsMd?: Record<string, RuleEntry>;
 }
@@ -196,6 +210,20 @@ export interface RepoSourceConfig {
     codex?: {
         rules?: string;
         skills?: string;
+    };
+    gemini?: {
+        commands?: string;
+        skills?: string;
+        agents?: string;
+    };
+    warp?: {
+        skills?: string;
+    };
+    windsurf?: {
+        rules?: string;
+    };
+    cline?: {
+        rules?: string;
     };
     agentsMd?: {
         file?: string;
@@ -271,8 +299,19 @@ function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig
             rules: { ...(main.codex?.rules || {}), ...(local.codex?.rules || {}) },
             skills: { ...(main.codex?.skills || {}), ...(local.codex?.skills || {}) }
         },
+        gemini: {
+            commands: { ...(main.gemini?.commands || {}), ...(local.gemini?.commands || {}) },
+            skills: { ...(main.gemini?.skills || {}), ...(local.gemini?.skills || {}) },
+            agents: { ...(main.gemini?.agents || {}), ...(local.gemini?.agents || {}) }
+        },
         warp: {
             skills: { ...(main.warp?.skills || {}), ...(local.warp?.skills || {}) }
+        },
+        windsurf: {
+            rules: { ...(main.windsurf?.rules || {}), ...(local.windsurf?.rules || {}) }
+        },
+        cline: {
+            rules: { ...(main.cline?.rules || {}), ...(local.cline?.rules || {}) }
         },
         agentsMd: { ...(main.agentsMd || {}), ...(local.agentsMd || {}) }
     };
@@ -304,6 +343,10 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
                 trae: config.sourceDir.trae,
                 opencode: config.sourceDir.opencode,
                 codex: config.sourceDir.codex,
+                gemini: config.sourceDir.gemini,
+                warp: config.sourceDir.warp,
+                windsurf: config.sourceDir.windsurf,
+                cline: config.sourceDir.cline,
                 agentsMd: config.sourceDir.agentsMd
             };
         }
@@ -352,11 +395,23 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
         const codexSkills = config.codex?.skills;
         const isCodexRulesString = typeof codexRules === 'string';
         const isCodexSkillsString = typeof codexSkills === 'string';
+        const geminiCommands = config.gemini?.commands;
+        const geminiSkills = config.gemini?.skills;
+        const geminiAgents = config.gemini?.agents;
+        const isGeminiCommandsString = typeof geminiCommands === 'string';
+        const isGeminiSkillsString = typeof geminiSkills === 'string';
+        const isGeminiAgentsString = typeof geminiAgents === 'string';
+        const warpSkills = config.warp?.skills;
+        const isWarpSkillsString = typeof warpSkills === 'string';
+        const windsurfRules = config.windsurf?.rules;
+        const isWindsurfRulesString = typeof windsurfRules === 'string';
+        const clineRules = config.cline?.rules;
+        const isClineRulesString = typeof clineRules === 'string';
         const agentsMdFile = config.agentsMd?.file;
         const isAgentsMdFileString = typeof agentsMdFile === 'string';
 
         // If any of these are strings, treat as legacy rules repo config
-        if (isCursorRulesString || isCursorCommandsString || isCursorSkillsString || isCursorAgentsString || isCopilotInstructionsString || isCopilotSkillsString || isCopilotPromptsString || isCopilotAgentsString || isClaudeSkillsString || isClaudeAgentsString || isClaudeRulesString || isClaudeMdString || isTraeRulesString || isTraeSkillsString || isOpencodeAgentsString || isOpencodeSkillsString || isOpencodeCommandsString || isOpencodeToolsString || isCodexRulesString || isCodexSkillsString || isAgentsMdFileString) {
+        if (isCursorRulesString || isCursorCommandsString || isCursorSkillsString || isCursorAgentsString || isCopilotInstructionsString || isCopilotSkillsString || isCopilotPromptsString || isCopilotAgentsString || isClaudeSkillsString || isClaudeAgentsString || isClaudeRulesString || isClaudeMdString || isTraeRulesString || isTraeSkillsString || isOpencodeAgentsString || isOpencodeSkillsString || isOpencodeCommandsString || isOpencodeToolsString || isCodexRulesString || isCodexSkillsString || isGeminiCommandsString || isGeminiSkillsString || isGeminiAgentsString || isWarpSkillsString || isWindsurfRulesString || isClineRulesString || isAgentsMdFileString) {
             return {
                 rootPath: config.rootPath,
                 cursor: {
@@ -390,6 +445,20 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
                 codex: {
                     rules: isCodexRulesString ? codexRules : undefined,
                     skills: isCodexSkillsString ? codexSkills : undefined
+                },
+                gemini: {
+                    commands: isGeminiCommandsString ? geminiCommands : undefined,
+                    skills: isGeminiSkillsString ? geminiSkills : undefined,
+                    agents: isGeminiAgentsString ? geminiAgents : undefined
+                },
+                warp: {
+                    skills: isWarpSkillsString ? warpSkills : undefined
+                },
+                windsurf: {
+                    rules: isWindsurfRulesString ? windsurfRules : undefined
+                },
+                cline: {
+                    rules: isClineRulesString ? clineRules : undefined
                 },
                 agentsMd: {
                     file: isAgentsMdFileString ? agentsMdFile : undefined
@@ -483,9 +552,25 @@ export function getSourceDir(
         } else if (subtype === 'skills') {
             toolDir = repoConfig.codex?.skills;
         }
+    } else if (tool === 'gemini') {
+        if (subtype === 'commands') {
+            toolDir = repoConfig.gemini?.commands;
+        } else if (subtype === 'skills') {
+            toolDir = repoConfig.gemini?.skills;
+        } else if (subtype === 'agents') {
+            toolDir = repoConfig.gemini?.agents;
+        }
     } else if (tool === 'warp') {
         if (subtype === 'skills') {
-            toolDir = (repoConfig as any).warp?.skills;
+            toolDir = repoConfig.warp?.skills;
+        }
+    } else if (tool === 'windsurf') {
+        if (subtype === 'rules') {
+            toolDir = repoConfig.windsurf?.rules;
+        }
+    } else if (tool === 'cline') {
+        if (subtype === 'rules') {
+            toolDir = repoConfig.cline?.rules;
         }
     } else if (tool === 'agents-md') {
         if (subtype === 'file') {

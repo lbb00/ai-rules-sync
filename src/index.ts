@@ -138,7 +138,7 @@ program
 // ============ Top-level shortcuts ============
 program
   .command('add')
-  .description('Add an entry (auto-detects cursor/copilot if unambiguous)')
+  .description('Add an entry (auto-detects cursor/copilot when unambiguous)')
   .argument('<name>', 'Rule/Instruction name in the rules repo')
   .argument('[alias]', 'Alias in the project')
   .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
@@ -169,8 +169,20 @@ program
         throw new Error('For Trae components, please use "ais trae rules/skills add" explicitly.');
       } else if (mode === 'opencode') {
         throw new Error('For OpenCode components, please use "ais opencode agents/skills/commands/tools add" explicitly.');
+      } else if (mode === 'codex') {
+        throw new Error('For Codex components, please use "ais codex rules/skills add" explicitly.');
+      } else if (mode === 'gemini') {
+        throw new Error('For Gemini components, please use "ais gemini commands/skills/agents add" explicitly.');
+      } else if (mode === 'warp') {
+        throw new Error('For Warp components, please use "ais warp skills add" explicitly.');
+      } else if (mode === 'windsurf') {
+        throw new Error('For Windsurf components, please use "ais windsurf add" explicitly.');
+      } else if (mode === 'cline') {
+        throw new Error('For Cline components, please use "ais cline add" explicitly.');
       } else if (mode === 'agents-md') {
         throw new Error('For AGENTS.md files, please use "ais agents-md add" explicitly.');
+      } else {
+        throw new Error(`Cannot determine which tool to use for mode "${mode}"`);
       }
     } catch (error: any) {
       console.error(chalk.red('Error adding entry:'), error.message);
@@ -222,6 +234,35 @@ program
             await a.removeDependency(projectPath, alias);
           }
           return;
+        } else if (mode === 'opencode') {
+          const opencodeAdapters = adapterRegistry.getForTool('opencode');
+          for (const a of opencodeAdapters) {
+            await a.unlink(projectPath, alias);
+            await a.removeDependency(projectPath, alias);
+          }
+          return;
+        } else if (mode === 'codex') {
+          const codexAdapters = adapterRegistry.getForTool('codex');
+          for (const a of codexAdapters) {
+            await a.unlink(projectPath, alias);
+            await a.removeDependency(projectPath, alias);
+          }
+          return;
+        } else if (mode === 'gemini') {
+          const geminiAdapters = adapterRegistry.getForTool('gemini');
+          for (const a of geminiAdapters) {
+            await a.unlink(projectPath, alias);
+            await a.removeDependency(projectPath, alias);
+          }
+          return;
+        } else if (mode === 'warp') {
+          adapter = getAdapter('warp', 'skills');
+        } else if (mode === 'windsurf') {
+          adapter = getAdapter('windsurf', 'rules');
+        } else if (mode === 'cline') {
+          adapter = getAdapter('cline', 'rules');
+        } else if (mode === 'agents-md') {
+          adapter = getAdapter('agents-md', 'file');
         } else {
           throw new Error(`Cannot determine which tool to use for alias "${alias}"`);
         }
@@ -236,7 +277,7 @@ program
 
 program
   .command('install')
-  .description('Install all entries from config (cursor + copilot + claude + trae), or --user for user config')
+  .description('Install all entries from config, or --user for user config')
   .option('-u, --user', 'Install all user config entries (~/.config/ai-rules-sync/user.json)')
   .option('-g, --global', 'Install all user config entries (deprecated alias for --user)')
   .action(async (cmdOptions: { user?: boolean; global?: boolean }) => {
@@ -275,6 +316,15 @@ program
       if (mode === 'gemini' || mode === 'ambiguous') {
         await installEntriesForTool(adapterRegistry.getForTool('gemini'), projectPath);
       }
+      if (mode === 'warp' || mode === 'ambiguous') {
+        await installEntriesForTool(adapterRegistry.getForTool('warp'), projectPath);
+      }
+      if (mode === 'windsurf' || mode === 'ambiguous') {
+        await installEntriesForTool(adapterRegistry.getForTool('windsurf'), projectPath);
+      }
+      if (mode === 'cline' || mode === 'ambiguous') {
+        await installEntriesForTool(adapterRegistry.getForTool('cline'), projectPath);
+      }
       if (mode === 'agents-md' || mode === 'ambiguous') {
         await installEntriesForTool(adapterRegistry.getForTool('agents-md'), projectPath);
       }
@@ -288,7 +338,7 @@ program
 program
   .command('add-all')
   .description('Discover and install all configurations from rules repository')
-  .option('--tools <tools>', 'Filter by tools (comma-separated): cursor,copilot,claude,trae,opencode,codex,gemini,agents-md')
+  .option('--tools <tools>', 'Filter by tools (comma-separated): cursor,copilot,claude,trae,opencode,codex,gemini,warp,windsurf,cline,agents-md')
   .option('--adapters <adapters>', 'Filter by adapters (comma-separated)')
   .option('--dry-run', 'Preview without making changes')
   .option('-f, --force', 'Overwrite existing entries')
@@ -1197,6 +1247,57 @@ registerAdapterCommands({ adapter: getAdapter('gemini', 'skills'), parentCommand
 const geminiAgents = gemini.command('agents').description('Manage Gemini agents');
 registerAdapterCommands({ adapter: getAdapter('gemini', 'agents'), parentCommand: geminiAgents, programOpts: () => program.opts() });
 
+// ============ Warp command group ============
+const warp = program
+  .command('warp')
+  .description('Manage Warp skills in a project');
+
+warp
+  .command('install')
+  .description('Install all Warp skills from config')
+  .action(async () => {
+    try {
+      await installEntriesForTool(adapterRegistry.getForTool('warp'), process.cwd());
+    } catch (error: any) {
+      console.error(chalk.red('Error installing Warp entries:'), error.message);
+      process.exit(1);
+    }
+  });
+
+warp
+  .command('import <name>')
+  .description('Import Warp skill from project to repository')
+  .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
+  .option('-m, --message <message>', 'Custom git commit message')
+  .option('-f, --force', 'Overwrite if entry already exists in repository')
+  .option('-p, --push', 'Push to remote repository after commit')
+  .action(async (name, options) => {
+    try {
+      const repo = await getTargetRepo(program.opts());
+      await handleImport(getAdapter('warp', 'skills'), { projectPath: process.cwd(), repo, isLocal: options.local || false }, name, options);
+    } catch (error: any) {
+      console.error(chalk.red('Error importing Warp skill:'), error.message);
+      process.exit(1);
+    }
+  });
+
+const warpSkills = warp.command('skills').description('Manage Warp skills');
+registerAdapterCommands({ adapter: getAdapter('warp', 'skills'), parentCommand: warpSkills, programOpts: () => program.opts() });
+
+// ============ Windsurf command group ============
+const windsurf = program
+  .command('windsurf')
+  .description('Manage Windsurf rules in a project');
+
+registerAdapterCommands({ adapter: getAdapter('windsurf', 'rules'), parentCommand: windsurf, programOpts: () => program.opts() });
+
+// ============ Cline command group ============
+const cline = program
+  .command('cline')
+  .description('Manage Cline rules in a project');
+
+registerAdapterCommands({ adapter: getAdapter('cline', 'rules'), parentCommand: cline, programOpts: () => program.opts() });
+
 // ============ Git command ============
 program
   .command('git')
@@ -1216,7 +1317,7 @@ program
 // ============ Internal _complete command ============
 program
   .command('_complete')
-  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, cursor-agents, copilot, claude-skills, claude-agents, claude-rules, trae-rules, trae-skills, opencode-agents, opencode-skills, opencode-commands, opencode-tools, codex-rules, codex-skills, gemini-commands, gemini-skills, gemini-agents, agents-md')
+  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, cursor-agents, copilot, claude-skills, claude-agents, claude-rules, trae-rules, trae-skills, opencode-agents, opencode-skills, opencode-commands, opencode-tools, codex-rules, codex-skills, gemini-commands, gemini-skills, gemini-agents, warp-skills, windsurf-rules, cline-rules, agents-md')
   .description('Internal command for shell completion')
   .action(async (type: string) => {
     try {
@@ -1292,6 +1393,15 @@ program
           break;
         case 'gemini-agents':
           sourceDir = getSourceDir(repoConfig, 'gemini', 'agents', '.gemini/agents');
+          break;
+        case 'warp-skills':
+          sourceDir = getSourceDir(repoConfig, 'warp', 'skills', '.agents/skills');
+          break;
+        case 'windsurf-rules':
+          sourceDir = getSourceDir(repoConfig, 'windsurf', 'rules', '.windsurf/rules');
+          break;
+        case 'cline-rules':
+          sourceDir = getSourceDir(repoConfig, 'cline', 'rules', '.clinerules');
           break;
         case 'agents-md':
           sourceDir = getSourceDir(repoConfig, 'agents-md', 'file', 'agents-md');
