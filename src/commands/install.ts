@@ -8,7 +8,7 @@ import chalk from 'chalk';
 import fs from 'fs-extra';
 import { SyncAdapter } from '../adapters/types.js';
 import { getCombinedProjectConfig, getConfigSource, RuleEntry, ProjectConfig } from '../project-config.js';
-import { getConfig, setConfig, getReposBaseDir, getGlobalProjectConfig, getGlobalConfigPath, RepoConfig } from '../config.js';
+import { getConfig, setConfig, getReposBaseDir, getUserProjectConfig, getUserConfigPath, RepoConfig } from '../config.js';
 import { cloneOrUpdateRepo } from '../git.js';
 import { parseConfigEntry } from './helpers.js';
 
@@ -151,17 +151,17 @@ export async function installEntriesForTool(
 }
 
 /**
- * Install entries for an adapter from global config (global.json)
+ * Install entries for an adapter from user config (user.json)
  */
-export async function installGlobalEntriesForAdapter(
+export async function installUserEntriesForAdapter(
     adapter: SyncAdapter
 ): Promise<void> {
-    const globalConfig = await getGlobalProjectConfig();
+    const userConfig = await getUserProjectConfig();
     const [topLevel, subLevel] = adapter.configPath;
-    const entries = (globalConfig as any)?.[topLevel]?.[subLevel] as Record<string, RuleEntry> | undefined;
+    const entries = (userConfig as any)?.[topLevel]?.[subLevel] as Record<string, RuleEntry> | undefined;
 
     if (!entries || Object.keys(entries).length === 0) {
-        console.log(chalk.yellow(`No global ${adapter.tool} ${adapter.subtype} found in global config.`));
+        console.log(chalk.yellow(`No user ${adapter.tool} ${adapter.subtype} found in user config.`));
         return;
     }
 
@@ -189,37 +189,51 @@ export async function installGlobalEntriesForAdapter(
         });
     }
 
-    console.log(chalk.green(`All global ${adapter.tool} ${adapter.subtype} installed successfully.`));
+    console.log(chalk.green(`All user ${adapter.tool} ${adapter.subtype} installed successfully.`));
+}
+
+/** @deprecated Use installUserEntriesForAdapter() instead */
+export async function installGlobalEntriesForAdapter(
+    adapter: SyncAdapter
+): Promise<void> {
+    return installUserEntriesForAdapter(adapter);
 }
 
 /**
- * Install all global entries for all adapters
+ * Install all user entries for all adapters
  */
-export async function installAllGlobalEntries(
+export async function installAllUserEntries(
     adapters: SyncAdapter[]
 ): Promise<{ total: number }> {
-    const globalConfigPath = await getGlobalConfigPath();
-    const globalConfig = await getGlobalProjectConfig();
+    const userConfigPath = await getUserConfigPath();
+    const userConfig = await getUserProjectConfig();
 
     let total = 0;
 
     for (const adapter of adapters) {
         const [topLevel, subLevel] = adapter.configPath;
-        const entries = (globalConfig as any)?.[topLevel]?.[subLevel] as Record<string, RuleEntry> | undefined;
+        const entries = (userConfig as any)?.[topLevel]?.[subLevel] as Record<string, RuleEntry> | undefined;
         if (entries && Object.keys(entries).length > 0) {
-            await installGlobalEntriesForAdapter(adapter);
+            await installUserEntriesForAdapter(adapter);
             total += Object.keys(entries).length;
         }
     }
 
     if (total === 0) {
-        console.log(chalk.yellow(`No global config found. Use "ais claude md add <name> --global" to add entries.`));
+        console.log(chalk.yellow(`No user config found. Use "ais claude md add <name> --user" to add entries.`));
     } else {
-        const displayPath = globalConfigPath.replace(os.homedir(), '~');
-        console.log(chalk.gray(`\nGlobal config: ${displayPath}`));
+        const displayPath = userConfigPath.replace(os.homedir(), '~');
+        console.log(chalk.gray(`\nUser config: ${displayPath}`));
         console.log(chalk.green(`Installed ${total} entries.`));
     }
 
     return { total };
+}
+
+/** @deprecated Use installAllUserEntries() instead */
+export async function installAllGlobalEntries(
+    adapters: SyncAdapter[]
+): Promise<{ total: number }> {
+    return installAllUserEntries(adapters);
 }
 

@@ -9,7 +9,7 @@ import { RepoConfig } from '../config.js';
 import { SyncAdapter } from '../adapters/types.js';
 import { linkEntry, unlinkEntry, importEntry, ImportOptions } from '../sync-engine.js';
 import { addIgnoreEntry } from '../utils.js';
-import { addGlobalDependency, removeGlobalDependency } from '../project-config.js';
+import { addUserDependency, removeUserDependency } from '../project-config.js';
 
 /**
  * Context for command execution
@@ -18,9 +18,11 @@ export interface CommandContext {
   projectPath: string;
   repo: RepoConfig;
   isLocal: boolean;
-  /** When true, uses global config (global.json) instead of project config */
+  /** When true, uses user config (user.json) instead of project config */
+  user?: boolean;
+  /** @deprecated Use user instead */
   global?: boolean;
-  /** When true, skip gitignore management (used for global mode) */
+  /** When true, skip gitignore management (used for user mode) */
   skipIgnore?: boolean;
 }
 
@@ -30,7 +32,9 @@ export interface CommandContext {
 export interface AddOptions {
   local?: boolean;
   targetDir?: string;
-  /** When true, uses global config (global.json) instead of project config */
+  /** When true, uses user config (user.json) instead of project config */
+  user?: boolean;
+  /** @deprecated Use user instead */
   global?: boolean;
 }
 
@@ -106,16 +110,16 @@ export async function handleAdd(
   const depAlias = alias || (result.targetName === result.sourceName ? undefined : result.targetName);
 
   let migrated = false;
-  if (ctx.global) {
-    // Global mode: write to global.json
-    await addGlobalDependency(
+  if (ctx.user || ctx.global) {
+    // User mode: write to user.json
+    await addUserDependency(
       adapter.configPath,
       result.sourceName,
       ctx.repo.url,
       depAlias,
       options?.targetDir
     );
-    console.log(chalk.green(`Updated global config dependency.`));
+    console.log(chalk.green(`Updated user config dependency.`));
   } else {
     // Project mode: write to project's ai-rules-sync.json
     const migration = await adapter.addDependency(
@@ -167,17 +171,17 @@ export async function handleRemove(
   adapter: SyncAdapter,
   projectPath: string,
   alias: string,
-  isGlobal: boolean = false
+  isUser: boolean = false
 ): Promise<RemoveResult> {
   await adapter.unlink(projectPath, alias);
 
-  if (isGlobal) {
-    const { removedFrom } = await removeGlobalDependency(adapter.configPath, alias);
+  if (isUser) {
+    const { removedFrom } = await removeUserDependency(adapter.configPath, alias);
 
     if (removedFrom.length > 0) {
-      console.log(chalk.green(`Removed "${alias}" from global config: ${removedFrom.join(', ')}`));
+      console.log(chalk.green(`Removed "${alias}" from user config: ${removedFrom.join(', ')}`));
     } else {
-      console.log(chalk.yellow(`"${alias}" was not found in global config.`));
+      console.log(chalk.yellow(`"${alias}" was not found in user config.`));
     }
 
     return { removedFrom, migrated: false };

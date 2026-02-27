@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
-import { getGlobalConfigPath, getGlobalProjectConfig, saveGlobalProjectConfig } from './config.js';
+import { getUserConfigPath, getUserProjectConfig, saveUserProjectConfig } from './config.js';
 
 const CONFIG_FILENAME = 'ai-rules-sync.json';
 const LOCAL_CONFIG_FILENAME = 'ai-rules-sync.local.json';
@@ -682,17 +682,17 @@ export async function removeDependencyGeneric(
 }
 
 /**
- * Add a dependency to the global project config (global.json).
- * Used when --global flag is set.
+ * Add a dependency to the user project config (user.json).
+ * Used when --user flag is set.
  */
-export async function addGlobalDependency(
+export async function addUserDependency(
     configPath: [string, string],
     name: string,
     repoUrl: string,
     alias?: string,
     targetDir?: string
 ): Promise<void> {
-    const config = await getGlobalProjectConfig();
+    const config = await getUserProjectConfig();
     const [topLevel, subLevel] = configPath;
 
     (config as any)[topLevel] ??= {};
@@ -712,27 +712,46 @@ export async function addGlobalDependency(
     }
 
     (config as any)[topLevel][subLevel][targetName] = entryValue;
-    await saveGlobalProjectConfig(config);
+    await saveUserProjectConfig(config);
+}
+
+/** @deprecated Use addUserDependency() instead */
+export async function addGlobalDependency(
+    configPath: [string, string],
+    name: string,
+    repoUrl: string,
+    alias?: string,
+    targetDir?: string
+): Promise<void> {
+    return addUserDependency(configPath, name, repoUrl, alias, targetDir);
 }
 
 /**
- * Remove a dependency from the global project config (global.json).
- * Used when --global flag is set.
+ * Remove a dependency from the user project config (user.json).
+ * Used when --user flag is set.
  */
-export async function removeGlobalDependency(
+export async function removeUserDependency(
     configPath: [string, string],
     alias: string
 ): Promise<{ removedFrom: string[] }> {
     const removedFrom: string[] = [];
-    const globalPath = await getGlobalConfigPath();
-    const config = await getGlobalProjectConfig();
+    const userPath = await getUserConfigPath();
+    const config = await getUserProjectConfig();
     const [topLevel, subLevel] = configPath;
 
     if ((config as any)[topLevel]?.[subLevel]?.[alias]) {
         delete (config as any)[topLevel][subLevel][alias];
-        await saveGlobalProjectConfig(config);
-        removedFrom.push(path.basename(globalPath));
+        await saveUserProjectConfig(config);
+        removedFrom.push(path.basename(userPath));
     }
 
     return { removedFrom };
+}
+
+/** @deprecated Use removeUserDependency() instead */
+export async function removeGlobalDependency(
+    configPath: [string, string],
+    alias: string
+): Promise<{ removedFrom: string[] }> {
+    return removeUserDependency(configPath, alias);
 }

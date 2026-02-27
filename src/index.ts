@@ -25,10 +25,10 @@ import {
   DefaultMode
 } from './commands/helpers.js';
 import { handleAdd, handleRemove, handleImport } from './commands/handlers.js';
-import { installEntriesForAdapter, installEntriesForTool, installAllGlobalEntries } from './commands/install.js';
+import { installEntriesForAdapter, installEntriesForTool, installAllUserEntries, installAllGlobalEntries } from './commands/install.js';
 import { handleAddAll } from './commands/add-all.js';
 import { parseSourceDirParams } from './cli/source-dir-parser.js';
-import { setRepoSourceDir, clearRepoSourceDir, showRepoConfig, listRepos, handleGlobalConfigShow, handleGlobalConfigSet, handleGlobalConfigReset } from './commands/config.js';
+import { setRepoSourceDir, clearRepoSourceDir, showRepoConfig, listRepos, handleUserConfigShow, handleUserConfigSet, handleUserConfigReset, handleGlobalConfigShow, handleGlobalConfigSet, handleGlobalConfigReset } from './commands/config.js';
 import { getFormattedVersion } from './commands/version.js';
 
 // Intercept version flags to show detailed version info before Commander processes them
@@ -236,12 +236,13 @@ program
 
 program
   .command('install')
-  .description('Install all entries from config (cursor + copilot + claude + trae), or --global for global config')
-  .option('-g, --global', 'Install all global config entries (~/.config/ai-rules-sync/global.json)')
-  .action(async (cmdOptions: { global?: boolean }) => {
+  .description('Install all entries from config (cursor + copilot + claude + trae), or --user for user config')
+  .option('-u, --user', 'Install all user config entries (~/.config/ai-rules-sync/user.json)')
+  .option('-g, --global', 'Install all user config entries (deprecated alias for --user)')
+  .action(async (cmdOptions: { user?: boolean; global?: boolean }) => {
     try {
-      if (cmdOptions.global) {
-        await installAllGlobalEntries(adapterRegistry.all());
+      if (cmdOptions.user || cmdOptions.global) {
+        await installAllUserEntries(adapterRegistry.all());
         return;
       }
 
@@ -1405,60 +1406,101 @@ configRepo
     }
   });
 
-// config global subgroup
+// config user subgroup
+const configUser = configCmd
+  .command('user')
+  .description('Manage user config path (~/.config/ai-rules-sync/user.json)');
+
+configUser
+  .command('show')
+  .description('Show current user config path')
+  .action(async () => {
+    try {
+      await handleUserConfigShow();
+    } catch (error: any) {
+      console.error(chalk.red('Error showing user config path:'), error.message);
+      process.exit(1);
+    }
+  });
+
+configUser
+  .command('set <path>')
+  .description('Set custom user config path (supports ~ for home dir)')
+  .action(async (customPath: string) => {
+    try {
+      await handleUserConfigSet(customPath);
+    } catch (error: any) {
+      console.error(chalk.red('Error setting user config path:'), error.message);
+      process.exit(1);
+    }
+  });
+
+configUser
+  .command('reset')
+  .description('Reset user config path to default')
+  .action(async () => {
+    try {
+      await handleUserConfigReset();
+    } catch (error: any) {
+      console.error(chalk.red('Error resetting user config path:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// config global subgroup (deprecated alias for config user)
 const configGlobal = configCmd
   .command('global')
-  .description('Manage global config path (~/.config/ai-rules-sync/global.json)');
+  .description('Deprecated: use "ais config user" instead');
 
 configGlobal
   .command('show')
-  .description('Show current global config path')
+  .description('Show current user config path (deprecated: use "ais config user show")')
   .action(async () => {
     try {
-      await handleGlobalConfigShow();
+      await handleUserConfigShow();
     } catch (error: any) {
-      console.error(chalk.red('Error showing global config path:'), error.message);
+      console.error(chalk.red('Error showing user config path:'), error.message);
       process.exit(1);
     }
   });
 
 configGlobal
   .command('set <path>')
-  .description('Set custom global config path (supports ~ for home dir)')
+  .description('Set custom user config path (deprecated: use "ais config user set")')
   .action(async (customPath: string) => {
     try {
-      await handleGlobalConfigSet(customPath);
+      await handleUserConfigSet(customPath);
     } catch (error: any) {
-      console.error(chalk.red('Error setting global config path:'), error.message);
+      console.error(chalk.red('Error setting user config path:'), error.message);
       process.exit(1);
     }
   });
 
 configGlobal
   .command('reset')
-  .description('Reset global config path to default')
+  .description('Reset user config path to default (deprecated: use "ais config user reset")')
   .action(async () => {
     try {
-      await handleGlobalConfigReset();
+      await handleUserConfigReset();
     } catch (error: any) {
-      console.error(chalk.red('Error resetting global config path:'), error.message);
+      console.error(chalk.red('Error resetting user config path:'), error.message);
       process.exit(1);
     }
   });
 
-// ============ Global command group ============
-const globalCmd = program
-  .command('global')
-  .description('Manage global AI config files (~/.claude/CLAUDE.md, etc.)');
+// ============ User command group ============
+const userCmd = program
+  .command('user')
+  .description('Manage user-level AI config files (~/.claude/CLAUDE.md, etc.)');
 
-globalCmd
+userCmd
   .command('install')
-  .description('Install all global config entries from global.json')
+  .description('Install all user config entries from user.json')
   .action(async () => {
     try {
-      await installAllGlobalEntries(adapterRegistry.all());
+      await installAllUserEntries(adapterRegistry.all());
     } catch (error: any) {
-      console.error(chalk.red('Error installing global entries:'), error.message);
+      console.error(chalk.red('Error installing user entries:'), error.message);
       process.exit(1);
     }
   });
