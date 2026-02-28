@@ -1295,315 +1295,197 @@ warp
 const warpSkills = warp.command('skills').description('Manage Warp skills');
 registerAdapterCommands({ adapter: getAdapter('warp', 'skills'), parentCommand: warpSkills, programOpts: () => program.opts() });
 
-// ============ Windsurf command group ============
-const windsurf = program
-  .command('windsurf')
-  .description('Manage Windsurf rules and skills in a project');
+interface RulesAndSkillsToolGroupOptions {
+  tool: 'windsurf' | 'cline';
+  displayName: string;
+  rulesPathHint: string;
+  importSearchHint: string;
+}
 
-// windsurf add (default to rules)
-windsurf
-  .command('add <name> [alias]')
-  .description('Sync Windsurf rules to project (.windsurf/rules/...)')
-  .option('-l, --local', 'Add to ai-rules-sync.local.json (private rule)')
-  .option('-d, --target-dir <dir>', 'Custom target directory for this entry')
-  .action(async (name, alias, options) => {
-    try {
-      const repo = await getTargetRepo(program.opts());
-      const adapter = getAdapter('windsurf', 'rules');
-      await handleAdd(adapter, { projectPath: process.cwd(), repo, isLocal: options.local || false }, name, alias, {
-        local: options.local,
-        targetDir: options.targetDir
-      });
-    } catch (error: any) {
-      console.error(chalk.red('Error adding Windsurf rule:'), error.message);
-      process.exit(1);
+function printAddAllSummary(
+  result: { installed: number; skipped: number; errors: Array<{ entry: string; error: string }> },
+  quiet: boolean | undefined
+): void {
+  if (quiet) {
+    return;
+  }
+
+  console.log(chalk.bold('\nSummary:'));
+  console.log(chalk.green(`  Installed: ${result.installed}`));
+  if (result.skipped > 0) {
+    console.log(chalk.yellow(`  Skipped: ${result.skipped}`));
+  }
+  if (result.errors.length > 0) {
+    console.log(chalk.red(`  Errors: ${result.errors.length}`));
+    result.errors.forEach(e => {
+      console.log(chalk.red(`    - ${e.entry}: ${e.error}`));
+    });
+  }
+}
+
+async function findImportAdapterForTool(
+  tool: 'windsurf' | 'cline',
+  projectPath: string,
+  name: string
+): Promise<SyncAdapter | null> {
+  const adapters = adapterRegistry.getForTool(tool);
+  for (const adapter of adapters) {
+    const targetPath = path.join(projectPath, adapter.targetDir, name);
+    if (await fs.pathExists(targetPath)) {
+      return adapter;
     }
-  });
+  }
+  return null;
+}
 
-// windsurf remove (default to rules)
-windsurf
-  .command('remove <alias>')
-  .description('Remove a Windsurf rule from project')
-  .action(async (alias) => {
-    try {
-      const adapter = getAdapter('windsurf', 'rules');
-      await handleRemove(adapter, process.cwd(), alias);
-    } catch (error: any) {
-      console.error(chalk.red('Error removing Windsurf rule:'), error.message);
-      process.exit(1);
-    }
-  });
+function registerRulesAndSkillsToolGroup(config: RulesAndSkillsToolGroupOptions): void {
+  const { tool, displayName, rulesPathHint, importSearchHint } = config;
+  const group = program
+    .command(tool)
+    .description(`Manage ${displayName} rules and skills in a project`);
 
-windsurf
-  .command('install')
-  .description('Install all Windsurf rules and skills from config')
-  .action(async () => {
-    try {
-      await installEntriesForTool(adapterRegistry.getForTool('windsurf'), process.cwd());
-    } catch (error: any) {
-      console.error(chalk.red('Error installing Windsurf entries:'), error.message);
-      process.exit(1);
-    }
-  });
-
-windsurf
-  .command('add-all')
-  .description('Add all Windsurf entries from repository')
-  .option('--dry-run', 'Preview without making changes')
-  .option('-f, --force', 'Overwrite existing entries')
-  .option('-i, --interactive', 'Prompt for each entry')
-  .option('-l, --local', 'Add to ai-rules-sync.local.json')
-  .option('--skip-existing', 'Skip entries already in config')
-  .option('--quiet', 'Minimal output')
-  .option('-s, --source-dir <path>', 'Custom source directory (can be repeated)', collect)
-  .action(async (options) => {
-    try {
-      const projectPath = process.cwd();
-      const opts = program.opts();
-      const currentRepo = await getTargetRepo(opts);
-      let sourceDirOverrides;
-      if (options.sourceDir && options.sourceDir.length > 0) {
-        try {
-          sourceDirOverrides = parseSourceDirParams(options.sourceDir, 'windsurf');
-        } catch (error: any) {
-          console.error(chalk.red('Error parsing --source-dir:'), error.message);
-          process.exit(1);
-        }
-      }
-
-      const result = await handleAddAll(
-        projectPath,
-        currentRepo,
-        adapterRegistry,
-        {
-          target: opts.target,
-          tools: ['windsurf'],
-          dryRun: options.dryRun,
-          force: options.force,
-          interactive: options.interactive,
-          isLocal: options.local,
-          skipExisting: options.skipExisting,
-          quiet: options.quiet,
-          sourceDirOverrides
-        }
-      );
-
-      if (!options.quiet) {
-        console.log(chalk.bold('\nSummary:'));
-        console.log(chalk.green(`  Installed: ${result.installed}`));
-        if (result.skipped > 0) {
-          console.log(chalk.yellow(`  Skipped: ${result.skipped}`));
-        }
-        if (result.errors.length > 0) {
-          console.log(chalk.red(`  Errors: ${result.errors.length}`));
-          result.errors.forEach(e => {
-            console.log(chalk.red(`    - ${e.entry}: ${e.error}`));
-          });
-        }
-      }
-
-      if (result.errors.length > 0) {
+  group
+    .command('add <name> [alias]')
+    .description(`Sync ${displayName} rules to project (${rulesPathHint}/...)`)
+    .option('-l, --local', 'Add to ai-rules-sync.local.json (private rule)')
+    .option('-d, --target-dir <dir>', 'Custom target directory for this entry')
+    .action(async (name, alias, options) => {
+      try {
+        const repo = await getTargetRepo(program.opts());
+        const adapter = getAdapter(tool, 'rules');
+        await handleAdd(adapter, { projectPath: process.cwd(), repo, isLocal: options.local || false }, name, alias, {
+          local: options.local,
+          targetDir: options.targetDir
+        });
+      } catch (error: any) {
+        console.error(chalk.red(`Error adding ${displayName} rule:`), error.message);
         process.exit(1);
       }
-    } catch (error: any) {
-      console.error(chalk.red('Error in windsurf add-all:'), error.message);
-      process.exit(1);
-    }
-  });
+    });
 
-windsurf
-  .command('import <name>')
-  .description('Import Windsurf rule/skill from project to repository (auto-detects subtype)')
-  .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
-  .option('-m, --message <message>', 'Custom git commit message')
-  .option('-f, --force', 'Overwrite if entry already exists in repository')
-  .option('-p, --push', 'Push to remote repository after commit')
-  .action(async (name, options) => {
-    try {
-      const projectPath = process.cwd();
-      const repo = await getTargetRepo(program.opts());
-      const windsurfAdapters = adapterRegistry.getForTool('windsurf');
-      let foundAdapter: SyncAdapter | null = null;
-
-      for (const adapter of windsurfAdapters) {
-        const targetPath = path.join(projectPath, adapter.targetDir, name);
-        if (await fs.pathExists(targetPath)) {
-          foundAdapter = adapter;
-          break;
-        }
-      }
-
-      if (!foundAdapter) {
-        throw new Error(`Entry "${name}" not found in .windsurf/rules or .windsurf/skills.`);
-      }
-
-      console.log(chalk.gray(`Detected ${foundAdapter.subtype}: ${name}`));
-      await handleImport(foundAdapter, { projectPath, repo, isLocal: options.local || false }, name, options);
-    } catch (error: any) {
-      console.error(chalk.red('Error importing Windsurf entry:'), error.message);
-      process.exit(1);
-    }
-  });
-
-const windsurfRules = windsurf.command('rules').description('Manage Windsurf rules');
-registerAdapterCommands({ adapter: getAdapter('windsurf', 'rules'), parentCommand: windsurfRules, programOpts: () => program.opts() });
-const windsurfSkills = windsurf.command('skills').description('Manage Windsurf skills');
-registerAdapterCommands({ adapter: getAdapter('windsurf', 'skills'), parentCommand: windsurfSkills, programOpts: () => program.opts() });
-
-// ============ Cline command group ============
-const cline = program
-  .command('cline')
-  .description('Manage Cline rules and skills in a project');
-
-// cline add (default to rules)
-cline
-  .command('add <name> [alias]')
-  .description('Sync Cline rules to project (.clinerules/...)')
-  .option('-l, --local', 'Add to ai-rules-sync.local.json (private rule)')
-  .option('-d, --target-dir <dir>', 'Custom target directory for this entry')
-  .action(async (name, alias, options) => {
-    try {
-      const repo = await getTargetRepo(program.opts());
-      const adapter = getAdapter('cline', 'rules');
-      await handleAdd(adapter, { projectPath: process.cwd(), repo, isLocal: options.local || false }, name, alias, {
-        local: options.local,
-        targetDir: options.targetDir
-      });
-    } catch (error: any) {
-      console.error(chalk.red('Error adding Cline rule:'), error.message);
-      process.exit(1);
-    }
-  });
-
-// cline remove (default to rules)
-cline
-  .command('remove <alias>')
-  .description('Remove a Cline rule from project')
-  .action(async (alias) => {
-    try {
-      const adapter = getAdapter('cline', 'rules');
-      await handleRemove(adapter, process.cwd(), alias);
-    } catch (error: any) {
-      console.error(chalk.red('Error removing Cline rule:'), error.message);
-      process.exit(1);
-    }
-  });
-
-cline
-  .command('install')
-  .description('Install all Cline rules and skills from config')
-  .action(async () => {
-    try {
-      await installEntriesForTool(adapterRegistry.getForTool('cline'), process.cwd());
-    } catch (error: any) {
-      console.error(chalk.red('Error installing Cline entries:'), error.message);
-      process.exit(1);
-    }
-  });
-
-cline
-  .command('add-all')
-  .description('Add all Cline entries from repository')
-  .option('--dry-run', 'Preview without making changes')
-  .option('-f, --force', 'Overwrite existing entries')
-  .option('-i, --interactive', 'Prompt for each entry')
-  .option('-l, --local', 'Add to ai-rules-sync.local.json')
-  .option('--skip-existing', 'Skip entries already in config')
-  .option('--quiet', 'Minimal output')
-  .option('-s, --source-dir <path>', 'Custom source directory (can be repeated)', collect)
-  .action(async (options) => {
-    try {
-      const projectPath = process.cwd();
-      const opts = program.opts();
-      const currentRepo = await getTargetRepo(opts);
-      let sourceDirOverrides;
-      if (options.sourceDir && options.sourceDir.length > 0) {
-        try {
-          sourceDirOverrides = parseSourceDirParams(options.sourceDir, 'cline');
-        } catch (error: any) {
-          console.error(chalk.red('Error parsing --source-dir:'), error.message);
-          process.exit(1);
-        }
-      }
-
-      const result = await handleAddAll(
-        projectPath,
-        currentRepo,
-        adapterRegistry,
-        {
-          target: opts.target,
-          tools: ['cline'],
-          dryRun: options.dryRun,
-          force: options.force,
-          interactive: options.interactive,
-          isLocal: options.local,
-          skipExisting: options.skipExisting,
-          quiet: options.quiet,
-          sourceDirOverrides
-        }
-      );
-
-      if (!options.quiet) {
-        console.log(chalk.bold('\nSummary:'));
-        console.log(chalk.green(`  Installed: ${result.installed}`));
-        if (result.skipped > 0) {
-          console.log(chalk.yellow(`  Skipped: ${result.skipped}`));
-        }
-        if (result.errors.length > 0) {
-          console.log(chalk.red(`  Errors: ${result.errors.length}`));
-          result.errors.forEach(e => {
-            console.log(chalk.red(`    - ${e.entry}: ${e.error}`));
-          });
-        }
-      }
-
-      if (result.errors.length > 0) {
+  group
+    .command('remove <alias>')
+    .description(`Remove a ${displayName} rule from project`)
+    .action(async (alias) => {
+      try {
+        const adapter = getAdapter(tool, 'rules');
+        await handleRemove(adapter, process.cwd(), alias);
+      } catch (error: any) {
+        console.error(chalk.red(`Error removing ${displayName} rule:`), error.message);
         process.exit(1);
       }
-    } catch (error: any) {
-      console.error(chalk.red('Error in cline add-all:'), error.message);
-      process.exit(1);
-    }
-  });
+    });
 
-cline
-  .command('import <name>')
-  .description('Import Cline rule/skill from project to repository (auto-detects subtype)')
-  .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
-  .option('-m, --message <message>', 'Custom git commit message')
-  .option('-f, --force', 'Overwrite if entry already exists in repository')
-  .option('-p, --push', 'Push to remote repository after commit')
-  .action(async (name, options) => {
-    try {
-      const projectPath = process.cwd();
-      const repo = await getTargetRepo(program.opts());
-      const clineAdapters = adapterRegistry.getForTool('cline');
-      let foundAdapter: SyncAdapter | null = null;
+  group
+    .command('install')
+    .description(`Install all ${displayName} rules and skills from config`)
+    .action(async () => {
+      try {
+        await installEntriesForTool(adapterRegistry.getForTool(tool), process.cwd());
+      } catch (error: any) {
+        console.error(chalk.red(`Error installing ${displayName} entries:`), error.message);
+        process.exit(1);
+      }
+    });
 
-      for (const adapter of clineAdapters) {
-        const targetPath = path.join(projectPath, adapter.targetDir, name);
-        if (await fs.pathExists(targetPath)) {
-          foundAdapter = adapter;
-          break;
+  group
+    .command('add-all')
+    .description(`Add all ${displayName} entries from repository`)
+    .option('--dry-run', 'Preview without making changes')
+    .option('-f, --force', 'Overwrite existing entries')
+    .option('-i, --interactive', 'Prompt for each entry')
+    .option('-l, --local', 'Add to ai-rules-sync.local.json')
+    .option('--skip-existing', 'Skip entries already in config')
+    .option('--quiet', 'Minimal output')
+    .option('-s, --source-dir <path>', 'Custom source directory (can be repeated)', collect)
+    .action(async (options) => {
+      try {
+        const projectPath = process.cwd();
+        const opts = program.opts();
+        const currentRepo = await getTargetRepo(opts);
+        let sourceDirOverrides;
+
+        if (options.sourceDir && options.sourceDir.length > 0) {
+          try {
+            sourceDirOverrides = parseSourceDirParams(options.sourceDir, tool);
+          } catch (error: any) {
+            console.error(chalk.red('Error parsing --source-dir:'), error.message);
+            process.exit(1);
+          }
         }
+
+        const result = await handleAddAll(
+          projectPath,
+          currentRepo,
+          adapterRegistry,
+          {
+            target: opts.target,
+            tools: [tool],
+            dryRun: options.dryRun,
+            force: options.force,
+            interactive: options.interactive,
+            isLocal: options.local,
+            skipExisting: options.skipExisting,
+            quiet: options.quiet,
+            sourceDirOverrides
+          }
+        );
+
+        printAddAllSummary(result, options.quiet);
+        if (result.errors.length > 0) {
+          process.exit(1);
+        }
+      } catch (error: any) {
+        console.error(chalk.red(`Error in ${tool} add-all:`), error.message);
+        process.exit(1);
       }
+    });
 
-      if (!foundAdapter) {
-        throw new Error(`Entry "${name}" not found in .clinerules or .cline/skills.`);
+  group
+    .command('import <name>')
+    .description(`Import ${displayName} rule/skill from project to repository (auto-detects subtype)`)
+    .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
+    .option('-m, --message <message>', 'Custom git commit message')
+    .option('-f, --force', 'Overwrite if entry already exists in repository')
+    .option('-p, --push', 'Push to remote repository after commit')
+    .action(async (name, options) => {
+      try {
+        const projectPath = process.cwd();
+        const repo = await getTargetRepo(program.opts());
+        const foundAdapter = await findImportAdapterForTool(tool, projectPath, name);
+        if (!foundAdapter) {
+          throw new Error(`Entry "${name}" not found in ${importSearchHint}.`);
+        }
+
+        console.log(chalk.gray(`Detected ${foundAdapter.subtype}: ${name}`));
+        await handleImport(foundAdapter, { projectPath, repo, isLocal: options.local || false }, name, options);
+      } catch (error: any) {
+        console.error(chalk.red(`Error importing ${displayName} entry:`), error.message);
+        process.exit(1);
       }
+    });
 
-      console.log(chalk.gray(`Detected ${foundAdapter.subtype}: ${name}`));
-      await handleImport(foundAdapter, { projectPath, repo, isLocal: options.local || false }, name, options);
-    } catch (error: any) {
-      console.error(chalk.red('Error importing Cline entry:'), error.message);
-      process.exit(1);
-    }
-  });
+  const rules = group.command('rules').description(`Manage ${displayName} rules`);
+  registerAdapterCommands({ adapter: getAdapter(tool, 'rules'), parentCommand: rules, programOpts: () => program.opts() });
 
-const clineRules = cline.command('rules').description('Manage Cline rules');
-registerAdapterCommands({ adapter: getAdapter('cline', 'rules'), parentCommand: clineRules, programOpts: () => program.opts() });
-const clineSkills = cline.command('skills').description('Manage Cline skills');
-registerAdapterCommands({ adapter: getAdapter('cline', 'skills'), parentCommand: clineSkills, programOpts: () => program.opts() });
+  const skills = group.command('skills').description(`Manage ${displayName} skills`);
+  registerAdapterCommands({ adapter: getAdapter(tool, 'skills'), parentCommand: skills, programOpts: () => program.opts() });
+}
+
+// ============ Windsurf / Cline command groups ============
+registerRulesAndSkillsToolGroup({
+  tool: 'windsurf',
+  displayName: 'Windsurf',
+  rulesPathHint: '.windsurf/rules',
+  importSearchHint: '.windsurf/rules or .windsurf/skills'
+});
+
+registerRulesAndSkillsToolGroup({
+  tool: 'cline',
+  displayName: 'Cline',
+  rulesPathHint: '.clinerules',
+  importSearchHint: '.clinerules or .cline/skills'
+});
 
 // ============ Git command ============
 program
