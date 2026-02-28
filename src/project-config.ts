@@ -304,11 +304,6 @@ export interface RepoSourceConfig {
         agents?: string;
         md?: string;
     };
-    gemini?: {
-        commands?: string;
-        skills?: string;
-        agents?: string;
-    };
     warp?: {
         skills?: string;
     };
@@ -400,11 +395,6 @@ function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig
             skills: { ...(main.gemini?.skills || {}), ...(local.gemini?.skills || {}) },
             agents: { ...(main.gemini?.agents || {}), ...(local.gemini?.agents || {}) },
             md: { ...(main.gemini?.md || {}), ...(local.gemini?.md || {}) }
-        },
-        gemini: {
-            commands: { ...(main.gemini?.commands || {}), ...(local.gemini?.commands || {}) },
-            skills: { ...(main.gemini?.skills || {}), ...(local.gemini?.skills || {}) },
-            agents: { ...(main.gemini?.agents || {}), ...(local.gemini?.agents || {}) }
         },
         warp: {
             skills: { ...(main.warp?.skills || {}), ...(local.warp?.skills || {}) }
