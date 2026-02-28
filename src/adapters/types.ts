@@ -23,6 +23,9 @@ export interface SyncAdapter {
     /** Target directory in project (relative to project root), e.g. ".cursor/rules" */
     targetDir: string;
 
+    /** Optional override target directory for user-level (global) mode, relative to home dir */
+    userTargetDir?: string;
+
     /** Sync mode: 'directory' for linking folders, 'file' for linking individual files, 'hybrid' for both */
     mode: 'directory' | 'file' | 'hybrid';
 

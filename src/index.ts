@@ -1124,6 +1124,10 @@ registerAdapterCommands({ adapter: getAdapter('codex', 'rules'), parentCommand: 
 const codexSkills = codex.command('skills').description('Manage Codex skills');
 registerAdapterCommands({ adapter: getAdapter('codex', 'skills'), parentCommand: codexSkills, programOpts: () => program.opts() });
 
+// codex md subgroup (for AGENTS.md files, supports --global)
+const codexMd = codex.command('md').description('Manage Codex AGENTS.md files (.codex/AGENTS.md)');
+registerAdapterCommands({ adapter: getAdapter('codex', 'md'), parentCommand: codexMd, programOpts: () => program.opts() });
+
 // ============ Gemini CLI command group ============
 const gemini = program
   .command('gemini')
@@ -1249,6 +1253,10 @@ registerAdapterCommands({ adapter: getAdapter('gemini', 'skills'), parentCommand
 
 const geminiAgents = gemini.command('agents').description('Manage Gemini agents');
 registerAdapterCommands({ adapter: getAdapter('gemini', 'agents'), parentCommand: geminiAgents, programOpts: () => program.opts() });
+
+// gemini md subgroup (for GEMINI.md files, supports --global)
+const geminiMd = gemini.command('md').description('Manage Gemini GEMINI.md files (.gemini/GEMINI.md)');
+registerAdapterCommands({ adapter: getAdapter('gemini', 'md'), parentCommand: geminiMd, programOpts: () => program.opts() });
 
 // ============ Warp command group ============
 const warp = program
@@ -1616,7 +1624,7 @@ program
 // ============ Internal _complete command ============
 program
   .command('_complete')
-  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, cursor-agents, copilot, claude-skills, claude-agents, claude-rules, trae-rules, trae-skills, opencode-agents, opencode-skills, opencode-commands, opencode-tools, codex-rules, codex-skills, gemini-commands, gemini-skills, gemini-agents, warp-skills, windsurf-rules, windsurf-skills, cline-rules, cline-skills, agents-md')
+  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, cursor-agents, copilot, claude-skills, claude-agents, claude-rules, trae-rules, trae-skills, opencode-agents, opencode-skills, opencode-commands, opencode-tools, codex-rules, codex-skills, codex-md, gemini-commands, gemini-skills, gemini-agents, gemini-md, warp-skills, windsurf-rules, windsurf-skills, cline-rules, cline-skills, agents-md')
   .description('Internal command for shell completion')
   .action(async (type: string) => {
     try {
@@ -1906,7 +1914,7 @@ configGlobal
 // ============ User command group ============
 const userCmd = program
   .command('user')
-  .description('Manage user-level AI config files (~/.claude/CLAUDE.md, etc.)');
+  .description('Manage user-level AI config files (~/.claude/CLAUDE.md, ~/.gemini/GEMINI.md, ~/.codex/AGENTS.md, etc.)');
 
 userCmd
   .command('install')

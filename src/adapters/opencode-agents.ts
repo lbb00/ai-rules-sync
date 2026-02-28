@@ -14,6 +14,7 @@ export const opencodeAgentsAdapter: SyncAdapter = createBaseAdapter({
   configPath: ['opencode', 'agents'],
   defaultSourceDir: '.opencode/agents',
   targetDir: '.opencode/agents',
+  userTargetDir: '.config/opencode/agents',
   mode: 'file',
   fileSuffixes: [SUFFIX],
 

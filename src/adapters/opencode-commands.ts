@@ -14,6 +14,7 @@ export const opencodeCommandsAdapter: SyncAdapter = createBaseAdapter({
   configPath: ['opencode', 'commands'],
   defaultSourceDir: '.opencode/commands',
   targetDir: '.opencode/commands',
+  userTargetDir: '.config/opencode/commands',
   mode: 'file',
   fileSuffixes: [SUFFIX],
 

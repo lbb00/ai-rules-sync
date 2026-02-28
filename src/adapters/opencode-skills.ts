@@ -7,5 +7,6 @@ export const opencodeSkillsAdapter = createBaseAdapter({
   configPath: ['opencode', 'skills'],
   defaultSourceDir: '.opencode/skills',
   targetDir: '.opencode/skills',
+  userTargetDir: '.config/opencode/skills',
   mode: 'directory',
 });

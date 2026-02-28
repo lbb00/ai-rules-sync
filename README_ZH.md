@@ -8,7 +8,9 @@
 
 **AI Rules Sync (AIS)** - 跨项目和团队同步、管理和共享你的 AI 代理规则。
 
-不再复制粘贴 `.mdc` 文件。在 Git 仓库中管理规则，通过软链接同步。支持 11 款 AI 工具及 **User 模式**（管理个人配置文件）——详见[支持的工具](#支持的工具)。
+不再复制粘贴 `.mdc` 文件。在 Git 仓库中管理规则，通过软链接同步。
+
+**支持：** Cursor（规则、命令、技能、subagents）、GitHub Copilot（指令、提示词、技能、代理）、Claude Code（规则、技能、subagents、CLAUDE.md）、Trae（规则、技能）、OpenCode（命令、技能、代理、工具）、Codex（规则、技能、AGENTS.md）、Gemini CLI（命令、技能、代理、GEMINI.md）、Windsurf（规则、技能）、Cline（规则、技能）、Warp（规则 via AGENTS.md、技能）以及通用的 AGENTS.md。另支持 **User 模式**，用于管理个人 AI 配置文件（如 `~/.claude/CLAUDE.md`、`~/.gemini/GEMINI.md`、`~/.codex/AGENTS.md`、`~/.config/opencode/` 等）。
 
 ---
 
@@ -93,9 +95,11 @@ ais completion install
 | OpenCode | Tools | file | `.opencode/tools/` | `.ts`, `.js` | [文档](https://opencode.ai/docs/tools/) |
 | Codex | Rules | file | `.codex/rules/` | `.rules` | [文档](https://developers.openai.com/codex/rules) |
 | Codex | Skills | directory | `.agents/skills/` | - | [文档](https://developers.openai.com/codex/skills) |
+| Codex | AGENTS.md | file | `.codex/` | `.md` | [文档](https://developers.openai.com/codex) |
 | Gemini CLI | Commands | file | `.gemini/commands/` | `.toml` | [文档](https://geminicli.com/docs/cli/custom-commands/) |
 | Gemini CLI | Skills | directory | `.gemini/skills/` | - | [文档](https://geminicli.com/docs/cli/skills/) |
-| Gemini CLI | Subagents | file | `.gemini/agents/` | `.md` | [文档](https://geminicli.com/docs/core/subagents/) |
+| Gemini CLI | Agents | file | `.gemini/agents/` | `.md` | [文档](https://geminicli.com/docs/core/subagents/) |
+| Gemini CLI | GEMINI.md | file | `.gemini/` | `.md` | [网站](https://geminicli.com/) |
 | Warp | Rules | file | `.`（根目录） | `.md` | [文档](https://docs.warp.dev/agent-platform/capabilities/rules) — 与 AGENTS.md 相同，使用 `ais agents-md` |
 | Warp | Skills | directory | `.agents/skills/` | - | [文档](https://docs.warp.dev/agent-platform/capabilities/skills) |
 | Windsurf | Rules | file | `.windsurf/rules/` | `.md` | [文档](https://docs.windsurf.com/windsurf/cascade/memories) |
@@ -526,6 +530,9 @@ ais codex rules add default
 # 添加技能
 ais codex skills add code-assistant
 
+# 添加 AGENTS.md（项目级上下文文件）
+ais codex md add AGENTS
+
 # 安装所有
 ais codex install
 
@@ -539,6 +546,13 @@ ais codex rules remove default
 
 **注意：** Codex 技能使用 `.agents/skills/` 目录（而非 `.codex/skills/`），这是按照 OpenAI 文档的规定。
 
+**User 模式** — 管理 `~/.codex/AGENTS.md`：
+
+```bash
+ais codex md add AGENTS --user
+# → 符号链接创建于 ~/.codex/AGENTS.md
+```
+
 ### Gemini CLI
 
 ```bash
@@ -548,13 +562,21 @@ ais gemini commands add deploy-docs
 # 添加技能（目录）
 ais gemini skills add code-review
 
-# 添加 subagent（.md）
+# 添加代理（.md）
 ais gemini agents add code-analyzer
 
-# 移除
-ais gemini commands remove deploy-docs
-ais gemini skills remove code-review
-ais gemini agents remove code-analyzer
+# 添加 GEMINI.md（项目级上下文文件）
+ais gemini md add GEMINI
+
+# 安装所有
+ais gemini install
+```
+
+**User 模式** — 管理 `~/.gemini/GEMINI.md`：
+
+```bash
+ais gemini md add GEMINI --user
+# → 符号链接创建于 ~/.gemini/GEMINI.md
 ```
 
 ### AGENTS.md（通用）
@@ -792,13 +814,22 @@ ais cursor add auth-rules backend-auth -d packages/backend/.cursor/rules
 
 ### User 模式（个人 AI 配置文件）
 
-**使用版本控制管理个人 AI 配置文件（`~/.claude/CLAUDE.md`、`~/.cursor/rules/` 等）：**
+**使用版本控制管理个人 AI 配置文件：**
 
 ```bash
-# 将个人 CLAUDE.md 加入 user 配置
+# Claude Code：~/.claude/CLAUDE.md
 ais claude md add CLAUDE --user
 
-# 添加个人 Cursor 规则
+# Gemini CLI：~/.gemini/GEMINI.md
+ais gemini md add GEMINI --user
+
+# Codex：~/.codex/AGENTS.md
+ais codex md add AGENTS --user
+
+# OpenCode（XDG 路径）：~/.config/opencode/commands/
+ais opencode commands add my-cmd --user
+
+# Cursor 规则：~/.cursor/rules/
 ais cursor rules add my-style --user
 
 # 在新机器上一键恢复所有 user 配置
@@ -806,6 +837,8 @@ ais user install
 # 等价于：
 ais install --user
 ```
+
+> **OpenCode 注意：** User 级别文件存放在 `~/.config/opencode/`（XDG 规范），而非 `~/.opencode/`。
 
 **管理 user 配置路径**（用于 dotfiles 集成）：
 
@@ -843,6 +876,12 @@ ais user install
   "claude": {
     "md": { "CLAUDE": "https://github.com/me/my-rules.git" },
     "rules": { "general": "https://github.com/me/my-rules.git" }
+  },
+  "gemini": {
+    "md": { "GEMINI": "https://github.com/me/my-rules.git" }
+  },
+  "codex": {
+    "md": { "AGENTS": "https://github.com/me/my-rules.git" }
   },
   "cursor": {
     "rules": { "my-style": "https://github.com/me/my-rules.git" }

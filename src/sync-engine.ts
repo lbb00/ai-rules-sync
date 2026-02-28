@@ -82,6 +82,11 @@ export async function linkEntry(
         targetDirPath = adapter.targetDir;
     }
 
+    // In user/global mode, use userTargetDir if the adapter defines one
+    if (options.skipIgnore && adapter.userTargetDir) {
+        targetDirPath = adapter.userTargetDir;
+    }
+
     const targetDir = path.join(absoluteProjectPath, targetDirPath);
     const targetPath = path.join(targetDir, targetName);
 

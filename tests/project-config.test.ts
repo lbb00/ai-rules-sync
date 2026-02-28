@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import path from 'path';
 import fs from 'fs-extra';
 import { getConfigSource, getCombinedProjectConfig, migrateLegacyToNew, getRepoSourceConfig, getSourceDir } from '../src/project-config.js';
+import { findAdapterForAlias } from '../src/adapters/index.js';
 
 vi.mock('fs-extra');
 
@@ -197,5 +198,144 @@ describe('getSourceDir', () => {
 
     const dir = getSourceDir(config, 'cursor', 'commands', '.cursor/commands');
     expect(dir).toBe('my-commands');
+  });
+
+  it('handles gemini md', () => {
+    const config = {
+      gemini: { md: 'custom-gemini' }
+    };
+
+    const dir = getSourceDir(config, 'gemini', 'md', '.gemini');
+    expect(dir).toBe('custom-gemini');
+  });
+
+  it('handles codex md', () => {
+    const config = {
+      codex: { md: 'custom-codex' }
+    };
+
+    const dir = getSourceDir(config, 'codex', 'md', '.codex');
+    expect(dir).toBe('custom-codex');
+  });
+});
+
+describe('getCombinedProjectConfig - gemini and codex md sections', () => {
+  const projectPath = '/mock/project';
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(fs.writeJson).mockResolvedValue(undefined as any);
+  });
+
+  it('merges gemini.md entries from main and local configs', async () => {
+    vi.mocked(fs.pathExists).mockImplementation(async (p) => {
+      if (p === path.join(projectPath, 'ai-rules-sync.json')) return true;
+      if (p === path.join(projectPath, 'ai-rules-sync.local.json')) return true;
+      return false;
+    });
+
+    vi.mocked(fs.readJson).mockImplementation(async (p) => {
+      if (p === path.join(projectPath, 'ai-rules-sync.json')) {
+        return { gemini: { md: { GEMINI: 'https://example.com/repo.git' } } };
+      }
+      if (p === path.join(projectPath, 'ai-rules-sync.local.json')) {
+        return { gemini: { md: { 'GEMINI-local': 'https://local.com/repo.git' } } };
+      }
+      return {};
+    });
+
+    const config = await getCombinedProjectConfig(projectPath);
+    expect(config.gemini?.md?.['GEMINI']).toBe('https://example.com/repo.git');
+    expect(config.gemini?.md?.['GEMINI-local']).toBe('https://local.com/repo.git');
+  });
+
+  it('merges codex.md entries from main and local configs', async () => {
+    vi.mocked(fs.pathExists).mockImplementation(async (p) => {
+      if (p === path.join(projectPath, 'ai-rules-sync.json')) return true;
+      if (p === path.join(projectPath, 'ai-rules-sync.local.json')) return true;
+      return false;
+    });
+
+    vi.mocked(fs.readJson).mockImplementation(async (p) => {
+      if (p === path.join(projectPath, 'ai-rules-sync.json')) {
+        return { codex: { md: { AGENTS: 'https://example.com/repo.git' } } };
+      }
+      if (p === path.join(projectPath, 'ai-rules-sync.local.json')) {
+        return { codex: { md: { 'AGENTS-local': 'https://local.com/repo.git' } } };
+      }
+      return {};
+    });
+
+    const config = await getCombinedProjectConfig(projectPath);
+    expect(config.codex?.md?.['AGENTS']).toBe('https://example.com/repo.git');
+    expect(config.codex?.md?.['AGENTS-local']).toBe('https://local.com/repo.git');
+  });
+
+  it('merges all gemini subtypes together', async () => {
+    vi.mocked(fs.pathExists).mockImplementation(async (p) => {
+      if (p === path.join(projectPath, 'ai-rules-sync.json')) return true;
+      return false;
+    });
+
+    vi.mocked(fs.readJson).mockImplementation(async (p) => {
+      if (p === path.join(projectPath, 'ai-rules-sync.json')) {
+        return {
+          gemini: {
+            commands: { 'my-cmd': 'https://example.com/repo.git' },
+            skills: { 'my-skill': 'https://example.com/repo.git' },
+            agents: { 'my-agent': 'https://example.com/repo.git' },
+            md: { 'GEMINI': 'https://example.com/repo.git' },
+          }
+        };
+      }
+      return {};
+    });
+
+    const config = await getCombinedProjectConfig(projectPath);
+    expect(config.gemini?.commands?.['my-cmd']).toBeDefined();
+    expect(config.gemini?.skills?.['my-skill']).toBeDefined();
+    expect(config.gemini?.agents?.['my-agent']).toBeDefined();
+    expect(config.gemini?.md?.['GEMINI']).toBeDefined();
+  });
+});
+
+describe('findAdapterForAlias - gemini.md and codex.md', () => {
+  it('should find gemini-md adapter for alias in gemini.md', () => {
+    const cfg = {
+      gemini: { md: { 'GEMINI': 'https://example.com/repo.git' } }
+    };
+    const result = findAdapterForAlias(cfg, 'GEMINI');
+    expect(result).not.toBeNull();
+    expect(result?.adapter.name).toBe('gemini-md');
+    expect(result?.section).toBe('gemini.md');
+  });
+
+  it('should find codex-md adapter for alias in codex.md', () => {
+    const cfg = {
+      codex: { md: { 'AGENTS': 'https://example.com/repo.git' } }
+    };
+    const result = findAdapterForAlias(cfg, 'AGENTS');
+    expect(result).not.toBeNull();
+    expect(result?.adapter.name).toBe('codex-md');
+    expect(result?.section).toBe('codex.md');
+  });
+
+  it('should return null for unknown alias', () => {
+    const cfg = {};
+    const result = findAdapterForAlias(cfg, 'unknown-alias');
+    expect(result).toBeNull();
+  });
+
+  it('should prefer gemini.agents over gemini.md for same alias when both present', () => {
+    // In practice they should not have the same alias, but test priority order
+    const cfg = {
+      gemini: {
+        agents: { 'GEMINI': 'url-agents' },
+        md: { 'GEMINI': 'url-md' },
+      }
+    };
+    // agents is checked before md in findAdapterForAlias
+    const result = findAdapterForAlias(cfg, 'GEMINI');
+    expect(result?.section).toBe('gemini.agents');
   });
 });
