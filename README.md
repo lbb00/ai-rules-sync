@@ -8,7 +8,9 @@
 
 **AI Rules Sync (AIS)** - Synchronize, manage, and share your AI agent rules across projects and teams.
 
-Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links. Supports 11 AI tools and **User Mode** for personal config files — see [Supported Tools](#supported-tools).
+Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links.
+
+**Supports:** Cursor (rules, commands, skills, subagents), GitHub Copilot (instructions, prompts, skills, agents), Claude Code (rules, skills, subagents, CLAUDE.md), Trae (rules, skills), OpenCode (commands, skills, agents, tools), Codex (rules, skills, AGENTS.md), Gemini CLI (commands, skills, agents, GEMINI.md), Windsurf (rules, skills), Cline (rules, skills), Warp (rules via AGENTS.md, skills), and universal AGENTS.md. Also supports **User Mode** for personal AI config files (`~/.claude/CLAUDE.md`, `~/.gemini/GEMINI.md`, `~/.codex/AGENTS.md`, `~/.config/opencode/`, etc.).
 
 ---
 
@@ -93,9 +95,11 @@ ais completion install
 | OpenCode | Tools | file | `.opencode/tools/` | `.ts`, `.js` | [Docs](https://opencode.ai/docs/tools/) |
 | Codex | Rules | file | `.codex/rules/` | `.rules` | [Docs](https://developers.openai.com/codex/rules) |
 | Codex | Skills | directory | `.agents/skills/` | - | [Docs](https://developers.openai.com/codex/skills) |
+| Codex | AGENTS.md | file | `.codex/` | `.md` | [Docs](https://developers.openai.com/codex) |
 | Gemini CLI | Commands | file | `.gemini/commands/` | `.toml` | [Docs](https://geminicli.com/docs/cli/custom-commands/) |
 | Gemini CLI | Skills | directory | `.gemini/skills/` | - | [Docs](https://geminicli.com/docs/cli/skills/) |
-| Gemini CLI | Subagents | file | `.gemini/agents/` | `.md` | [Docs](https://geminicli.com/docs/core/subagents/) |
+| Gemini CLI | Agents | file | `.gemini/agents/` | `.md` | [Docs](https://geminicli.com/docs/core/subagents/) |
+| Gemini CLI | GEMINI.md | file | `.gemini/` | `.md` | [Website](https://geminicli.com/) |
 | Warp | Rules | file | `.` (root) | `.md` | [Docs](https://docs.warp.dev/agent-platform/capabilities/rules) — same as AGENTS.md, use `ais agents-md` |
 | Warp | Skills | directory | `.agents/skills/` | - | [Docs](https://docs.warp.dev/agent-platform/capabilities/skills) |
 | Windsurf | Rules | file | `.windsurf/rules/` | `.md` | [Docs](https://docs.windsurf.com/windsurf/cascade/memories) |
@@ -526,6 +530,9 @@ ais codex rules add default
 # Add skill
 ais codex skills add code-assistant
 
+# Add AGENTS.md (project-level context file)
+ais codex md add AGENTS
+
 # Install all
 ais codex install
 
@@ -539,6 +546,13 @@ ais codex rules remove default
 
 **Note:** Codex skills use `.agents/skills/` (not `.codex/skills/`) per OpenAI documentation.
 
+**User mode** — manage `~/.codex/AGENTS.md`:
+
+```bash
+ais codex md add AGENTS --user
+# → symlink created at ~/.codex/AGENTS.md
+```
+
 ### Gemini CLI
 
 ```bash
@@ -548,13 +562,21 @@ ais gemini commands add deploy-docs
 # Add skill (directory)
 ais gemini skills add code-review
 
-# Add subagent (.md)
+# Add agent (.md)
 ais gemini agents add code-analyzer
 
-# Remove
-ais gemini commands remove deploy-docs
-ais gemini skills remove code-review
-ais gemini agents remove code-analyzer
+# Add GEMINI.md (project-level context file)
+ais gemini md add GEMINI
+
+# Install all
+ais gemini install
+```
+
+**User mode** — manage `~/.gemini/GEMINI.md`:
+
+```bash
+ais gemini md add GEMINI --user
+# → symlink created at ~/.gemini/GEMINI.md
 ```
 
 ### AGENTS.md (Universal)
@@ -792,13 +814,22 @@ ais cursor add auth-rules backend-auth -d packages/backend/.cursor/rules
 
 ### User Mode (Personal AI Config Files)
 
-**Manage personal AI config files (`~/.claude/CLAUDE.md`, `~/.cursor/rules/`, etc.) with version control:**
+**Manage personal AI config files with version control:**
 
 ```bash
-# Add personal CLAUDE.md to user config
+# Claude Code: ~/.claude/CLAUDE.md
 ais claude md add CLAUDE --user
 
-# Add personal Cursor rules
+# Gemini CLI: ~/.gemini/GEMINI.md
+ais gemini md add GEMINI --user
+
+# Codex: ~/.codex/AGENTS.md
+ais codex md add AGENTS --user
+
+# OpenCode (XDG path): ~/.config/opencode/commands/
+ais opencode commands add my-cmd --user
+
+# Cursor rules: ~/.cursor/rules/
 ais cursor rules add my-style --user
 
 # Install all user entries on a new machine
@@ -806,6 +837,8 @@ ais user install
 # or equivalently:
 ais install --user
 ```
+
+> **OpenCode note:** User-level files land in `~/.config/opencode/` (XDG), not `~/.opencode/`.
 
 **Manage user config path** (for dotfiles integration):
 
@@ -843,6 +876,12 @@ ais user install
   "claude": {
     "md": { "CLAUDE": "https://github.com/me/my-rules.git" },
     "rules": { "general": "https://github.com/me/my-rules.git" }
+  },
+  "gemini": {
+    "md": { "GEMINI": "https://github.com/me/my-rules.git" }
+  },
+  "codex": {
+    "md": { "AGENTS": "https://github.com/me/my-rules.git" }
   },
   "cursor": {
     "rules": { "my-style": "https://github.com/me/my-rules.git" }

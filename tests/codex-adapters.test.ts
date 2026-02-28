@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { codexRulesAdapter } from '../src/adapters/codex-rules.js';
 import { codexSkillsAdapter } from '../src/adapters/codex-skills.js';
+import { codexMdAdapter } from '../src/adapters/codex-md.js';
 import { adapterRegistry } from '../src/adapters/index.js';
 
 describe('Codex Adapters', () => {
@@ -44,6 +45,25 @@ describe('Codex Adapters', () => {
     });
   });
 
+  describe('codexMdAdapter', () => {
+    it('should have correct properties', () => {
+      expect(codexMdAdapter.name).toBe('codex-md');
+      expect(codexMdAdapter.tool).toBe('codex');
+      expect(codexMdAdapter.subtype).toBe('md');
+      expect(codexMdAdapter.defaultSourceDir).toBe('.codex');
+      expect(codexMdAdapter.targetDir).toBe('.codex');
+      expect(codexMdAdapter.mode).toBe('file');
+    });
+
+    it('should have .md file suffix', () => {
+      expect(codexMdAdapter.fileSuffixes).toEqual(['.md']);
+    });
+
+    it('should have correct config path', () => {
+      expect(codexMdAdapter.configPath).toEqual(['codex', 'md']);
+    });
+  });
+
   describe('Adapter Registry Integration', () => {
     it('should register codex rules adapter', () => {
       const adapter = adapterRegistry.get('codex', 'rules');
@@ -57,11 +77,18 @@ describe('Codex Adapters', () => {
       expect(adapter?.name).toBe('codex-skills');
     });
 
+    it('should register codex md adapter', () => {
+      const adapter = adapterRegistry.get('codex', 'md');
+      expect(adapter).toBeDefined();
+      expect(adapter?.name).toBe('codex-md');
+    });
+
     it('should return codex adapters for tool', () => {
       const adapters = adapterRegistry.getForTool('codex');
-      expect(adapters).toHaveLength(2);
+      expect(adapters).toHaveLength(3);
       expect(adapters.map(a => a.name)).toContain('codex-rules');
       expect(adapters.map(a => a.name)).toContain('codex-skills');
+      expect(adapters.map(a => a.name)).toContain('codex-md');
     });
   });
 });

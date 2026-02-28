@@ -14,6 +14,7 @@ export interface AdapterConfig {
     configPath: [string, string];
     defaultSourceDir: string;
     targetDir: string;
+    userTargetDir?: string;
     mode: 'directory' | 'file' | 'hybrid';
     fileSuffixes?: string[];
     hybridFileSuffixes?: string[];
@@ -33,6 +34,7 @@ export function createBaseAdapter(config: AdapterConfig): SyncAdapter {
         configPath: config.configPath,
         defaultSourceDir: config.defaultSourceDir,
         targetDir: config.targetDir,
+        userTargetDir: config.userTargetDir,
         mode: config.mode,
         fileSuffixes: config.fileSuffixes,
         hybridFileSuffixes: config.hybridFileSuffixes,

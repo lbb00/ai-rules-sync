@@ -14,6 +14,7 @@ export const opencodeToolsAdapter: SyncAdapter = createBaseAdapter({
   configPath: ['opencode', 'tools'],
   defaultSourceDir: '.opencode/tools',
   targetDir: '.opencode/tools',
+  userTargetDir: '.config/opencode/tools',
   mode: 'file',
   fileSuffixes: SUFFIXES,
 

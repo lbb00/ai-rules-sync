@@ -23,6 +23,8 @@ import { codexSkillsAdapter } from './codex-skills.js';
 import { geminiCommandsAdapter } from './gemini-commands.js';
 import { geminiSkillsAdapter } from './gemini-skills.js';
 import { geminiAgentsAdapter } from './gemini-agents.js';
+import { geminiMdAdapter } from './gemini-md.js';
+import { codexMdAdapter } from './codex-md.js';
 import { warpSkillsAdapter } from './warp-skills.js';
 import { windsurfRulesAdapter } from './windsurf-rules.js';
 import { clineRulesAdapter } from './cline-rules.js';
@@ -68,6 +70,8 @@ class DefaultAdapterRegistry implements AdapterRegistry {
         this.register(geminiCommandsAdapter);
         this.register(geminiSkillsAdapter);
         this.register(geminiAgentsAdapter);
+        this.register(geminiMdAdapter);
+        this.register(codexMdAdapter);
         this.register(warpSkillsAdapter);
         this.register(windsurfRulesAdapter);
         this.register(clineRulesAdapter);
@@ -208,6 +212,9 @@ export function findAdapterForAlias(
     if (cfg.codex?.skills?.[alias]) {
         return { adapter: codexSkillsAdapter, section: 'codex.skills' };
     }
+    if (cfg.codex?.md?.[alias]) {
+        return { adapter: codexMdAdapter, section: 'codex.md' };
+    }
     if (cfg.gemini?.commands?.[alias]) {
         return { adapter: geminiCommandsAdapter, section: 'gemini.commands' };
     }
@@ -216,6 +223,9 @@ export function findAdapterForAlias(
     }
     if (cfg.gemini?.agents?.[alias]) {
         return { adapter: geminiAgentsAdapter, section: 'gemini.agents' };
+    }
+    if (cfg.gemini?.md?.[alias]) {
+        return { adapter: geminiMdAdapter, section: 'gemini.md' };
     }
     if (cfg.warp?.skills?.[alias]) {
         return { adapter: warpSkillsAdapter, section: 'warp.skills' };

@@ -74,6 +74,8 @@ export interface SourceDirConfig {
         rules?: string;
         // Source directory for codex skills, default: ".agents/skills"
         skills?: string;
+        // Source directory for codex md files (AGENTS.md), default: ".codex"
+        md?: string;
     };
     gemini?: {
         // Source directory for gemini commands, default: ".gemini/commands"
@@ -82,6 +84,8 @@ export interface SourceDirConfig {
         skills?: string;
         // Source directory for gemini agents, default: ".gemini/agents"
         agents?: string;
+        // Source directory for gemini md files (GEMINI.md), default: ".gemini"
+        md?: string;
     };
     warp?: {
         // Source directory for warp skills, default: ".agents/skills"
@@ -158,11 +162,13 @@ export interface ProjectConfig {
     codex?: {
         rules?: Record<string, RuleEntry>;
         skills?: Record<string, RuleEntry>;
+        md?: Record<string, RuleEntry>;
     };
     gemini?: {
         commands?: Record<string, RuleEntry>;
         skills?: Record<string, RuleEntry>;
         agents?: Record<string, RuleEntry>;
+        md?: Record<string, RuleEntry>;
     };
     warp?: {
         skills?: Record<string, RuleEntry>;
@@ -216,6 +222,13 @@ export interface RepoSourceConfig {
     codex?: {
         rules?: string;
         skills?: string;
+        md?: string;
+    };
+    gemini?: {
+        commands?: string;
+        skills?: string;
+        agents?: string;
+        md?: string;
     };
     gemini?: {
         commands?: string;
@@ -305,7 +318,14 @@ function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig
         },
         codex: {
             rules: { ...(main.codex?.rules || {}), ...(local.codex?.rules || {}) },
-            skills: { ...(main.codex?.skills || {}), ...(local.codex?.skills || {}) }
+            skills: { ...(main.codex?.skills || {}), ...(local.codex?.skills || {}) },
+            md: { ...(main.codex?.md || {}), ...(local.codex?.md || {}) }
+        },
+        gemini: {
+            commands: { ...(main.gemini?.commands || {}), ...(local.gemini?.commands || {}) },
+            skills: { ...(main.gemini?.skills || {}), ...(local.gemini?.skills || {}) },
+            agents: { ...(main.gemini?.agents || {}), ...(local.gemini?.agents || {}) },
+            md: { ...(main.gemini?.md || {}), ...(local.gemini?.md || {}) }
         },
         gemini: {
             commands: { ...(main.gemini?.commands || {}), ...(local.gemini?.commands || {}) },
@@ -567,6 +587,18 @@ export function getSourceDir(
             toolDir = repoConfig.codex?.rules;
         } else if (subtype === 'skills') {
             toolDir = repoConfig.codex?.skills;
+        } else if (subtype === 'md') {
+            toolDir = repoConfig.codex?.md;
+        }
+    } else if (tool === 'gemini') {
+        if (subtype === 'commands') {
+            toolDir = repoConfig.gemini?.commands;
+        } else if (subtype === 'skills') {
+            toolDir = repoConfig.gemini?.skills;
+        } else if (subtype === 'agents') {
+            toolDir = repoConfig.gemini?.agents;
+        } else if (subtype === 'md') {
+            toolDir = repoConfig.gemini?.md;
         }
     } else if (tool === 'gemini') {
         if (subtype === 'commands') {

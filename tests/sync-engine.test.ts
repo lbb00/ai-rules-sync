@@ -209,3 +209,79 @@ describe('Sync Engine - new sourceDir format', () => {
         expect(fs.ensureSymlink).toHaveBeenCalledWith(expectedSourcePath, expectedTargetPath);
     });
 });
+
+describe('Sync Engine - userTargetDir (global/user mode)', () => {
+    const mockProjectPath = '/mock/home';
+    const mockRepo = {
+        name: 'test-repo',
+        url: 'http://test.git',
+        path: '/mock/repos/test-repo'
+    };
+
+    beforeEach(() => {
+        vi.resetAllMocks();
+        vi.mocked(fs.pathExists).mockResolvedValue(true);
+        vi.mocked(fs.ensureDir).mockResolvedValue(undefined);
+        vi.mocked(fs.ensureSymlink).mockResolvedValue(undefined);
+        vi.mocked(fs.lstat).mockResolvedValue({ isSymbolicLink: () => true } as any);
+        vi.mocked(fs.stat).mockResolvedValue({ isDirectory: () => false } as any);
+        vi.mocked(fs.remove).mockResolvedValue(undefined);
+        vi.mocked(utilsModule.addIgnoreEntry).mockResolvedValue(true);
+        vi.mocked(projectConfigModule.getRepoSourceConfig).mockResolvedValue({});
+        vi.mocked(projectConfigModule.getSourceDir).mockReturnValue('.opencode/commands');
+    });
+
+    it('should use userTargetDir instead of targetDir when skipIgnore is true', async () => {
+        // opencode-commands has targetDir='.opencode/commands', userTargetDir='.config/opencode/commands'
+        await linkEntry(getAdapter('opencode', 'commands'), {
+            projectPath: mockProjectPath,
+            name: 'my-cmd.md',
+            repo: mockRepo,
+            skipIgnore: true,
+        });
+
+        const expectedTargetPath = path.join(path.resolve(mockProjectPath), '.config', 'opencode', 'commands', 'my-cmd.md');
+        expect(fs.ensureSymlink).toHaveBeenCalledWith(expect.any(String), expectedTargetPath);
+    });
+
+    it('should use targetDir (not userTargetDir) when skipIgnore is false', async () => {
+        await linkEntry(getAdapter('opencode', 'commands'), {
+            projectPath: mockProjectPath,
+            name: 'my-cmd.md',
+            repo: mockRepo,
+            skipIgnore: false,
+        });
+
+        const expectedTargetPath = path.join(path.resolve(mockProjectPath), '.opencode', 'commands', 'my-cmd.md');
+        expect(fs.ensureSymlink).toHaveBeenCalledWith(expect.any(String), expectedTargetPath);
+    });
+
+    it('should use targetDir when adapter has no userTargetDir even if skipIgnore is true', async () => {
+        // cursor-rules has no userTargetDir
+        vi.mocked(projectConfigModule.getSourceDir).mockReturnValue('.cursor/rules');
+
+        await linkEntry(getAdapter('cursor', 'rules'), {
+            projectPath: mockProjectPath,
+            name: 'my-rule',
+            repo: mockRepo,
+            skipIgnore: true,
+        });
+
+        const expectedTargetPath = path.join(path.resolve(mockProjectPath), '.cursor', 'rules', 'my-rule');
+        expect(fs.ensureSymlink).toHaveBeenCalledWith(expect.any(String), expectedTargetPath);
+    });
+
+    it('should use userTargetDir for opencode-agents in user mode', async () => {
+        vi.mocked(projectConfigModule.getSourceDir).mockReturnValue('.opencode/agents');
+
+        await linkEntry(getAdapter('opencode', 'agents'), {
+            projectPath: mockProjectPath,
+            name: 'my-agent.md',
+            repo: mockRepo,
+            skipIgnore: true,
+        });
+
+        const expectedTargetPath = path.join(path.resolve(mockProjectPath), '.config', 'opencode', 'agents', 'my-agent.md');
+        expect(fs.ensureSymlink).toHaveBeenCalledWith(expect.any(String), expectedTargetPath);
+    });
+});
