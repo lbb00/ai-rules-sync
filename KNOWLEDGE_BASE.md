@@ -73,6 +73,10 @@ src/
 └── utils.ts                 # Utility functions
 ```
 
+Additional root-level tooling:
+- `docs/supported-tools.json` - Single source of truth for Supported Tools table rows
+- `scripts/sync-supported-tools.mjs` - Regenerates README/README_ZH tool matrix from manifest
+
 ### Adapter System
 
 The sync engine uses a plugin-based architecture with unified operations:
@@ -896,7 +900,12 @@ ais user install
 - **Manual Install**: `ais completion install` - Installs completion to shell config file.
 - **Script Output**: `ais completion [bash|zsh|fish]` - Outputs raw completion script.
 - **Detection**: Automatically detects shell type from `$SHELL` environment variable.
-- **Shell scripts** stored in `src/completion/scripts.ts`.
+- **Generation Model**: Completion scripts are generated from shared metadata in `src/completion/scripts.ts` (bash/zsh/fish stay in sync).
+
+### 22. Supported Tools Documentation Generation
+- **Single Source**: Supported tools matrix is defined in `docs/supported-tools.json`.
+- **Sync Command**: `npm run docs:sync-tools` regenerates table blocks in both `README.md` and `README_ZH.md`.
+- **Update Boundaries**: Table content is replaced between `<!-- SUPPORTED_TOOLS_TABLE:START -->` and `<!-- SUPPORTED_TOOLS_TABLE:END -->`.
 
 ## Adapter Reference Table
 
@@ -964,6 +973,16 @@ ais user install
 
 - Added **Windsurf support**: rules (`.windsurf/rules`, `.md`) and skills (`.windsurf/skills`) with full CLI/completion integration
 - Added **Cline support**: rules (`.clinerules`, `.md`/`.txt`) and skills (`.cline/skills`) with full CLI/completion integration
+- Refactored `project-config` source directory resolution to **table-driven** logic for both legacy-string detection and `getSourceDir()`
+- Refactored shell completion generation to **metadata-driven** script builders for bash/zsh/fish
+- Added reusable **adapter contract test helper** (`src/__tests__/helpers/adapter-contract.ts`) to reduce duplicated adapter tests
+- Added **single-source Supported Tools manifest** (`docs/supported-tools.json`) and sync script (`npm run docs:sync-tools`) for README parity
+- Added **User Mode** (`--user` / `-u`): manage personal AI config files (`~/.claude/CLAUDE.md`, etc.) with version control; `ais user install` restores all symlinks on new machines
+- Added **claude-md adapter**: sync CLAUDE.md-style files; `ais claude md add CLAUDE --user`
+- Added **User Config Path**: `ais config user set <path>` for dotfiles integration
+- Added **Gemini CLI support**: commands (`.toml`), skills (directory), subagents (`.md`)
+- Added **OpenAI Codex support**: rules (`.rules`, Starlark), skills (`.agents/skills/`)
+- Renamed deprecated `--global` / `-g` flags to `--user` / `-u`
 
 ### Proper User-Level Sync for All Tools + gemini-md / codex-md Adapters (2026-02)
 
