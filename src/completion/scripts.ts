@@ -1,1404 +1,670 @@
 /**
  * Shell completion scripts for bash, zsh, and fish
+ * Generated from shared completion metadata to reduce drift.
  */
 
-export const bashScript = `
-# ais bash completion
-_ais_complete() {
-  local cur="\${COMP_WORDS[COMP_CWORD]}"
-  local prev="\${COMP_WORDS[COMP_CWORD-1]}"
-  local pprev="\${COMP_WORDS[COMP_CWORD-2]}"
-  local ppprev="\${COMP_WORDS[COMP_CWORD-3]}"
-
-  # cursor commands add
-  if [[ "\$ppprev" == "cursor" && "\$pprev" == "commands" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete cursor-commands 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # cursor add
-  if [[ "\$pprev" == "cursor" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete cursor 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # copilot instructions add
-  if [[ "\$ppprev" == "copilot" && "\$pprev" == "instructions" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete copilot-instructions 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # copilot skills add
-  if [[ "\$ppprev" == "copilot" && "\$pprev" == "skills" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete copilot-skills 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # copilot prompts add
-  if [[ "\$ppprev" == "copilot" && "\$pprev" == "prompts" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete copilot-prompts 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # copilot agents add
-  if [[ "\$ppprev" == "copilot" && "\$pprev" == "agents" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete copilot-agents 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # claude skills add
-  if [[ "\$ppprev" == "claude" && "\$pprev" == "skills" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete claude-skills 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # claude agents add
-  if [[ "\$ppprev" == "claude" && "\$pprev" == "agents" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete claude-agents 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # claude rules add
-  if [[ "\$ppprev" == "claude" && "\$pprev" == "rules" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete claude-rules 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # trae rules add
-  if [[ "\$ppprev" == "trae" && "\$pprev" == "rules" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete trae-rules 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # trae skills add
-  if [[ "\$ppprev" == "trae" && "\$pprev" == "skills" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete trae-skills 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # cursor skills add
-  if [[ "\$ppprev" == "cursor" && "\$pprev" == "skills" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete cursor-skills 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # cursor agents add
-  if [[ "\$ppprev" == "cursor" && "\$pprev" == "agents" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete cursor-agents 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # cursor rules add
-  if [[ "\$pprev" == "rules" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete cursor 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # cursor commands
-  if [[ "\$pprev" == "cursor" && "\$prev" == "commands" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # cursor skills
-  if [[ "\$pprev" == "cursor" && "\$prev" == "skills" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # cursor agents
-  if [[ "\$pprev" == "cursor" && "\$prev" == "agents" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # cursor rules
-  if [[ "\$pprev" == "cursor" && "\$prev" == "rules" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # claude skills
-  if [[ "\$pprev" == "claude" && "\$prev" == "skills" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # claude agents
-  if [[ "\$pprev" == "claude" && "\$prev" == "agents" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # trae rules
-  if [[ "\$pprev" == "trae" && "\$prev" == "rules" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # trae skills
-  if [[ "\$pprev" == "trae" && "\$prev" == "skills" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # agents-md add
-  if [[ "\$pprev" == "agents-md" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete agents-md 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # opencode agents
-  if [[ "\$ppprev" == "opencode" && "\$pprev" == "agents" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete opencode-agents 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # opencode skills
-  if [[ "\$ppprev" == "opencode" && "\$pprev" == "skills" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete opencode-skills 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # opencode commands
-  if [[ "\$ppprev" == "opencode" && "\$pprev" == "commands" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete opencode-commands 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # opencode tools
-  if [[ "\$ppprev" == "opencode" && "\$pprev" == "tools" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete opencode-tools 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # codex rules add
-  if [[ "\$ppprev" == "codex" && "\$pprev" == "rules" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete codex-rules 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # codex skills add
-  if [[ "\$ppprev" == "codex" && "\$pprev" == "skills" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete codex-skills 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # gemini commands add
-  if [[ "\$ppprev" == "gemini" && "\$pprev" == "commands" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete gemini-commands 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # gemini skills add
-  if [[ "\$ppprev" == "gemini" && "\$pprev" == "skills" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete gemini-skills 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # gemini agents add
-  if [[ "\$ppprev" == "gemini" && "\$pprev" == "agents" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete gemini-agents 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # warp skills add
-  if [[ "\$ppprev" == "warp" && "\$pprev" == "skills" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete warp-skills 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # windsurf rules add
-  if [[ "\$pprev" == "windsurf" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete windsurf-rules 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # windsurf rules subcommand add
-  if [[ "\$ppprev" == "windsurf" && "\$pprev" == "rules" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete windsurf-rules 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # windsurf skills add
-  if [[ "\$ppprev" == "windsurf" && "\$pprev" == "skills" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete windsurf-skills 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # cline rules add
-  if [[ "\$pprev" == "cline" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete cline-rules 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # cline rules subcommand add
-  if [[ "\$ppprev" == "cline" && "\$pprev" == "rules" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete cline-rules 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # cline skills add
-  if [[ "\$ppprev" == "cline" && "\$pprev" == "skills" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete cline-skills 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # agents-md
-  if [[ "\$pprev" == "agents-md" && "\$prev" == "add" ]]; then
-    COMPREPLY=( $(compgen -W "$(ais _complete agents-md 2>/dev/null)" -- "\$cur") )
-    return 0
-  fi
-
-  # opencode agents
-  if [[ "\$pprev" == "opencode" && "\$prev" == "agents" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # opencode skills
-  if [[ "\$pprev" == "opencode" && "\$prev" == "skills" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # opencode commands
-  if [[ "\$pprev" == "opencode" && "\$prev" == "commands" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # opencode tools
-  if [[ "\$pprev" == "opencode" && "\$prev" == "tools" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # codex rules
-  if [[ "\$pprev" == "codex" && "\$prev" == "rules" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # codex skills
-  if [[ "\$pprev" == "codex" && "\$prev" == "skills" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # gemini commands
-  if [[ "\$pprev" == "gemini" && "\$prev" == "commands" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # gemini skills
-  if [[ "\$pprev" == "gemini" && "\$prev" == "skills" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # gemini agents
-  if [[ "\$pprev" == "gemini" && "\$prev" == "agents" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # warp skills
-  if [[ "\$pprev" == "warp" && "\$prev" == "skills" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # windsurf
-  if [[ "\$prev" == "windsurf" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install add-all import rules skills" -- "\$cur") )
-    return 0
-  fi
-
-  # cline
-  if [[ "\$prev" == "cline" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install add-all import rules skills" -- "\$cur") )
-    return 0
-  fi
-
-  # windsurf rules
-  if [[ "\$pprev" == "windsurf" && "\$prev" == "rules" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # windsurf skills
-  if [[ "\$pprev" == "windsurf" && "\$prev" == "skills" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # cline rules
-  if [[ "\$pprev" == "cline" && "\$prev" == "rules" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # cline skills
-  if [[ "\$pprev" == "cline" && "\$prev" == "skills" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # agents-md
-  if [[ "\$prev" == "agents-md" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  if [[ "\$prev" == "cursor" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import rules commands skills agents" -- "\$cur") )
-    return 0
-  fi
-
-  # copilot instructions
-  if [[ "\$pprev" == "copilot" && "\$prev" == "instructions" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # copilot skills
-  if [[ "\$pprev" == "copilot" && "\$prev" == "skills" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # copilot prompts
-  if [[ "\$pprev" == "copilot" && "\$prev" == "prompts" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  # copilot agents
-  if [[ "\$pprev" == "copilot" && "\$prev" == "agents" ]]; then
-    COMPREPLY=( $(compgen -W "add remove install import" -- "\$cur") )
-    return 0
-  fi
-
-  if [[ "\$prev" == "copilot" ]]; then
-    COMPREPLY=( $(compgen -W "instructions prompts skills agents install" -- "\$cur") )
-    return 0
-  fi
-
-  if [[ "\$prev" == "claude" ]]; then
-    COMPREPLY=( $(compgen -W "rules skills agents install" -- "\$cur") )
-    return 0
-  fi
-
-  if [[ "\$prev" == "trae" ]]; then
-    COMPREPLY=( $(compgen -W "rules skills install" -- "\$cur") )
-    return 0
-  fi
-
-  if [[ "\$prev" == "opencode" ]]; then
-    COMPREPLY=( $(compgen -W "commands skills agents tools install import" -- "\$cur") )
-    return 0
-  fi
-
-  if [[ "\$prev" == "codex" ]]; then
-    COMPREPLY=( $(compgen -W "rules skills install import" -- "\$cur") )
-    return 0
-  fi
-
-  if [[ "\$prev" == "gemini" ]]; then
-    COMPREPLY=( $(compgen -W "commands skills agents install add-all import" -- "\$cur") )
-    return 0
-  fi
-
-  if [[ "\$prev" == "warp" ]]; then
-    COMPREPLY=( $(compgen -W "skills install import" -- "\$cur") )
-    return 0
-  fi
-
-  if [[ "\$prev" == "ais" ]]; then
-    COMPREPLY=( $(compgen -W "cursor copilot claude trae opencode codex gemini warp windsurf cline agents-md use list git add remove install import completion" -- "\$cur") )
-    return 0
-  fi
-}
-complete -F _ais_complete ais
-`;
-
-export const zshScript = `
-# ais zsh completion
-_ais() {
-  local -a subcmds
-subcmds=(
-    'cursor:Manage Cursor rules, commands, and skills'
-    'copilot:Manage GitHub Copilot instructions'
-    'claude:Manage Claude skills, agents, and plugins'
-    'trae:Manage Trae rules and skills'
-    'opencode:Manage OpenCode agents, skills, commands, and tools'
-    'codex:Manage Codex rules and skills'
-    'gemini:Manage Gemini CLI commands, skills, and agents'
-    'warp:Manage Warp agent skills'
-    'windsurf:Manage Windsurf rules and skills'
-    'cline:Manage Cline rules and skills'
-    'agents-md:Manage AGENTS.md files (agents.md standard)'
-    'use:Configure rules repository'
-    'list:List configured repositories'
-    'git:Run git commands in rules repository'
-    'add:Add a rule (smart dispatch)'
-    'remove:Remove a rule (smart dispatch)'
-    'install:Install all rules (smart dispatch)'
-    'import:Import entry to rules repository'
-    'completion:Output shell completion script'
-  )
-
-  local -a cursor_subcmds copilot_subcmds claude_subcmds trae_subcmds opencode_subcmds codex_subcmds gemini_subcmds warp_subcmds windsurf_subcmds cline_subcmds agents_md_subcmds cursor_rules_subcmds cursor_commands_subcmds cursor_skills_subcmds cursor_agents_subcmds copilot_instructions_subcmds copilot_skills_subcmds copilot_prompts_subcmds copilot_agents_subcmds claude_skills_subcmds claude_agents_subcmds trae_rules_subcmds trae_skills_subcmds opencode_agents_subcmds opencode_skills_subcmds opencode_commands_subcmds opencode_tools_subcmds codex_rules_subcmds codex_skills_subcmds gemini_commands_subcmds gemini_skills_subcmds gemini_agents_subcmds warp_skills_subcmds windsurf_rules_subcmds windsurf_skills_subcmds cline_rules_subcmds cline_skills_subcmds
-  cursor_subcmds=('add:Add a Cursor rule' 'remove:Remove a Cursor rule' 'install:Install all Cursor entries' 'import:Import entry to repository' 'rules:Manage rules explicitly' 'commands:Manage commands' 'skills:Manage skills' 'agents:Manage agents')
-  copilot_subcmds=('instructions:Manage GitHub Copilot instructions' 'prompts:Manage GitHub Copilot prompt files' 'skills:Manage GitHub Copilot skills' 'agents:Manage GitHub Copilot custom agents' 'install:Install all GitHub Copilot entries')
-  copilot_instructions_subcmds=('add:Add a GitHub Copilot instruction' 'remove:Remove a GitHub Copilot instruction' 'install:Install all GitHub Copilot instructions' 'import:Import instruction to repository')
-  copilot_prompts_subcmds=('add:Add a GitHub Copilot prompt' 'remove:Remove a GitHub Copilot prompt' 'install:Install all GitHub Copilot prompts' 'import:Import prompt to repository')
-  copilot_skills_subcmds=('add:Add a GitHub Copilot skill' 'remove:Remove a GitHub Copilot skill' 'install:Install all GitHub Copilot skills' 'import:Import skill to repository')
-  copilot_agents_subcmds=('add:Add a GitHub Copilot agent' 'remove:Remove a GitHub Copilot agent' 'install:Install all GitHub Copilot agents' 'import:Import agent to repository')
-  claude_subcmds=('rules:Manage Claude rules' 'skills:Manage Claude skills' 'agents:Manage Claude agents' 'install:Install all Claude components')
-  trae_subcmds=('rules:Manage Trae rules' 'skills:Manage Trae skills' 'install:Install all Trae entries')
-  opencode_subcmds=('commands:Manage OpenCode commands' 'skills:Manage OpenCode skills' 'agents:Manage OpenCode agents' 'tools:Manage OpenCode tools' 'install:Install all OpenCode entries' 'import:Import entry to repository')
-  agents_md_subcmds=('add:Add an AGENTS.md file' 'remove:Remove an AGENTS.md file' 'install:Install AGENTS.md' 'import:Import AGENTS.md to repository')
-  cursor_rules_subcmds=('add:Add a Cursor rule' 'remove:Remove a Cursor rule' 'install:Install all Cursor rules' 'import:Import rule to repository')
-  cursor_commands_subcmds=('add:Add a Cursor command' 'remove:Remove a Cursor command' 'install:Install all Cursor commands' 'import:Import command to repository')
-  cursor_skills_subcmds=('add:Add a Cursor skill' 'remove:Remove a Cursor skill' 'install:Install all Cursor skills' 'import:Import skill to repository')
-  cursor_agents_subcmds=('add:Add a Cursor agent' 'remove:Remove a Cursor agent' 'install:Install all Cursor agents' 'import:Import agent to repository')
-  claude_skills_subcmds=('add:Add a Claude skill' 'remove:Remove a Claude skill' 'install:Install all Claude skills' 'import:Import skill to repository')
-  claude_agents_subcmds=('add:Add a Claude agent' 'remove:Remove a Claude agent' 'install:Install all Claude agents' 'import:Import agent to repository')
-  trae_rules_subcmds=('add:Add a Trae rule' 'remove:Remove a Trae rule' 'install:Install all Trae rules' 'import:Import rule to repository')
-  trae_skills_subcmds=('add:Add a Trae skill' 'remove:Remove a Trae skill' 'install:Install all Trae skills' 'import:Import skill to repository')
-  opencode_agents_subcmds=('add:Add an OpenCode agent' 'remove:Remove an OpenCode agent' 'install:Install all OpenCode agents' 'import:Import agent to repository')
-  opencode_skills_subcmds=('add:Add an OpenCode skill' 'remove:Remove an OpenCode skill' 'install:Install all OpenCode skills' 'import:Import skill to repository')
-  opencode_commands_subcmds=('add:Add an OpenCode command' 'remove:Remove an OpenCode command' 'install:Install all OpenCode commands' 'import:Import command to repository')
-  opencode_tools_subcmds=('add:Add an OpenCode tool' 'remove:Remove an OpenCode tool' 'install:Install all OpenCode tools' 'import:Import tool to repository')
-  codex_subcmds=('rules:Manage Codex rules' 'skills:Manage Codex skills' 'install:Install all Codex entries' 'import:Import entry to repository')
-  codex_rules_subcmds=('add:Add a Codex rule' 'remove:Remove a Codex rule' 'install:Install all Codex rules' 'import:Import rule to repository')
-  codex_skills_subcmds=('add:Add a Codex skill' 'remove:Remove a Codex skill' 'install:Install all Codex skills' 'import:Import skill to repository')
-  gemini_subcmds=('commands:Manage Gemini commands' 'skills:Manage Gemini skills' 'agents:Manage Gemini agents' 'install:Install all Gemini entries' 'add-all:Add all Gemini entries' 'import:Import entry to repository')
-  gemini_commands_subcmds=('add:Add a Gemini command' 'remove:Remove a Gemini command' 'install:Install all Gemini commands' 'import:Import command to repository')
-  gemini_skills_subcmds=('add:Add a Gemini skill' 'remove:Remove a Gemini skill' 'install:Install all Gemini skills' 'import:Import skill to repository')
-  gemini_agents_subcmds=('add:Add a Gemini agent' 'remove:Remove a Gemini agent' 'install:Install all Gemini agents' 'import:Import agent to repository')
-  warp_subcmds=('skills:Manage Warp skills' 'install:Install all Warp entries' 'import:Import entry to repository')
-  warp_skills_subcmds=('add:Add a Warp skill' 'remove:Remove a Warp skill' 'install:Install all Warp skills' 'import:Import skill to repository')
-  windsurf_subcmds=('add:Add a Windsurf rule' 'remove:Remove a Windsurf rule' 'install:Install all Windsurf entries' 'add-all:Add all Windsurf entries' 'import:Import entry to repository' 'rules:Manage Windsurf rules' 'skills:Manage Windsurf skills')
-  windsurf_rules_subcmds=('add:Add a Windsurf rule' 'remove:Remove a Windsurf rule' 'install:Install all Windsurf rules' 'import:Import rule to repository')
-  windsurf_skills_subcmds=('add:Add a Windsurf skill' 'remove:Remove a Windsurf skill' 'install:Install all Windsurf skills' 'import:Import skill to repository')
-  cline_subcmds=('add:Add a Cline rule' 'remove:Remove a Cline rule' 'install:Install all Cline entries' 'add-all:Add all Cline entries' 'import:Import entry to repository' 'rules:Manage Cline rules' 'skills:Manage Cline skills')
-  cline_rules_subcmds=('add:Add a Cline rule' 'remove:Remove a Cline rule' 'install:Install all Cline rules' 'import:Import rule to repository')
-  cline_skills_subcmds=('add:Add a Cline skill' 'remove:Remove a Cline skill' 'install:Install all Cline skills' 'import:Import skill to repository')
-
-  _arguments -C \\
-    '1:command:->command' \\
-    '2:subcommand:->subcommand' \\
-    '3:subsubcommand:->subsubcommand' \\
-    '4:name:->name' \\
-    '*::arg:->args'
-
-  case "\$state" in
-    command)
-      _describe 'command' subcmds
-      ;;
-    subcommand)
-      case "\$words[2]" in
-        cursor)
-          _describe 'subcommand' cursor_subcmds
-          ;;
-        copilot)
-          _describe 'subcommand' copilot_subcmds
-          ;;
-        claude)
-          _describe 'subcommand' claude_subcmds
-          ;;
-        trae)
-          _describe 'subcommand' trae_subcmds
-          ;;
-        opencode)
-          _describe 'subcommand' opencode_subcmds
-          ;;
-        codex)
-          _describe 'subcommand' codex_subcmds
-          ;;
-        gemini)
-          _describe 'subcommand' gemini_subcmds
-          ;;
-        warp)
-          _describe 'subcommand' warp_subcmds
-          ;;
-        windsurf)
-          _describe 'subcommand' windsurf_subcmds
-          ;;
-        cline)
-          _describe 'subcommand' cline_subcmds
-          ;;
-        agents-md)
-          _describe 'subcommand' agents_md_subcmds
-          ;;
-      esac
-      ;;
-    subsubcommand)
-      case "\$words[2]" in
-        cursor)
-          case "\$words[3]" in
-            add)
-              local -a rules
-              rules=(\${(f)"\$(ais _complete cursor 2>/dev/null)"})
-              if (( \$#rules )); then
-                compadd "\$rules[@]"
-              fi
-              ;;
-            rules)
-              _describe 'subsubcommand' cursor_rules_subcmds
-              ;;
-            commands)
-              _describe 'subsubcommand' cursor_commands_subcmds
-              ;;
-            skills)
-              _describe 'subsubcommand' cursor_skills_subcmds
-              ;;
-            agents)
-              _describe 'subsubcommand' cursor_agents_subcmds
-              ;;
-            *)
-              _describe 'subsubcommand' cursor_subcmds
-              ;;
-          esac
-          ;;
-        copilot)
-          case "\$words[3]" in
-            instructions)
-              _describe 'subsubcommand' copilot_instructions_subcmds
-              ;;
-            prompts)
-              _describe 'subsubcommand' copilot_prompts_subcmds
-              ;;
-            skills)
-              _describe 'subsubcommand' copilot_skills_subcmds
-              ;;
-            agents)
-              _describe 'subsubcommand' copilot_agents_subcmds
-              ;;
-            *)
-              _describe 'subsubcommand' copilot_subcmds
-              ;;
-          esac
-          ;;
-        claude)
-          case "\$words[3]" in
-            skills)
-              _describe 'subsubcommand' claude_skills_subcmds
-              ;;
-            agents)
-              _describe 'subsubcommand' claude_agents_subcmds
-              ;;
-            *)
-              _describe 'subsubcommand' claude_subcmds
-              ;;
-          esac
-          ;;
-        trae)
-          case "\$words[3]" in
-            rules)
-              _describe 'subsubcommand' trae_rules_subcmds
-              ;;
-            skills)
-              _describe 'subsubcommand' trae_skills_subcmds
-              ;;
-            *)
-              _describe 'subsubcommand' trae_subcmds
-              ;;
-          esac
-          ;;
-        opencode)
-          case "\$words[3]" in
-            commands)
-              _describe 'subsubcommand' opencode_commands_subcmds
-              ;;
-            skills)
-              _describe 'subsubcommand' opencode_skills_subcmds
-              ;;
-            agents)
-              _describe 'subsubcommand' opencode_agents_subcmds
-              ;;
-            tools)
-              _describe 'subsubcommand' opencode_tools_subcmds
-              ;;
-            *)
-              _describe 'subsubcommand' opencode_subcmds
-              ;;
-          esac
-          ;;
-        codex)
-          case "\$words[3]" in
-            rules)
-              _describe 'subsubcommand' codex_rules_subcmds
-              ;;
-            skills)
-              _describe 'subsubcommand' codex_skills_subcmds
-              ;;
-            *)
-              _describe 'subsubcommand' codex_subcmds
-              ;;
-          esac
-          ;;
-        gemini)
-          case "\$words[3]" in
-            commands)
-              _describe 'subsubcommand' gemini_commands_subcmds
-              ;;
-            skills)
-              _describe 'subsubcommand' gemini_skills_subcmds
-              ;;
-            agents)
-              _describe 'subsubcommand' gemini_agents_subcmds
-              ;;
-            *)
-              _describe 'subsubcommand' gemini_subcmds
-              ;;
-          esac
-          ;;
-        warp)
-          case "\$words[3]" in
-            skills)
-              _describe 'subsubcommand' warp_skills_subcmds
-              ;;
-            *)
-              _describe 'subsubcommand' warp_subcmds
-              ;;
-          esac
-          ;;
-        windsurf)
-          case "\$words[3]" in
-            add)
-              local -a windsurf_rules
-              windsurf_rules=(\${(f)"\$(ais _complete windsurf-rules 2>/dev/null)"})
-              if (( \$#windsurf_rules )); then
-                compadd "\$windsurf_rules[@]"
-              fi
-              ;;
-            rules)
-              _describe 'subsubcommand' windsurf_rules_subcmds
-              ;;
-            skills)
-              _describe 'subsubcommand' windsurf_skills_subcmds
-              ;;
-            *)
-              _describe 'subsubcommand' windsurf_subcmds
-              ;;
-          esac
-          ;;
-        cline)
-          case "\$words[3]" in
-            add)
-              local -a cline_rules
-              cline_rules=(\${(f)"\$(ais _complete cline-rules 2>/dev/null)"})
-              if (( \$#cline_rules )); then
-                compadd "\$cline_rules[@]"
-              fi
-              ;;
-            rules)
-              _describe 'subsubcommand' cline_rules_subcmds
-              ;;
-            skills)
-              _describe 'subsubcommand' cline_skills_subcmds
-              ;;
-            *)
-              _describe 'subsubcommand' cline_subcmds
-              ;;
-          esac
-          ;;
-        agents-md)
-          case "\$words[3]" in
-            add)
-              local -a agents_md
-              agents_md=(\${(f)"\$(ais _complete agents-md 2>/dev/null)"})
-              if (( \$#agents_md )); then
-                compadd "\$agents_md[@]"
-              fi
-              ;;
-            *)
-              _describe 'subsubcommand' agents_md_subcmds
-              ;;
-          esac
-          ;;
-      esac
-      ;;
-    name)
-      case \"\$words[2]\" in
-        cursor)
-          case \"\$words[3]\" in
-            add)
-              local -a rules
-              rules=(\${(f)\"$(ais _complete cursor 2>/dev/null)\"})
-              if (( \$#rules )); then
-                compadd \"\$rules[@]\"
-              fi
-              ;;
-            rules)
-              case \"\$words[4]\" in
-                add)
-                  local -a rules
-                  rules=(\${(f)\"$(ais _complete cursor 2>/dev/null)\"})
-                  if (( \$#rules )); then
-                    compadd \"\$rules[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-            commands)
-              case "\$words[4]" in
-                add)
-                  local -a commands
-                  commands=(\${(f)"$(ais _complete cursor-commands 2>/dev/null)"})
-                  if (( \$#commands )); then
-                    compadd "\$commands[@]"
-                  fi
-                  ;;
-              esac
-              ;;
-            skills)
-              case \"\$words[4]\" in
-                add)
-                  local -a skills
-                  skills=(\${(f)\"$(ais _complete cursor-skills 2>/dev/null)\"})
-                  if (( \$#skills )); then
-                    compadd \"\$skills[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-            agents)
-              case \"\$words[4]\" in
-                add)
-                  local -a agents
-                  agents=(\${(f)\"$(ais _complete cursor-agents 2>/dev/null)\"})
-                  if (( \$#agents )); then
-                    compadd \"\$agents[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-          esac
-          ;;
-        copilot)
-          case \"\$words[3]\" in
-            instructions)
-              case \"\$words[4]\" in
-                add)
-                  local -a instructions
-                  instructions=(\${(f)\"$(ais _complete copilot-instructions 2>/dev/null)\"})
-                  if (( \$#instructions )); then
-                    compadd \"\$instructions[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-            prompts)
-              case \"\$words[4]\" in
-                add)
-                  local -a prompts
-                  prompts=(\${(f)\"$(ais _complete copilot-prompts 2>/dev/null)\"})
-                  if (( \$#prompts )); then
-                    compadd \"\$prompts[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-            skills)
-              case \"\$words[4]\" in
-                add)
-                  local -a skills
-                  skills=(\${(f)\"$(ais _complete copilot-skills 2>/dev/null)\"})
-                  if (( \$#skills )); then
-                    compadd \"\$skills[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-            agents)
-              case \"\$words[4]\" in
-                add)
-                  local -a agents
-                  agents=(\${(f)\"$(ais _complete copilot-agents 2>/dev/null)\"})
-                  if (( \$#agents )); then
-                    compadd \"\$agents[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-          esac
-          ;;
-        claude)
-          case \"\$words[3]\" in
-            skills)
-              case \"\$words[4]\" in
-                add)
-                  local -a skills
-                  skills=(\${(f)\"$(ais _complete claude-skills 2>/dev/null)\"})
-                  if (( \$#skills )); then
-                    compadd \"\$skills[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-            agents)
-              case \"\$words[4]\" in
-                add)
-                  local -a agents
-                  agents=(\${(f)\"$(ais _complete claude-agents 2>/dev/null)\"})
-                  if (( \$#agents )); then
-                    compadd \"\$agents[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-            rules)
-              case \"\$words[4]\" in
-                add)
-                  local -a rules
-                  rules=(\${(f)\"$(ais _complete claude-rules 2>/dev/null)\"})
-                  if (( \$#rules )); then
-                    compadd \"\$rules[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-          esac
-          ;;
-        trae)
-          case \"\$words[3]\" in
-            rules)
-              case \"\$words[4]\" in
-                add)
-                  local -a rules
-                  rules=(\${(f)\"$(ais _complete trae-rules 2>/dev/null)\"})
-                  if (( \$#rules )); then
-                    compadd \"\$rules[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-            skills)
-              case \"\$words[4]\" in
-                add)
-                  local -a skills
-                  skills=(\${(f)\"$(ais _complete trae-skills 2>/dev/null)\"})
-                  if (( \$#skills )); then
-                    compadd \"\$skills[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-          esac
-          ;;
-        opencode)
-          case \"\$words[3]\" in
-            commands)
-              case \"\$words[4]\" in
-                add)
-                  local -a commands
-                  commands=(\${(f)\"$(ais _complete opencode-commands 2>/dev/null)\"})
-                  if (( \$#commands )); then
-                    compadd \"\$commands[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-            skills)
-              case \"\$words[4]\" in
-                add)
-                  local -a skills
-                  skills=(\${(f)\"$(ais _complete opencode-skills 2>/dev/null)\"})
-                  if (( \$#skills )); then
-                    compadd \"\$skills[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-            agents)
-              case \"\$words[4]\" in
-                add)
-                  local -a agents
-                  agents=(\${(f)\"$(ais _complete opencode-agents 2>/dev/null)\"})
-                  if (( \$#agents )); then
-                    compadd \"\$agents[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-            tools)
-              case \"\$words[4]\" in
-                add)
-                  local -a tools
-                  tools=(\${(f)\"$(ais _complete opencode-tools 2>/dev/null)\"})
-                  if (( \$#tools )); then
-                    compadd \"\$tools[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-          esac
-          ;;
-        codex)
-          case \"\$words[3]\" in
-            rules)
-              case \"\$words[4]\" in
-                add)
-                  local -a rules
-                  rules=(\${(f)\"$(ais _complete codex-rules 2>/dev/null)\"})
-                  if (( \$#rules )); then
-                    compadd \"\$rules[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-            skills)
-              case \"\$words[4]\" in
-                add)
-                  local -a skills
-                  skills=(\${(f)\"$(ais _complete codex-skills 2>/dev/null)\"})
-                  if (( \$#skills )); then
-                    compadd \"\$skills[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-          esac
-          ;;
-        gemini)
-          case \"\$words[3]\" in
-            commands)
-              case \"\$words[4]\" in
-                add)
-                  local -a commands
-                  commands=(\${(f)\"$(ais _complete gemini-commands 2>/dev/null)\"})
-                  if (( \$#commands )); then
-                    compadd \"\$commands[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-            skills)
-              case \"\$words[4]\" in
-                add)
-                  local -a skills
-                  skills=(\${(f)\"$(ais _complete gemini-skills 2>/dev/null)\"})
-                  if (( \$#skills )); then
-                    compadd \"\$skills[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-            agents)
-              case \"\$words[4]\" in
-                add)
-                  local -a agents
-                  agents=(\${(f)\"$(ais _complete gemini-agents 2>/dev/null)\"})
-                  if (( \$#agents )); then
-                    compadd \"\$agents[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-          esac
-          ;;
-        warp)
-          case \"\$words[3]\" in
-            skills)
-              case \"\$words[4]\" in
-                add)
-                  local -a skills
-                  skills=(\${(f)\"$(ais _complete warp-skills 2>/dev/null)\"})
-                  if (( \$#skills )); then
-                    compadd \"\$skills[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-          esac
-          ;;
-        windsurf)
-          case \"\$words[3]\" in
-            add)
-              local -a windsurf_rules
-              windsurf_rules=(\${(f)\"$(ais _complete windsurf-rules 2>/dev/null)\"})
-              if (( \$#windsurf_rules )); then
-                compadd \"\$windsurf_rules[@]\"
-              fi
-              ;;
-            rules)
-              case \"\$words[4]\" in
-                add)
-                  local -a windsurf_rules
-                  windsurf_rules=(\${(f)\"$(ais _complete windsurf-rules 2>/dev/null)\"})
-                  if (( \$#windsurf_rules )); then
-                    compadd \"\$windsurf_rules[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-            skills)
-              case \"\$words[4]\" in
-                add)
-                  local -a windsurf_skills
-                  windsurf_skills=(\${(f)\"$(ais _complete windsurf-skills 2>/dev/null)\"})
-                  if (( \$#windsurf_skills )); then
-                    compadd \"\$windsurf_skills[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-          esac
-          ;;
-        cline)
-          case \"\$words[3]\" in
-            add)
-              local -a cline_rules
-              cline_rules=(\${(f)\"$(ais _complete cline-rules 2>/dev/null)\"})
-              if (( \$#cline_rules )); then
-                compadd \"\$cline_rules[@]\"
-              fi
-              ;;
-            rules)
-              case \"\$words[4]\" in
-                add)
-                  local -a cline_rules
-                  cline_rules=(\${(f)\"$(ais _complete cline-rules 2>/dev/null)\"})
-                  if (( \$#cline_rules )); then
-                    compadd \"\$cline_rules[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-            skills)
-              case \"\$words[4]\" in
-                add)
-                  local -a cline_skills
-                  cline_skills=(\${(f)\"$(ais _complete cline-skills 2>/dev/null)\"})
-                  if (( \$#cline_skills )); then
-                    compadd \"\$cline_skills[@]\"
-                  fi
-                  ;;
-              esac
-              ;;
-          esac
-          ;;
-        agents-md)
-          case \"\$words[3]\" in
-            add)
-              local -a agents_md
-              agents_md=(\${(f)\"$(ais _complete agents-md 2>/dev/null)\"})
-              if (( \$#agents_md )); then
-                compadd \"\$agents_md[@]\"
-              fi
-              ;;
-          esac
-          ;;
-      esac
-      ;;
-    args)
-      # Handle additional arguments
-      ;;
-  esac
+interface CompletionEntry {
+  name: string;
+  description: string;
 }
 
-# Only define completion if compdef is available (zsh completion initialized)
-command -v compdef >/dev/null 2>&1 && compdef _ais ais
-`;
+interface ToolCompletionSpec {
+  tool: string;
+  description: string;
+  rootSubcommands: CompletionEntry[];
+  nestedSubcommands: Record<string, CompletionEntry[]>;
+  rootAddCompletionType?: string;
+  nestedAddCompletionTypes?: Record<string, string>;
+}
 
-export const fishScript = `
-# ais fish completion
-complete -c ais -f
+const TOOL_SPECS: ToolCompletionSpec[] = [
+  {
+    tool: 'cursor',
+    description: 'Manage Cursor rules, commands, and skills',
+    rootSubcommands: [
+      { name: 'add', description: 'Add a Cursor rule' },
+      { name: 'remove', description: 'Remove a Cursor rule' },
+      { name: 'install', description: 'Install all Cursor entries' },
+      { name: 'import', description: 'Import entry to repository' },
+      { name: 'rules', description: 'Manage rules explicitly' },
+      { name: 'commands', description: 'Manage commands' },
+      { name: 'skills', description: 'Manage skills' },
+      { name: 'agents', description: 'Manage agents' }
+    ],
+    nestedSubcommands: {
+      rules: [
+        { name: 'add', description: 'Add a Cursor rule' },
+        { name: 'remove', description: 'Remove a Cursor rule' },
+        { name: 'install', description: 'Install all Cursor rules' },
+        { name: 'import', description: 'Import rule to repository' }
+      ],
+      commands: [
+        { name: 'add', description: 'Add a Cursor command' },
+        { name: 'remove', description: 'Remove a Cursor command' },
+        { name: 'install', description: 'Install all Cursor commands' },
+        { name: 'import', description: 'Import command to repository' }
+      ],
+      skills: [
+        { name: 'add', description: 'Add a Cursor skill' },
+        { name: 'remove', description: 'Remove a Cursor skill' },
+        { name: 'install', description: 'Install all Cursor skills' },
+        { name: 'import', description: 'Import skill to repository' }
+      ],
+      agents: [
+        { name: 'add', description: 'Add a Cursor agent' },
+        { name: 'remove', description: 'Remove a Cursor agent' },
+        { name: 'install', description: 'Install all Cursor agents' },
+        { name: 'import', description: 'Import agent to repository' }
+      ]
+    },
+    rootAddCompletionType: 'cursor',
+    nestedAddCompletionTypes: {
+      rules: 'cursor',
+      commands: 'cursor-commands',
+      skills: 'cursor-skills',
+      agents: 'cursor-agents'
+    }
+  },
+  {
+    tool: 'copilot',
+    description: 'Manage GitHub Copilot instructions',
+    rootSubcommands: [
+      { name: 'instructions', description: 'Manage GitHub Copilot instructions' },
+      { name: 'prompts', description: 'Manage GitHub Copilot prompt files' },
+      { name: 'skills', description: 'Manage GitHub Copilot skills' },
+      { name: 'agents', description: 'Manage GitHub Copilot custom agents' },
+      { name: 'install', description: 'Install all GitHub Copilot entries' }
+    ],
+    nestedSubcommands: {
+      instructions: [
+        { name: 'add', description: 'Add a GitHub Copilot instruction' },
+        { name: 'remove', description: 'Remove a GitHub Copilot instruction' },
+        { name: 'install', description: 'Install all GitHub Copilot instructions' },
+        { name: 'import', description: 'Import instruction to repository' }
+      ],
+      prompts: [
+        { name: 'add', description: 'Add a GitHub Copilot prompt' },
+        { name: 'remove', description: 'Remove a GitHub Copilot prompt' },
+        { name: 'install', description: 'Install all GitHub Copilot prompts' },
+        { name: 'import', description: 'Import prompt to repository' }
+      ],
+      skills: [
+        { name: 'add', description: 'Add a GitHub Copilot skill' },
+        { name: 'remove', description: 'Remove a GitHub Copilot skill' },
+        { name: 'install', description: 'Install all GitHub Copilot skills' },
+        { name: 'import', description: 'Import skill to repository' }
+      ],
+      agents: [
+        { name: 'add', description: 'Add a GitHub Copilot agent' },
+        { name: 'remove', description: 'Remove a GitHub Copilot agent' },
+        { name: 'install', description: 'Install all GitHub Copilot agents' },
+        { name: 'import', description: 'Import agent to repository' }
+      ]
+    },
+    nestedAddCompletionTypes: {
+      instructions: 'copilot-instructions',
+      prompts: 'copilot-prompts',
+      skills: 'copilot-skills',
+      agents: 'copilot-agents'
+    }
+  },
+  {
+    tool: 'claude',
+    description: 'Manage Claude skills, agents, and plugins',
+    rootSubcommands: [
+      { name: 'rules', description: 'Manage Claude rules' },
+      { name: 'skills', description: 'Manage Claude skills' },
+      { name: 'agents', description: 'Manage Claude agents' },
+      { name: 'install', description: 'Install all Claude components' }
+    ],
+    nestedSubcommands: {
+      rules: [
+        { name: 'add', description: 'Add a Claude rule' },
+        { name: 'remove', description: 'Remove a Claude rule' },
+        { name: 'install', description: 'Install all Claude rules' },
+        { name: 'import', description: 'Import rule to repository' }
+      ],
+      skills: [
+        { name: 'add', description: 'Add a Claude skill' },
+        { name: 'remove', description: 'Remove a Claude skill' },
+        { name: 'install', description: 'Install all Claude skills' },
+        { name: 'import', description: 'Import skill to repository' }
+      ],
+      agents: [
+        { name: 'add', description: 'Add a Claude agent' },
+        { name: 'remove', description: 'Remove a Claude agent' },
+        { name: 'install', description: 'Install all Claude agents' },
+        { name: 'import', description: 'Import agent to repository' }
+      ]
+    },
+    nestedAddCompletionTypes: {
+      rules: 'claude-rules',
+      skills: 'claude-skills',
+      agents: 'claude-agents'
+    }
+  },
+  {
+    tool: 'trae',
+    description: 'Manage Trae rules and skills',
+    rootSubcommands: [
+      { name: 'rules', description: 'Manage Trae rules' },
+      { name: 'skills', description: 'Manage Trae skills' },
+      { name: 'install', description: 'Install all Trae entries' }
+    ],
+    nestedSubcommands: {
+      rules: [
+        { name: 'add', description: 'Add a Trae rule' },
+        { name: 'remove', description: 'Remove a Trae rule' },
+        { name: 'install', description: 'Install all Trae rules' },
+        { name: 'import', description: 'Import rule to repository' }
+      ],
+      skills: [
+        { name: 'add', description: 'Add a Trae skill' },
+        { name: 'remove', description: 'Remove a Trae skill' },
+        { name: 'install', description: 'Install all Trae skills' },
+        { name: 'import', description: 'Import skill to repository' }
+      ]
+    },
+    nestedAddCompletionTypes: {
+      rules: 'trae-rules',
+      skills: 'trae-skills'
+    }
+  },
+  {
+    tool: 'opencode',
+    description: 'Manage OpenCode agents, skills, commands, and tools',
+    rootSubcommands: [
+      { name: 'commands', description: 'Manage OpenCode commands' },
+      { name: 'skills', description: 'Manage OpenCode skills' },
+      { name: 'agents', description: 'Manage OpenCode agents' },
+      { name: 'tools', description: 'Manage OpenCode tools' },
+      { name: 'install', description: 'Install all OpenCode entries' },
+      { name: 'import', description: 'Import entry to repository' }
+    ],
+    nestedSubcommands: {
+      commands: [
+        { name: 'add', description: 'Add an OpenCode command' },
+        { name: 'remove', description: 'Remove an OpenCode command' },
+        { name: 'install', description: 'Install all OpenCode commands' },
+        { name: 'import', description: 'Import command to repository' }
+      ],
+      skills: [
+        { name: 'add', description: 'Add an OpenCode skill' },
+        { name: 'remove', description: 'Remove an OpenCode skill' },
+        { name: 'install', description: 'Install all OpenCode skills' },
+        { name: 'import', description: 'Import skill to repository' }
+      ],
+      agents: [
+        { name: 'add', description: 'Add an OpenCode agent' },
+        { name: 'remove', description: 'Remove an OpenCode agent' },
+        { name: 'install', description: 'Install all OpenCode agents' },
+        { name: 'import', description: 'Import agent to repository' }
+      ],
+      tools: [
+        { name: 'add', description: 'Add an OpenCode tool' },
+        { name: 'remove', description: 'Remove an OpenCode tool' },
+        { name: 'install', description: 'Install all OpenCode tools' },
+        { name: 'import', description: 'Import tool to repository' }
+      ]
+    },
+    nestedAddCompletionTypes: {
+      commands: 'opencode-commands',
+      skills: 'opencode-skills',
+      agents: 'opencode-agents',
+      tools: 'opencode-tools'
+    }
+  },
+  {
+    tool: 'codex',
+    description: 'Manage Codex rules and skills',
+    rootSubcommands: [
+      { name: 'rules', description: 'Manage Codex rules' },
+      { name: 'skills', description: 'Manage Codex skills' },
+      { name: 'install', description: 'Install all Codex entries' },
+      { name: 'import', description: 'Import entry to repository' }
+    ],
+    nestedSubcommands: {
+      rules: [
+        { name: 'add', description: 'Add a Codex rule' },
+        { name: 'remove', description: 'Remove a Codex rule' },
+        { name: 'install', description: 'Install all Codex rules' },
+        { name: 'import', description: 'Import rule to repository' }
+      ],
+      skills: [
+        { name: 'add', description: 'Add a Codex skill' },
+        { name: 'remove', description: 'Remove a Codex skill' },
+        { name: 'install', description: 'Install all Codex skills' },
+        { name: 'import', description: 'Import skill to repository' }
+      ]
+    },
+    nestedAddCompletionTypes: {
+      rules: 'codex-rules',
+      skills: 'codex-skills'
+    }
+  },
+  {
+    tool: 'gemini',
+    description: 'Manage Gemini CLI commands, skills, and agents',
+    rootSubcommands: [
+      { name: 'commands', description: 'Manage Gemini commands' },
+      { name: 'skills', description: 'Manage Gemini skills' },
+      { name: 'agents', description: 'Manage Gemini agents' },
+      { name: 'install', description: 'Install all Gemini entries' },
+      { name: 'add-all', description: 'Add all Gemini entries' },
+      { name: 'import', description: 'Import entry to repository' }
+    ],
+    nestedSubcommands: {
+      commands: [
+        { name: 'add', description: 'Add a Gemini command' },
+        { name: 'remove', description: 'Remove a Gemini command' },
+        { name: 'install', description: 'Install all Gemini commands' },
+        { name: 'import', description: 'Import command to repository' }
+      ],
+      skills: [
+        { name: 'add', description: 'Add a Gemini skill' },
+        { name: 'remove', description: 'Remove a Gemini skill' },
+        { name: 'install', description: 'Install all Gemini skills' },
+        { name: 'import', description: 'Import skill to repository' }
+      ],
+      agents: [
+        { name: 'add', description: 'Add a Gemini agent' },
+        { name: 'remove', description: 'Remove a Gemini agent' },
+        { name: 'install', description: 'Install all Gemini agents' },
+        { name: 'import', description: 'Import agent to repository' }
+      ]
+    },
+    nestedAddCompletionTypes: {
+      commands: 'gemini-commands',
+      skills: 'gemini-skills',
+      agents: 'gemini-agents'
+    }
+  },
+  {
+    tool: 'warp',
+    description: 'Manage Warp agent skills',
+    rootSubcommands: [
+      { name: 'skills', description: 'Manage Warp skills' },
+      { name: 'install', description: 'Install all Warp entries' },
+      { name: 'import', description: 'Import entry to repository' }
+    ],
+    nestedSubcommands: {
+      skills: [
+        { name: 'add', description: 'Add a Warp skill' },
+        { name: 'remove', description: 'Remove a Warp skill' },
+        { name: 'install', description: 'Install all Warp skills' },
+        { name: 'import', description: 'Import skill to repository' }
+      ]
+    },
+    nestedAddCompletionTypes: {
+      skills: 'warp-skills'
+    }
+  },
+  {
+    tool: 'windsurf',
+    description: 'Manage Windsurf rules and skills',
+    rootSubcommands: [
+      { name: 'add', description: 'Add a Windsurf rule' },
+      { name: 'remove', description: 'Remove a Windsurf rule' },
+      { name: 'install', description: 'Install all Windsurf entries' },
+      { name: 'add-all', description: 'Add all Windsurf entries' },
+      { name: 'import', description: 'Import entry to repository' },
+      { name: 'rules', description: 'Manage Windsurf rules' },
+      { name: 'skills', description: 'Manage Windsurf skills' }
+    ],
+    nestedSubcommands: {
+      rules: [
+        { name: 'add', description: 'Add a Windsurf rule' },
+        { name: 'remove', description: 'Remove a Windsurf rule' },
+        { name: 'install', description: 'Install all Windsurf rules' },
+        { name: 'import', description: 'Import rule to repository' }
+      ],
+      skills: [
+        { name: 'add', description: 'Add a Windsurf skill' },
+        { name: 'remove', description: 'Remove a Windsurf skill' },
+        { name: 'install', description: 'Install all Windsurf skills' },
+        { name: 'import', description: 'Import skill to repository' }
+      ]
+    },
+    rootAddCompletionType: 'windsurf-rules',
+    nestedAddCompletionTypes: {
+      rules: 'windsurf-rules',
+      skills: 'windsurf-skills'
+    }
+  },
+  {
+    tool: 'cline',
+    description: 'Manage Cline rules and skills',
+    rootSubcommands: [
+      { name: 'add', description: 'Add a Cline rule' },
+      { name: 'remove', description: 'Remove a Cline rule' },
+      { name: 'install', description: 'Install all Cline entries' },
+      { name: 'add-all', description: 'Add all Cline entries' },
+      { name: 'import', description: 'Import entry to repository' },
+      { name: 'rules', description: 'Manage Cline rules' },
+      { name: 'skills', description: 'Manage Cline skills' }
+    ],
+    nestedSubcommands: {
+      rules: [
+        { name: 'add', description: 'Add a Cline rule' },
+        { name: 'remove', description: 'Remove a Cline rule' },
+        { name: 'install', description: 'Install all Cline rules' },
+        { name: 'import', description: 'Import rule to repository' }
+      ],
+      skills: [
+        { name: 'add', description: 'Add a Cline skill' },
+        { name: 'remove', description: 'Remove a Cline skill' },
+        { name: 'install', description: 'Install all Cline skills' },
+        { name: 'import', description: 'Import skill to repository' }
+      ]
+    },
+    rootAddCompletionType: 'cline-rules',
+    nestedAddCompletionTypes: {
+      rules: 'cline-rules',
+      skills: 'cline-skills'
+    }
+  },
+  {
+    tool: 'agents-md',
+    description: 'Manage AGENTS.md files (agents.md standard)',
+    rootSubcommands: [
+      { name: 'add', description: 'Add an AGENTS.md file' },
+      { name: 'remove', description: 'Remove an AGENTS.md file' },
+      { name: 'install', description: 'Install AGENTS.md' },
+      { name: 'import', description: 'Import AGENTS.md to repository' }
+    ],
+    nestedSubcommands: {},
+    rootAddCompletionType: 'agents-md'
+  }
+];
 
-# Top-level commands
-complete -c ais -n "__fish_use_subcommand" -a "cursor" -d "Manage Cursor rules, commands, and skills"
-complete -c ais -n "__fish_use_subcommand" -a "copilot" -d "Manage GitHub Copilot instructions"
-complete -c ais -n "__fish_use_subcommand" -a "claude" -d "Manage Claude skills, agents, and plugins"
-complete -c ais -n "__fish_use_subcommand" -a "trae" -d "Manage Trae rules and skills"
-complete -c ais -n "__fish_use_subcommand" -a "opencode" -d "Manage OpenCode agents, skills, commands, and tools"
-complete -c ais -n "__fish_use_subcommand" -a "codex" -d "Manage Codex rules and skills"
-complete -c ais -n "__fish_use_subcommand" -a "gemini" -d "Manage Gemini CLI commands, skills, and agents"
-complete -c ais -n "__fish_use_subcommand" -a "warp" -d "Manage Warp agent skills"
-complete -c ais -n "__fish_use_subcommand" -a "windsurf" -d "Manage Windsurf rules and skills"
-complete -c ais -n "__fish_use_subcommand" -a "cline" -d "Manage Cline rules and skills"
-complete -c ais -n "__fish_use_subcommand" -a "agents-md" -d "Manage AGENTS.md files (agents.md standard)"
-complete -c ais -n "__fish_use_subcommand" -a "use" -d "Configure rules repository"
-complete -c ais -n "__fish_use_subcommand" -a "list" -d "List configured repositories"
-complete -c ais -n "__fish_use_subcommand" -a "git" -d "Run git commands in rules repository"
-complete -c ais -n "__fish_use_subcommand" -a "add" -d "Add a rule (smart dispatch)"
-complete -c ais -n "__fish_use_subcommand" -a "remove" -d "Remove a rule (smart dispatch)"
-complete -c ais -n "__fish_use_subcommand" -a "install" -d "Install all rules (smart dispatch)"
-complete -c ais -n "__fish_use_subcommand" -a "import" -d "Import entry to rules repository"
-complete -c ais -n "__fish_use_subcommand" -a "completion" -d "Output shell completion script"
+const EXTRA_TOP_LEVEL_COMMANDS: CompletionEntry[] = [
+  { name: 'use', description: 'Configure rules repository' },
+  { name: 'list', description: 'List configured repositories' },
+  { name: 'git', description: 'Run git commands in rules repository' },
+  { name: 'add', description: 'Add a rule (smart dispatch)' },
+  { name: 'remove', description: 'Remove a rule (smart dispatch)' },
+  { name: 'install', description: 'Install all rules (smart dispatch)' },
+  { name: 'import', description: 'Import entry to rules repository' },
+  { name: 'completion', description: 'Output shell completion script' }
+];
 
-# cursor subcommands
-complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills agents" -a "add" -d "Add a Cursor rule"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills agents" -a "remove" -d "Remove a Cursor rule"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills agents" -a "install" -d "Install all Cursor entries"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills agents" -a "import" -d "Import entry to repository"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills agents" -a "rules" -d "Manage rules explicitly"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills agents" -a "commands" -d "Manage commands"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills agents" -a "skills" -d "Manage skills"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and not __fish_seen_subcommand_from add remove install import rules commands skills agents" -a "agents" -d "Manage agents"
+const TOP_LEVEL_COMMANDS: CompletionEntry[] = [
+  ...TOOL_SPECS.map(spec => ({ name: spec.tool, description: spec.description })),
+  ...EXTRA_TOP_LEVEL_COMMANDS
+];
 
-# cursor rules subcommands
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Cursor rule"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Cursor rule"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Cursor rules"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import rule to repository"
+function toVarName(name: string): string {
+  return name.replace(/-/g, '_');
+}
 
-# cursor commands subcommands
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from commands; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Cursor command"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from commands; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Cursor command"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from commands; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Cursor commands"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from commands; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import command to repository"
+function quotedNames(entries: CompletionEntry[]): string {
+  return entries.map(entry => entry.name).join(' ');
+}
 
-# cursor skills subcommands
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Cursor skill"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Cursor skill"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Cursor skills"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import skill to repository"
+function escapeSingleQuotes(value: string): string {
+  return value.replace(/'/g, `'\\''`);
+}
 
-# cursor agents subcommands
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Cursor agent"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Cursor agent"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Cursor agents"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import agent to repository"
+function buildZshDescribeItems(entries: CompletionEntry[]): string {
+  return entries.map(entry => `'${escapeSingleQuotes(entry.name)}:${escapeSingleQuotes(entry.description)}'`).join(' ');
+}
 
-# copilot subcommands
-complete -c ais -n "__fish_seen_subcommand_from copilot; and not __fish_seen_subcommand_from instructions prompts skills agents install" -a "instructions" -d "Manage GitHub Copilot instructions"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and not __fish_seen_subcommand_from instructions prompts skills agents install" -a "prompts" -d "Manage GitHub Copilot prompt files"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and not __fish_seen_subcommand_from instructions prompts skills agents install" -a "skills" -d "Manage GitHub Copilot skills"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and not __fish_seen_subcommand_from instructions prompts skills agents install" -a "agents" -d "Manage GitHub Copilot custom agents"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and not __fish_seen_subcommand_from instructions prompts skills agents install" -a "install" -d "Install all GitHub Copilot entries"
+function buildZshCompleteTypeBlock(completeType: string, indent: string): string[] {
+  return [
+    `${indent}local -a items`,
+    `${indent}items=(\${(f)"\$(ais _complete ${completeType} 2>/dev/null)"})`,
+    `${indent}if (( \$#items )); then`,
+    `${indent}  compadd "\$items[@]"`,
+    `${indent}fi`
+  ];
+}
 
-# copilot instructions subcommands
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from instructions; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a GitHub Copilot instruction"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from instructions; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a GitHub Copilot instruction"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from instructions; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all GitHub Copilot instructions"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from instructions; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import instruction to repository"
+function buildBashScript(): string {
+  const lines: string[] = [
+    '# ais bash completion',
+    '_ais_complete() {',
+    '  local cur="${COMP_WORDS[COMP_CWORD]}"',
+    '  local prev="${COMP_WORDS[COMP_CWORD-1]}"',
+    '  local pprev="${COMP_WORDS[COMP_CWORD-2]}"',
+    '  local ppprev="${COMP_WORDS[COMP_CWORD-3]}"',
+    ''
+  ];
 
-# copilot prompts subcommands
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from prompts; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a GitHub Copilot prompt"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from prompts; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a GitHub Copilot prompt"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from prompts; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all GitHub Copilot prompts"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from prompts; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import prompt to repository"
+  for (const spec of TOOL_SPECS) {
+    if (spec.rootAddCompletionType) {
+      lines.push(`  # ${spec.tool} add`);
+      lines.push(`  if [[ "$pprev" == "${spec.tool}" && "$prev" == "add" ]]; then`);
+      lines.push(`    COMPREPLY=( $(compgen -W "$(ais _complete ${spec.rootAddCompletionType} 2>/dev/null)" -- "$cur") )`);
+      lines.push('    return 0');
+      lines.push('  fi');
+      lines.push('');
+    }
+  }
 
-# copilot skills subcommands
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a GitHub Copilot skill"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a GitHub Copilot skill"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all GitHub Copilot skills"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import skill to repository"
+  for (const spec of TOOL_SPECS) {
+    if (!spec.nestedAddCompletionTypes) continue;
+    for (const [subcommand, completeType] of Object.entries(spec.nestedAddCompletionTypes)) {
+      lines.push(`  # ${spec.tool} ${subcommand} add`);
+      lines.push(`  if [[ "$ppprev" == "${spec.tool}" && "$pprev" == "${subcommand}" && "$prev" == "add" ]]; then`);
+      lines.push(`    COMPREPLY=( $(compgen -W "$(ais _complete ${completeType} 2>/dev/null)" -- "$cur") )`);
+      lines.push('    return 0');
+      lines.push('  fi');
+      lines.push('');
+    }
+  }
 
-# copilot agents subcommands
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a GitHub Copilot agent"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a GitHub Copilot agent"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all GitHub Copilot agents"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import agent to repository"
+  for (const spec of TOOL_SPECS) {
+    for (const [nested, nestedSubcommands] of Object.entries(spec.nestedSubcommands)) {
+      lines.push(`  # ${spec.tool} ${nested}`);
+      lines.push(`  if [[ "$pprev" == "${spec.tool}" && "$prev" == "${nested}" ]]; then`);
+      lines.push(`    COMPREPLY=( $(compgen -W "${quotedNames(nestedSubcommands)}" -- "$cur") )`);
+      lines.push('    return 0');
+      lines.push('  fi');
+      lines.push('');
+    }
+  }
 
-# claude subcommands
-complete -c ais -n "__fish_seen_subcommand_from claude; and not __fish_seen_subcommand_from rules skills agents install" -a "rules" -d "Manage Claude rules"
-complete -c ais -n "__fish_seen_subcommand_from claude; and not __fish_seen_subcommand_from rules skills agents install" -a "skills" -d "Manage Claude skills"
-complete -c ais -n "__fish_seen_subcommand_from claude; and not __fish_seen_subcommand_from rules skills agents install" -a "agents" -d "Manage Claude agents"
-complete -c ais -n "__fish_seen_subcommand_from claude; and not __fish_seen_subcommand_from rules skills agents install" -a "install" -d "Install all Claude components"
+  for (const spec of TOOL_SPECS) {
+    lines.push(`  # ${spec.tool}`);
+    lines.push(`  if [[ "$prev" == "${spec.tool}" ]]; then`);
+    lines.push(`    COMPREPLY=( $(compgen -W "${quotedNames(spec.rootSubcommands)}" -- "$cur") )`);
+    lines.push('    return 0');
+    lines.push('  fi');
+    lines.push('');
+  }
 
-# trae subcommands
-complete -c ais -n "__fish_seen_subcommand_from trae; and not __fish_seen_subcommand_from rules skills install" -a "rules" -d "Manage Trae rules"
-complete -c ais -n "__fish_seen_subcommand_from trae; and not __fish_seen_subcommand_from rules skills install" -a "skills" -d "Manage Trae skills"
-complete -c ais -n "__fish_seen_subcommand_from trae; and not __fish_seen_subcommand_from rules skills install" -a "install" -d "Install all Trae entries"
+  lines.push('  if [[ ${COMP_CWORD} -eq 1 ]]; then');
+  lines.push(`    COMPREPLY=( $(compgen -W "${quotedNames(TOP_LEVEL_COMMANDS)}" -- "$cur") )`);
+  lines.push('    return 0');
+  lines.push('  fi');
+  lines.push('}');
+  lines.push('complete -F _ais_complete ais');
 
-# claude skills subcommands
-complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Claude skill"
-complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Claude skill"
-complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Claude skills"
-complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import skill to repository"
+  return lines.join('\n');
+}
 
-# claude agents subcommands
-complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Claude agent"
-complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Claude agent"
-complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Claude agents"
-complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import agent to repository"
+function buildZshScript(): string {
+  const lines: string[] = [
+    '# ais zsh completion',
+    '_ais() {',
+    '  local -a subcmds',
+    '  subcmds=('
+  ];
 
-# trae rules subcommands
-complete -c ais -n "__fish_seen_subcommand_from trae; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Trae rule"
-complete -c ais -n "__fish_seen_subcommand_from trae; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Trae rule"
-complete -c ais -n "__fish_seen_subcommand_from trae; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Trae rules"
-complete -c ais -n "__fish_seen_subcommand_from trae; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import rule to repository"
+  for (const cmd of TOP_LEVEL_COMMANDS) {
+    lines.push(`    '${escapeSingleQuotes(cmd.name)}:${escapeSingleQuotes(cmd.description)}'`);
+  }
+  lines.push('  )');
+  lines.push('');
 
-# trae skills subcommands
-complete -c ais -n "__fish_seen_subcommand_from trae; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Trae skill"
-complete -c ais -n "__fish_seen_subcommand_from trae; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Trae skill"
-complete -c ais -n "__fish_seen_subcommand_from trae; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Trae skills"
-complete -c ais -n "__fish_seen_subcommand_from trae; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import skill to repository"
+  const variableNames: string[] = [];
+  for (const spec of TOOL_SPECS) {
+    const toolVar = `${toVarName(spec.tool)}_subcmds`;
+    variableNames.push(toolVar);
+    for (const nested of Object.keys(spec.nestedSubcommands)) {
+      variableNames.push(`${toVarName(spec.tool)}_${toVarName(nested)}_subcmds`);
+    }
+  }
 
-# opencode subcommands
-complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from commands skills agents tools install import" -a "commands" -d "Manage OpenCode commands"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from commands skills agents tools install import" -a "skills" -d "Manage OpenCode skills"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from commands skills agents tools install import" -a "agents" -d "Manage OpenCode agents"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from commands skills agents tools install import" -a "tools" -d "Manage OpenCode tools"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from commands skills agents tools install import" -a "install" -d "Install all OpenCode entries"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and not __fish_seen_subcommand_from commands skills agents tools install import" -a "import" -d "Import entry to repository"
+  lines.push(`  local -a ${variableNames.join(' ')}`);
+  for (const spec of TOOL_SPECS) {
+    const toolVar = `${toVarName(spec.tool)}_subcmds`;
+    lines.push(`  ${toolVar}=(${buildZshDescribeItems(spec.rootSubcommands)})`);
+    for (const [nested, nestedEntries] of Object.entries(spec.nestedSubcommands)) {
+      const nestedVar = `${toVarName(spec.tool)}_${toVarName(nested)}_subcmds`;
+      lines.push(`  ${nestedVar}=(${buildZshDescribeItems(nestedEntries)})`);
+    }
+  }
+  lines.push('');
 
-# opencode commands subcommands
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from commands; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add an OpenCode command"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from commands; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove an OpenCode command"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from commands; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all OpenCode commands"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from commands; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import command to repository"
+  lines.push('  _arguments -C \\');
+  lines.push("    '1:command:->command' \\");
+  lines.push("    '2:subcommand:->subcommand' \\");
+  lines.push("    '3:subsubcommand:->subsubcommand' \\");
+  lines.push("    '4:name:->name' \\");
+  lines.push("    '*::arg:->args'");
+  lines.push('');
+  lines.push('  case "$state" in');
+  lines.push('    command)');
+  lines.push("      _describe 'command' subcmds");
+  lines.push('      ;;');
+  lines.push('    subcommand)');
+  lines.push('      case "$words[2]" in');
+  for (const spec of TOOL_SPECS) {
+    const toolVar = `${toVarName(spec.tool)}_subcmds`;
+    lines.push(`        ${spec.tool})`);
+    lines.push(`          _describe 'subcommand' ${toolVar}`);
+    lines.push('          ;;');
+  }
+  lines.push('      esac');
+  lines.push('      ;;');
+  lines.push('    subsubcommand)');
+  lines.push('      case "$words[2]" in');
 
-# opencode skills subcommands
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add an OpenCode skill"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove an OpenCode skill"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all OpenCode skills"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import skill to repository"
+  for (const spec of TOOL_SPECS) {
+    const toolVar = `${toVarName(spec.tool)}_subcmds`;
+    lines.push(`        ${spec.tool})`);
+    lines.push('          case "$words[3]" in');
+    if (spec.rootAddCompletionType) {
+      lines.push('            add)');
+      lines.push(...buildZshCompleteTypeBlock(spec.rootAddCompletionType, '              '));
+      lines.push('              ;;');
+    }
 
-# opencode agents subcommands
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add an OpenCode agent"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove an OpenCode agent"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all OpenCode agents"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import agent to repository"
+    for (const nested of Object.keys(spec.nestedSubcommands)) {
+      const nestedVar = `${toVarName(spec.tool)}_${toVarName(nested)}_subcmds`;
+      lines.push(`            ${nested})`);
+      lines.push(`              _describe 'subsubcommand' ${nestedVar}`);
+      lines.push('              ;;');
+    }
 
-# opencode tools subcommands
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from tools; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add an OpenCode tool"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from tools; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove an OpenCode tool"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from tools; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all OpenCode tools"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from tools; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import tool to repository"
+    lines.push('            *)');
+    lines.push(`              _describe 'subsubcommand' ${toolVar}`);
+    lines.push('              ;;');
+    lines.push('          esac');
+    lines.push('          ;;');
+  }
 
-# codex subcommands
-complete -c ais -n "__fish_seen_subcommand_from codex; and not __fish_seen_subcommand_from install import rules skills" -a "install" -d "Install all Codex entries"
-complete -c ais -n "__fish_seen_subcommand_from codex; and not __fish_seen_subcommand_from install import rules skills" -a "import" -d "Import entry to repository"
-complete -c ais -n "__fish_seen_subcommand_from codex; and not __fish_seen_subcommand_from install import rules skills" -a "rules" -d "Manage Codex rules"
-complete -c ais -n "__fish_seen_subcommand_from codex; and not __fish_seen_subcommand_from install import rules skills" -a "skills" -d "Manage Codex skills"
+  lines.push('      esac');
+  lines.push('      ;;');
+  lines.push('    name)');
+  lines.push('      case "$words[2]" in');
 
-# codex rules subcommands
-complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Codex rule"
-complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Codex rule"
-complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Codex rules"
-complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import rule to repository"
+  for (const spec of TOOL_SPECS) {
+    const hasNestedCompletions = !!spec.nestedAddCompletionTypes && Object.keys(spec.nestedAddCompletionTypes).length > 0;
+    if (!spec.rootAddCompletionType && !hasNestedCompletions) {
+      continue;
+    }
 
-# codex skills subcommands
-complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Codex skill"
-complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Codex skill"
-complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Codex skills"
-complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import skill to repository"
+    lines.push(`        ${spec.tool})`);
+    lines.push('          case "$words[3]" in');
 
-# gemini subcommands
-complete -c ais -n "__fish_seen_subcommand_from gemini; and not __fish_seen_subcommand_from install add-all import commands skills agents" -a "install" -d "Install all Gemini entries"
-complete -c ais -n "__fish_seen_subcommand_from gemini; and not __fish_seen_subcommand_from install add-all import commands skills agents" -a "add-all" -d "Add all Gemini entries"
-complete -c ais -n "__fish_seen_subcommand_from gemini; and not __fish_seen_subcommand_from install add-all import commands skills agents" -a "import" -d "Import entry to repository"
-complete -c ais -n "__fish_seen_subcommand_from gemini; and not __fish_seen_subcommand_from install add-all import commands skills agents" -a "commands" -d "Manage Gemini commands"
-complete -c ais -n "__fish_seen_subcommand_from gemini; and not __fish_seen_subcommand_from install add-all import commands skills agents" -a "skills" -d "Manage Gemini skills"
-complete -c ais -n "__fish_seen_subcommand_from gemini; and not __fish_seen_subcommand_from install add-all import commands skills agents" -a "agents" -d "Manage Gemini agents"
+    if (spec.rootAddCompletionType) {
+      lines.push('            add)');
+      lines.push(...buildZshCompleteTypeBlock(spec.rootAddCompletionType, '              '));
+      lines.push('              ;;');
+    }
 
-# gemini commands subcommands
-complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from commands; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Gemini command"
-complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from commands; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Gemini command"
-complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from commands; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Gemini commands"
-complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from commands; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import command to repository"
+    if (spec.nestedAddCompletionTypes) {
+      for (const [nested, completeType] of Object.entries(spec.nestedAddCompletionTypes)) {
+        lines.push(`            ${nested})`);
+        lines.push('              case "$words[4]" in');
+        lines.push('                add)');
+        lines.push(...buildZshCompleteTypeBlock(completeType, '                  '));
+        lines.push('                  ;;');
+        lines.push('              esac');
+        lines.push('              ;;');
+      }
+    }
 
-# gemini skills subcommands
-complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Gemini skill"
-complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Gemini skill"
-complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Gemini skills"
-complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import skill to repository"
+    lines.push('          esac');
+    lines.push('          ;;');
+  }
 
-# gemini agents subcommands
-complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Gemini agent"
-complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Gemini agent"
-complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Gemini agents"
-complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from agents; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import agent to repository"
+  lines.push('      esac');
+  lines.push('      ;;');
+  lines.push('    args)');
+  lines.push('      # Handle additional arguments');
+  lines.push('      ;;');
+  lines.push('  esac');
+  lines.push('}');
+  lines.push('');
+  lines.push('# Only define completion if compdef is available (zsh completion initialized)');
+  lines.push('command -v compdef >/dev/null 2>&1 && compdef _ais ais');
 
-# warp subcommands
-complete -c ais -n "__fish_seen_subcommand_from warp; and not __fish_seen_subcommand_from install import skills" -a "skills" -d "Manage Warp skills"
-complete -c ais -n "__fish_seen_subcommand_from warp; and not __fish_seen_subcommand_from install import skills" -a "install" -d "Install all Warp entries"
-complete -c ais -n "__fish_seen_subcommand_from warp; and not __fish_seen_subcommand_from install import skills" -a "import" -d "Import entry to repository"
+  return lines.join('\n');
+}
 
-# warp skills subcommands
-complete -c ais -n "__fish_seen_subcommand_from warp; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Warp skill"
-complete -c ais -n "__fish_seen_subcommand_from warp; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Warp skill"
-complete -c ais -n "__fish_seen_subcommand_from warp; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Warp skills"
-complete -c ais -n "__fish_seen_subcommand_from warp; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import skill to repository"
+function buildFishScript(): string {
+  const lines: string[] = [
+    '# ais fish completion',
+    'complete -c ais -f',
+    '',
+    '# Top-level commands'
+  ];
 
-# windsurf subcommands
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "add" -d "Add a Windsurf rule"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "remove" -d "Remove a Windsurf rule"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "install" -d "Install all Windsurf entries"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "add-all" -d "Add all Windsurf entries"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "import" -d "Import entry to repository"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "rules" -d "Manage Windsurf rules"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "skills" -d "Manage Windsurf skills"
+  for (const cmd of TOP_LEVEL_COMMANDS) {
+    lines.push(`complete -c ais -n "__fish_use_subcommand" -a "${cmd.name}" -d "${cmd.description}"`);
+  }
+  lines.push('');
 
-# windsurf rules subcommands
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Windsurf rule"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Windsurf rule"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Windsurf rules"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import rule to repository"
+  for (const spec of TOOL_SPECS) {
+    const allRoot = quotedNames(spec.rootSubcommands);
+    lines.push(`# ${spec.tool} subcommands`);
+    for (const subcommand of spec.rootSubcommands) {
+      lines.push(`complete -c ais -n "__fish_seen_subcommand_from ${spec.tool}; and not __fish_seen_subcommand_from ${allRoot}" -a "${subcommand.name}" -d "${subcommand.description}"`);
+    }
+    lines.push('');
+  }
 
-# windsurf skills subcommands
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Windsurf skill"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Windsurf skill"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Windsurf skills"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import skill to repository"
+  for (const spec of TOOL_SPECS) {
+    for (const [nested, nestedEntries] of Object.entries(spec.nestedSubcommands)) {
+      const nestedNames = quotedNames(nestedEntries);
+      lines.push(`# ${spec.tool} ${nested} subcommands`);
+      for (const subcommand of nestedEntries) {
+        lines.push(`complete -c ais -n "__fish_seen_subcommand_from ${spec.tool}; and __fish_seen_subcommand_from ${nested}; and not __fish_seen_subcommand_from ${nestedNames}" -a "${subcommand.name}" -d "${subcommand.description}"`);
+      }
+      lines.push('');
+    }
+  }
 
-# cline subcommands
-complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "add" -d "Add a Cline rule"
-complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "remove" -d "Remove a Cline rule"
-complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "install" -d "Install all Cline entries"
-complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "add-all" -d "Add all Cline entries"
-complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "import" -d "Import entry to repository"
-complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "rules" -d "Manage Cline rules"
-complete -c ais -n "__fish_seen_subcommand_from cline; and not __fish_seen_subcommand_from add remove install add-all import rules skills" -a "skills" -d "Manage Cline skills"
+  for (const spec of TOOL_SPECS) {
+    if (spec.rootAddCompletionType) {
+      lines.push(`complete -c ais -n "__fish_seen_subcommand_from ${spec.tool}; and __fish_seen_subcommand_from add" -a "(ais _complete ${spec.rootAddCompletionType} 2>/dev/null)"`);
+    }
+    if (spec.nestedAddCompletionTypes) {
+      for (const [nested, completeType] of Object.entries(spec.nestedAddCompletionTypes)) {
+        lines.push(`complete -c ais -n "__fish_seen_subcommand_from ${spec.tool}; and __fish_seen_subcommand_from ${nested}; and __fish_seen_subcommand_from add" -a "(ais _complete ${completeType} 2>/dev/null)"`);
+      }
+    }
+  }
 
-# cline rules subcommands
-complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Cline rule"
-complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Cline rule"
-complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Cline rules"
-complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from rules; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import rule to repository"
+  return lines.join('\n');
+}
 
-# cline skills subcommands
-complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add a Cline skill"
-complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove a Cline skill"
-complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install all Cline skills"
-complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from skills; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import skill to repository"
-
-# agents-md subcommands
-complete -c ais -n "__fish_seen_subcommand_from agents-md; and not __fish_seen_subcommand_from add remove install import" -a "add" -d "Add an AGENTS.md file"
-complete -c ais -n "__fish_seen_subcommand_from agents-md; and not __fish_seen_subcommand_from add remove install import" -a "remove" -d "Remove an AGENTS.md file"
-complete -c ais -n "__fish_seen_subcommand_from agents-md; and not __fish_seen_subcommand_from add remove install import" -a "install" -d "Install AGENTS.md"
-complete -c ais -n "__fish_seen_subcommand_from agents-md; and not __fish_seen_subcommand_from add remove install import" -a "import" -d "Import AGENTS.md to repository"
-
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from add" -a "(ais _complete cursor 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from rules; and __fish_seen_subcommand_from add" -a "(ais _complete cursor 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from commands; and __fish_seen_subcommand_from add" -a "(ais _complete cursor-commands 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete cursor-skills 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from cursor; and __fish_seen_subcommand_from agents; and __fish_seen_subcommand_from add" -a "(ais _complete cursor-agents 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from instructions; and __fish_seen_subcommand_from add" -a "(ais _complete copilot-instructions 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete copilot-skills 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from prompts; and __fish_seen_subcommand_from add" -a "(ais _complete copilot-prompts 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from copilot; and __fish_seen_subcommand_from agents; and __fish_seen_subcommand_from add" -a "(ais _complete copilot-agents 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete claude-skills 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from agents; and __fish_seen_subcommand_from add" -a "(ais _complete claude-agents 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from claude; and __fish_seen_subcommand_from rules; and __fish_seen_subcommand_from add" -a "(ais _complete claude-rules 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from trae; and __fish_seen_subcommand_from rules; and __fish_seen_subcommand_from add" -a "(ais _complete trae-rules 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from trae; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete trae-skills 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from agents; and __fish_seen_subcommand_from add" -a "(ais _complete opencode-agents 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete opencode-skills 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from commands; and __fish_seen_subcommand_from add" -a "(ais _complete opencode-commands 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from opencode; and __fish_seen_subcommand_from tools; and __fish_seen_subcommand_from add" -a "(ais _complete opencode-tools 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from rules; and __fish_seen_subcommand_from add" -a "(ais _complete codex-rules 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from codex; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete codex-skills 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from commands; and __fish_seen_subcommand_from add" -a "(ais _complete gemini-commands 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete gemini-skills 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from gemini; and __fish_seen_subcommand_from agents; and __fish_seen_subcommand_from add" -a "(ais _complete gemini-agents 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from warp; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete warp-skills 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from add" -a "(ais _complete windsurf-rules 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from rules; and __fish_seen_subcommand_from add" -a "(ais _complete windsurf-rules 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from windsurf; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete windsurf-skills 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from add" -a "(ais _complete cline-rules 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from rules; and __fish_seen_subcommand_from add" -a "(ais _complete cline-rules 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from cline; and __fish_seen_subcommand_from skills; and __fish_seen_subcommand_from add" -a "(ais _complete cline-skills 2>/dev/null)"
-complete -c ais -n "__fish_seen_subcommand_from agents-md; and __fish_seen_subcommand_from add" -a "(ais _complete agents-md 2>/dev/null)"
-`;
+export const bashScript = buildBashScript();
+export const zshScript = buildZshScript();
+export const fishScript = buildFishScript();
 
 /**
  * Get the completion script for a shell

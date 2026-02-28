@@ -74,8 +74,8 @@ class DefaultAdapterRegistry implements AdapterRegistry {
         this.register(codexMdAdapter);
         this.register(warpSkillsAdapter);
         this.register(windsurfRulesAdapter);
-        this.register(clineRulesAdapter);
         this.register(windsurfSkillsAdapter);
+        this.register(clineRulesAdapter);
         this.register(clineSkillsAdapter);
     }
 
@@ -149,98 +149,39 @@ export function findAdapterForAlias(
     cfg: ProjectConfig,
     alias: string
 ): { adapter: SyncAdapter; section: string } | null {
-    if (cfg.cursor?.rules?.[alias]) {
-        return { adapter: cursorRulesAdapter, section: 'cursor.rules' };
-    }
-    if (cfg.cursor?.commands?.[alias]) {
-        return { adapter: cursorCommandsAdapter, section: 'cursor.commands' };
-    }
-    if (cfg.cursor?.skills?.[alias]) {
-        return { adapter: cursorSkillsAdapter, section: 'cursor.skills' };
-    }
-    if (cfg.cursor?.agents?.[alias]) {
-        return { adapter: cursorAgentsAdapter, section: 'cursor.agents' };
-    }
-    if (cfg.copilot?.instructions?.[alias]) {
-        return { adapter: copilotInstructionsAdapter, section: 'copilot.instructions' };
-    }
-    if (cfg.copilot?.skills?.[alias]) {
-        return { adapter: copilotSkillsAdapter, section: 'copilot.skills' };
-    }
-    if (cfg.copilot?.prompts?.[alias]) {
-        return { adapter: copilotPromptsAdapter, section: 'copilot.prompts' };
-    }
-    if (cfg.copilot?.agents?.[alias]) {
-        return { adapter: copilotAgentsAdapter, section: 'copilot.agents' };
-    }
-    if (cfg.claude?.skills?.[alias]) {
-        return { adapter: claudeSkillsAdapter, section: 'claude.skills' };
-    }
-    if (cfg.claude?.agents?.[alias]) {
-        return { adapter: claudeAgentsAdapter, section: 'claude.agents' };
-    }
-    if (cfg.claude?.rules?.[alias]) {
-        return { adapter: claudeRulesAdapter, section: 'claude.rules' };
-    }
-    if (cfg.claude?.md?.[alias]) {
-        return { adapter: claudeMdAdapter, section: 'claude.md' };
-    }
-    if (cfg.trae?.rules?.[alias]) {
-        return { adapter: traeRulesAdapter, section: 'trae.rules' };
-    }
-    if (cfg.trae?.skills?.[alias]) {
-        return { adapter: traeSkillsAdapter, section: 'trae.skills' };
-    }
-    if (cfg.opencode?.agents?.[alias]) {
-        return { adapter: opencodeAgentsAdapter, section: 'opencode.agents' };
-    }
-    if (cfg.opencode?.skills?.[alias]) {
-        return { adapter: opencodeSkillsAdapter, section: 'opencode.skills' };
-    }
-    if (cfg.opencode?.commands?.[alias]) {
-        return { adapter: opencodeCommandsAdapter, section: 'opencode.commands' };
-    }
-    if (cfg.opencode?.tools?.[alias]) {
-        return { adapter: opencodeToolsAdapter, section: 'opencode.tools' };
-    }
-    if (cfg.agentsMd?.[alias]) {
-        return { adapter: agentsMdAdapter, section: 'agentsMd' };
-    }
-    if (cfg.codex?.rules?.[alias]) {
-        return { adapter: codexRulesAdapter, section: 'codex.rules' };
-    }
-    if (cfg.codex?.skills?.[alias]) {
-        return { adapter: codexSkillsAdapter, section: 'codex.skills' };
-    }
-    if (cfg.codex?.md?.[alias]) {
-        return { adapter: codexMdAdapter, section: 'codex.md' };
-    }
-    if (cfg.gemini?.commands?.[alias]) {
-        return { adapter: geminiCommandsAdapter, section: 'gemini.commands' };
-    }
-    if (cfg.gemini?.skills?.[alias]) {
-        return { adapter: geminiSkillsAdapter, section: 'gemini.skills' };
-    }
-    if (cfg.gemini?.agents?.[alias]) {
-        return { adapter: geminiAgentsAdapter, section: 'gemini.agents' };
-    }
-    if (cfg.gemini?.md?.[alias]) {
-        return { adapter: geminiMdAdapter, section: 'gemini.md' };
-    }
-    if (cfg.warp?.skills?.[alias]) {
-        return { adapter: warpSkillsAdapter, section: 'warp.skills' };
-    }
-    if (cfg.windsurf?.rules?.[alias]) {
-        return { adapter: windsurfRulesAdapter, section: 'windsurf.rules' };
-    }
-    if (cfg.windsurf?.skills?.[alias]) {
-        return { adapter: windsurfSkillsAdapter, section: 'windsurf.skills' };
-    }
-    if (cfg.cline?.rules?.[alias]) {
-        return { adapter: clineRulesAdapter, section: 'cline.rules' };
-    }
-    if (cfg.cline?.skills?.[alias]) {
-        return { adapter: clineSkillsAdapter, section: 'cline.skills' };
+    for (const adapter of adapterRegistry.all()) {
+        const sectionConfig = getAliasSectionConfig(cfg, adapter);
+        if (sectionConfig && Object.prototype.hasOwnProperty.call(sectionConfig, alias)) {
+            return { adapter, section: getSectionName(adapter) };
+        }
     }
     return null;
+}
+
+function getAliasSectionConfig(cfg: ProjectConfig, adapter: SyncAdapter): Record<string, unknown> | undefined {
+    const [topLevel, subLevel] = adapter.configPath;
+    const top = (cfg as Record<string, unknown>)[topLevel];
+    if (!top || typeof top !== 'object') {
+        return undefined;
+    }
+
+    // AGENTS.md dependencies are stored in flat `agentsMd` object for backward compatibility.
+    if (topLevel === 'agentsMd') {
+        return top as Record<string, unknown>;
+    }
+
+    const nested = (top as Record<string, unknown>)[subLevel];
+    if (!nested || typeof nested !== 'object') {
+        return undefined;
+    }
+
+    return nested as Record<string, unknown>;
+}
+
+function getSectionName(adapter: SyncAdapter): string {
+    const [topLevel, subLevel] = adapter.configPath;
+    if (topLevel === 'agentsMd') {
+        return 'agentsMd';
+    }
+    return `${topLevel}.${subLevel}`;
 }

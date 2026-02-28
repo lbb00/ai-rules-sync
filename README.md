@@ -73,6 +73,9 @@ ais completion install
 
 ## Supported Tools
 
+_This table is generated from `docs/supported-tools.json` via `npm run docs:sync-tools`._
+
+<!-- SUPPORTED_TOOLS_TABLE:START -->
 | Tool | Type | Mode | Default Source Directory | File Suffixes | Documentation |
 |------|------|------|--------------------------|---------------|---------------|
 | Cursor | Rules | hybrid | `.cursor/rules/` | `.mdc`, `.md` | [Docs](https://cursor.com/docs/context/rules) |
@@ -107,6 +110,7 @@ ais completion install
 | Cline | Rules | file | `.clinerules/` | `.md`, `.txt` | [Docs](https://docs.cline.bot/customization/cline-rules) |
 | Cline | Skills | directory | `.cline/skills/` | - | [Docs](https://docs.cline.bot/customization/skills) |
 | **Universal** | **AGENTS.md** | file | `.` (root) | `.md` | [Standard](https://agents.md/) |
+<!-- SUPPORTED_TOOLS_TABLE:END -->
 
 **Modes:**
 - **directory**: Links entire directories (skills, agents)

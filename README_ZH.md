@@ -73,12 +73,15 @@ ais completion install
 
 ## 支持的工具
 
+_此表由 `docs/supported-tools.json` 通过 `npm run docs:sync-tools` 自动生成。_
+
+<!-- SUPPORTED_TOOLS_TABLE:START -->
 | 工具 | 类型 | 模式 | 默认源目录 | 文件后缀 | 文档 |
 |------|------|------|------------|----------|------|
 | Cursor | Rules | hybrid | `.cursor/rules/` | `.mdc`, `.md` | [文档](https://cursor.com/docs/context/rules) |
 | Cursor | Commands | file | `.cursor/commands/` | `.md` | [文档](https://cursor.com/docs/context/commands) |
 | Cursor | Skills | directory | `.cursor/skills/` | - | [文档](https://cursor.com/docs/context/skills) |
-| Cursor | subagents | directory | `.cursor/agents/` | - | [文档](https://cursor.com/docs/context/subagents) |
+| Cursor | Subagents | directory | `.cursor/agents/` | - | [文档](https://cursor.com/docs/context/subagents) |
 | GitHub Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [文档](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions) |
 | GitHub Copilot | Prompts | file | `.github/prompts/` | `.prompt.md`, `.md` | [文档](https://docs.github.com/en/copilot/tutorials/customization-library/prompt-files/your-first-prompt-file) |
 | GitHub Copilot | Skills | directory | `.github/skills/` | - | [文档](https://docs.github.com/en/copilot/using-github-copilot/using-extensions-to-integrate-external-tools-with-copilot-chat) |
@@ -107,6 +110,7 @@ ais completion install
 | Cline | Rules | file | `.clinerules/` | `.md`, `.txt` | [文档](https://docs.cline.bot/customization/cline-rules) |
 | Cline | Skills | directory | `.cline/skills/` | - | [文档](https://docs.cline.bot/customization/skills) |
 | **通用** | **AGENTS.md** | file | `.`（根目录） | `.md` | [标准](https://agents.md/) |
+<!-- SUPPORTED_TOOLS_TABLE:END -->
 
 **模式说明：**
 - **directory**：链接整个目录（技能、代理）

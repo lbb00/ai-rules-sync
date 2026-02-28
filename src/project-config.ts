@@ -9,6 +9,80 @@ const LOCAL_CONFIG_FILENAME = 'ai-rules-sync.local.json';
 const LEGACY_CONFIG_FILENAME = 'cursor-rules.json';
 const LEGACY_LOCAL_CONFIG_FILENAME = 'cursor-rules.local.json';
 
+const REPO_SOURCE_PATHS = [
+    ['cursor', 'rules'],
+    ['cursor', 'commands'],
+    ['cursor', 'skills'],
+    ['cursor', 'agents'],
+    ['copilot', 'instructions'],
+    ['copilot', 'skills'],
+    ['copilot', 'prompts'],
+    ['copilot', 'agents'],
+    ['claude', 'skills'],
+    ['claude', 'agents'],
+    ['claude', 'rules'],
+    ['claude', 'md'],
+    ['trae', 'rules'],
+    ['trae', 'skills'],
+    ['opencode', 'agents'],
+    ['opencode', 'skills'],
+    ['opencode', 'commands'],
+    ['opencode', 'tools'],
+    ['codex', 'rules'],
+    ['codex', 'skills'],
+    ['codex', 'md'],
+    ['gemini', 'commands'],
+    ['gemini', 'skills'],
+    ['gemini', 'agents'],
+    ['gemini', 'md'],
+    ['warp', 'skills'],
+    ['windsurf', 'rules'],
+    ['windsurf', 'skills'],
+    ['cline', 'rules'],
+    ['cline', 'skills'],
+    ['agentsMd', 'file']
+] as const;
+
+function readNestedStringValue(source: unknown, tool: string, subtype: string): string | undefined {
+    if (!source || typeof source !== 'object') {
+        return undefined;
+    }
+
+    const toolConfig = (source as Record<string, unknown>)[tool];
+    if (!toolConfig || typeof toolConfig !== 'object') {
+        return undefined;
+    }
+
+    const value = (toolConfig as Record<string, unknown>)[subtype];
+    return typeof value === 'string' ? value : undefined;
+}
+
+function writeNestedStringValue(target: RepoSourceConfig, tool: string, subtype: string, value: string): void {
+    const mutable = target as Record<string, unknown>;
+    const existingToolConfig = mutable[tool];
+    const toolConfig =
+        existingToolConfig && typeof existingToolConfig === 'object'
+            ? existingToolConfig as Record<string, unknown>
+            : {};
+    toolConfig[subtype] = value;
+    mutable[tool] = toolConfig;
+}
+
+function buildRepoSourceFromNestedStrings(source: unknown, rootPath?: string): { hasAny: boolean; config: RepoSourceConfig } {
+    const config: RepoSourceConfig = { rootPath };
+    let hasAny = false;
+
+    for (const [tool, subtype] of REPO_SOURCE_PATHS) {
+        const value = readNestedStringValue(source, tool, subtype);
+        if (value !== undefined) {
+            hasAny = true;
+            writeNestedStringValue(config, tool, subtype, value);
+        }
+    }
+
+    return { hasAny, config };
+}
+
 /**
  * Extended rule entry with optional targetDir
  */
@@ -230,11 +304,6 @@ export interface RepoSourceConfig {
         agents?: string;
         md?: string;
     };
-    gemini?: {
-        commands?: string;
-        skills?: string;
-        agents?: string;
-    };
     warp?: {
         skills?: string;
     };
@@ -327,11 +396,6 @@ function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig
             agents: { ...(main.gemini?.agents || {}), ...(local.gemini?.agents || {}) },
             md: { ...(main.gemini?.md || {}), ...(local.gemini?.md || {}) }
         },
-        gemini: {
-            commands: { ...(main.gemini?.commands || {}), ...(local.gemini?.commands || {}) },
-            skills: { ...(main.gemini?.skills || {}), ...(local.gemini?.skills || {}) },
-            agents: { ...(main.gemini?.agents || {}), ...(local.gemini?.agents || {}) }
-        },
         warp: {
             skills: { ...(main.warp?.skills || {}), ...(local.warp?.skills || {}) }
         },
@@ -365,141 +429,13 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
 
         // New format: sourceDir is present
         if (config.sourceDir) {
-            return {
-                rootPath: config.rootPath,
-                cursor: config.sourceDir.cursor,
-                copilot: config.sourceDir.copilot,
-                claude: config.sourceDir.claude,
-                trae: config.sourceDir.trae,
-                opencode: config.sourceDir.opencode,
-                codex: config.sourceDir.codex,
-                gemini: config.sourceDir.gemini,
-                warp: config.sourceDir.warp,
-                windsurf: config.sourceDir.windsurf,
-                cline: config.sourceDir.cline,
-                agentsMd: config.sourceDir.agentsMd
-            };
+            return buildRepoSourceFromNestedStrings(config.sourceDir, config.rootPath).config;
         }
 
-        // Legacy format: cursor.rules/commands/instructions are strings (source dirs)
-        // We need to detect if this is a rules repo config (string values) vs project config (object values)
-        // Check if cursor.rules is a string (rules repo) or object (project dependencies)
-        const cursorRules = config.cursor?.rules;
-        const cursorCommands = config.cursor?.commands;
-        const cursorSkills = config.cursor?.skills;
-        const cursorAgents = config.cursor?.agents;
-        const copilotInstructions = config.copilot?.instructions;
-        const copilotSkills = config.copilot?.skills;
-        const copilotPrompts = (config.copilot as any)?.prompts;
-        const copilotAgents = (config.copilot as any)?.agents;
-
-        const isCursorRulesString = typeof cursorRules === 'string';
-        const isCursorCommandsString = typeof cursorCommands === 'string';
-        const isCursorSkillsString = typeof cursorSkills === 'string';
-        const isCursorAgentsString = typeof cursorAgents === 'string';
-        const isCopilotInstructionsString = typeof copilotInstructions === 'string';
-        const isCopilotSkillsString = typeof copilotSkills === 'string';
-        const isCopilotPromptsString = typeof copilotPrompts === 'string';
-        const isCopilotAgentsString = typeof copilotAgents === 'string';
-        const claudeSkills = config.claude?.skills;
-        const claudeAgents = config.claude?.agents;
-        const claudeRules = config.claude?.rules;
-        const claudeMd = (config.claude as any)?.md;
-        const isClaudeSkillsString = typeof claudeSkills === 'string';
-        const isClaudeAgentsString = typeof claudeAgents === 'string';
-        const isClaudeRulesString = typeof claudeRules === 'string';
-        const isClaudeMdString = typeof claudeMd === 'string';
-        const traeRules = config.trae?.rules;
-        const traeSkills = config.trae?.skills;
-        const isTraeRulesString = typeof traeRules === 'string';
-        const isTraeSkillsString = typeof traeSkills === 'string';
-        const opencodeAgents = config.opencode?.agents;
-        const opencodeSkills = config.opencode?.skills;
-        const opencodeCommands = config.opencode?.commands;
-        const opencodeTools = config.opencode?.tools;
-        const isOpencodeAgentsString = typeof opencodeAgents === 'string';
-        const isOpencodeSkillsString = typeof opencodeSkills === 'string';
-        const isOpencodeCommandsString = typeof opencodeCommands === 'string';
-        const isOpencodeToolsString = typeof opencodeTools === 'string';
-        const codexRules = config.codex?.rules;
-        const codexSkills = config.codex?.skills;
-        const isCodexRulesString = typeof codexRules === 'string';
-        const isCodexSkillsString = typeof codexSkills === 'string';
-        const geminiCommands = config.gemini?.commands;
-        const geminiSkills = config.gemini?.skills;
-        const geminiAgents = config.gemini?.agents;
-        const isGeminiCommandsString = typeof geminiCommands === 'string';
-        const isGeminiSkillsString = typeof geminiSkills === 'string';
-        const isGeminiAgentsString = typeof geminiAgents === 'string';
-        const warpSkills = config.warp?.skills;
-        const isWarpSkillsString = typeof warpSkills === 'string';
-        const windsurfRules = config.windsurf?.rules;
-        const windsurfSkills = config.windsurf?.skills;
-        const isWindsurfRulesString = typeof windsurfRules === 'string';
-        const isWindsurfSkillsString = typeof windsurfSkills === 'string';
-        const clineRules = config.cline?.rules;
-        const clineSkills = config.cline?.skills;
-        const isClineRulesString = typeof clineRules === 'string';
-        const isClineSkillsString = typeof clineSkills === 'string';
-        const agentsMdFile = config.agentsMd?.file;
-        const isAgentsMdFileString = typeof agentsMdFile === 'string';
-
-        // If any of these are strings, treat as legacy rules repo config
-        if (isCursorRulesString || isCursorCommandsString || isCursorSkillsString || isCursorAgentsString || isCopilotInstructionsString || isCopilotSkillsString || isCopilotPromptsString || isCopilotAgentsString || isClaudeSkillsString || isClaudeAgentsString || isClaudeRulesString || isClaudeMdString || isTraeRulesString || isTraeSkillsString || isOpencodeAgentsString || isOpencodeSkillsString || isOpencodeCommandsString || isOpencodeToolsString || isCodexRulesString || isCodexSkillsString || isGeminiCommandsString || isGeminiSkillsString || isGeminiAgentsString || isWarpSkillsString || isWindsurfRulesString || isWindsurfSkillsString || isClineRulesString || isClineSkillsString || isAgentsMdFileString) {
-            return {
-                rootPath: config.rootPath,
-                cursor: {
-                    rules: isCursorRulesString ? cursorRules : undefined,
-                    commands: isCursorCommandsString ? cursorCommands : undefined,
-                    skills: isCursorSkillsString ? cursorSkills : undefined,
-                    agents: isCursorAgentsString ? cursorAgents : undefined
-                },
-                copilot: {
-                    instructions: isCopilotInstructionsString ? copilotInstructions : undefined,
-                    skills: isCopilotSkillsString ? copilotSkills : undefined,
-                    prompts: isCopilotPromptsString ? copilotPrompts : undefined,
-                    agents: isCopilotAgentsString ? copilotAgents : undefined
-                },
-                claude: {
-                    skills: isClaudeSkillsString ? claudeSkills : undefined,
-                    agents: isClaudeAgentsString ? claudeAgents : undefined,
-                    rules: isClaudeRulesString ? claudeRules : undefined,
-                    md: isClaudeMdString ? claudeMd : undefined
-                },
-                trae: {
-                    rules: isTraeRulesString ? traeRules : undefined,
-                    skills: isTraeSkillsString ? traeSkills : undefined
-                },
-                opencode: {
-                    agents: isOpencodeAgentsString ? opencodeAgents : undefined,
-                    skills: isOpencodeSkillsString ? opencodeSkills : undefined,
-                    commands: isOpencodeCommandsString ? opencodeCommands : undefined,
-                    tools: isOpencodeToolsString ? opencodeTools : undefined
-                },
-                codex: {
-                    rules: isCodexRulesString ? codexRules : undefined,
-                    skills: isCodexSkillsString ? codexSkills : undefined
-                },
-                gemini: {
-                    commands: isGeminiCommandsString ? geminiCommands : undefined,
-                    skills: isGeminiSkillsString ? geminiSkills : undefined,
-                    agents: isGeminiAgentsString ? geminiAgents : undefined
-                },
-                warp: {
-                    skills: isWarpSkillsString ? warpSkills : undefined
-                },
-                windsurf: {
-                    rules: isWindsurfRulesString ? windsurfRules : undefined,
-                    skills: isWindsurfSkillsString ? windsurfSkills : undefined
-                },
-                cline: {
-                    rules: isClineRulesString ? clineRules : undefined,
-                    skills: isClineSkillsString ? clineSkills : undefined
-                },
-                agentsMd: {
-                    file: isAgentsMdFileString ? agentsMdFile : undefined
-                }
-            };
+        // Legacy format: <tool>.<subtype> values are strings (source dirs).
+        const { hasAny, config: legacyRepoConfig } = buildRepoSourceFromNestedStrings(config, config.rootPath);
+        if (hasAny) {
+            return legacyRepoConfig;
         }
 
         // Not a rules repo config (no sourceDir, no string values)
@@ -524,111 +460,18 @@ export function getSourceDir(
     globalOverride?: SourceDirConfig
 ): string {
     const rootPath = repoConfig.rootPath || '';
-    let toolDir: string | undefined;
 
     // 1. Check globalOverride first (CLI or global config - highest priority)
     if (globalOverride) {
-        const toolConfig = (globalOverride as any)[tool];
-        if (toolConfig && toolConfig[subtype]) {
+        const overrideDir = readNestedStringValue(globalOverride, tool, subtype);
+        if (overrideDir !== undefined) {
             // globalOverride paths are relative to repo root, so no rootPath prefix
-            return toolConfig[subtype];
+            return overrideDir;
         }
     }
 
     // 2. Check repoConfig (from repo's ai-rules-sync.json)
-    if (tool === 'cursor') {
-        if (subtype === 'rules') {
-            toolDir = repoConfig.cursor?.rules;
-        } else if (subtype === 'commands') {
-            toolDir = repoConfig.cursor?.commands;
-        } else if (subtype === 'skills') {
-            toolDir = repoConfig.cursor?.skills;
-        } else if (subtype === 'agents') {
-            toolDir = repoConfig.cursor?.agents;
-        }
-    } else if (tool === 'copilot') {
-        if (subtype === 'instructions') {
-            toolDir = repoConfig.copilot?.instructions;
-        } else if (subtype === 'skills') {
-            toolDir = repoConfig.copilot?.skills;
-        } else if (subtype === 'prompts') {
-            toolDir = (repoConfig.copilot as any)?.prompts;
-        } else if (subtype === 'agents') {
-            toolDir = (repoConfig.copilot as any)?.agents;
-        }
-    } else if (tool === 'claude') {
-        if (subtype === 'skills') {
-            toolDir = repoConfig.claude?.skills;
-        } else if (subtype === 'agents') {
-            toolDir = repoConfig.claude?.agents;
-        } else if (subtype === 'rules') {
-            toolDir = repoConfig.claude?.rules;
-        } else if (subtype === 'md') {
-            toolDir = (repoConfig.claude as any)?.md;
-        }
-    } else if (tool === 'trae') {
-        if (subtype === 'rules') {
-            toolDir = repoConfig.trae?.rules;
-        } else if (subtype === 'skills') {
-            toolDir = repoConfig.trae?.skills;
-        }
-    } else if (tool === 'opencode') {
-        if (subtype === 'agents') {
-            toolDir = repoConfig.opencode?.agents;
-        } else if (subtype === 'skills') {
-            toolDir = repoConfig.opencode?.skills;
-        } else if (subtype === 'commands') {
-            toolDir = repoConfig.opencode?.commands;
-        } else if (subtype === 'tools') {
-            toolDir = repoConfig.opencode?.tools;
-        }
-    } else if (tool === 'codex') {
-        if (subtype === 'rules') {
-            toolDir = repoConfig.codex?.rules;
-        } else if (subtype === 'skills') {
-            toolDir = repoConfig.codex?.skills;
-        } else if (subtype === 'md') {
-            toolDir = repoConfig.codex?.md;
-        }
-    } else if (tool === 'gemini') {
-        if (subtype === 'commands') {
-            toolDir = repoConfig.gemini?.commands;
-        } else if (subtype === 'skills') {
-            toolDir = repoConfig.gemini?.skills;
-        } else if (subtype === 'agents') {
-            toolDir = repoConfig.gemini?.agents;
-        } else if (subtype === 'md') {
-            toolDir = repoConfig.gemini?.md;
-        }
-    } else if (tool === 'gemini') {
-        if (subtype === 'commands') {
-            toolDir = repoConfig.gemini?.commands;
-        } else if (subtype === 'skills') {
-            toolDir = repoConfig.gemini?.skills;
-        } else if (subtype === 'agents') {
-            toolDir = repoConfig.gemini?.agents;
-        }
-    } else if (tool === 'warp') {
-        if (subtype === 'skills') {
-            toolDir = repoConfig.warp?.skills;
-        }
-    } else if (tool === 'windsurf') {
-        if (subtype === 'rules') {
-            toolDir = repoConfig.windsurf?.rules;
-        } else if (subtype === 'skills') {
-            toolDir = repoConfig.windsurf?.skills;
-        }
-    } else if (tool === 'cline') {
-        if (subtype === 'rules') {
-            toolDir = repoConfig.cline?.rules;
-        } else if (subtype === 'skills') {
-            toolDir = repoConfig.cline?.skills;
-        }
-    } else if (tool === 'agents-md') {
-        if (subtype === 'file') {
-            toolDir = repoConfig.agentsMd?.file;
-        }
-    }
+    const toolDir = readNestedStringValue(repoConfig, tool, subtype);
 
     // 3. Apply rootPath and default
     const dir = toolDir ?? defaultDir;
