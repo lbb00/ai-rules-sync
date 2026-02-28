@@ -8,7 +8,7 @@
 
 **AI Rules Sync (AIS)** - Synchronize, manage, and share your AI agent rules across projects and teams.
 
-Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links. Supports 9 AI tools and **User Mode** for personal config files — see [Supported Tools](#supported-tools).
+Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links. Supports 11 AI tools and **User Mode** for personal config files — see [Supported Tools](#supported-tools).
 
 ---
 
@@ -98,6 +98,10 @@ ais completion install
 | Gemini CLI | Subagents | file | `.gemini/agents/` | `.md` | [Docs](https://geminicli.com/docs/core/subagents/) |
 | Warp | Rules | file | `.` (root) | `.md` | [Docs](https://docs.warp.dev/agent-platform/capabilities/rules) — same as AGENTS.md, use `ais agents-md` |
 | Warp | Skills | directory | `.agents/skills/` | - | [Docs](https://docs.warp.dev/agent-platform/capabilities/skills) |
+| Windsurf | Rules | file | `.windsurf/rules/` | `.md` | [Docs](https://docs.windsurf.com/windsurf/cascade/memories) |
+| Windsurf | Skills | directory | `.windsurf/skills/` | - | [Docs](https://docs.windsurf.com/windsurf/cascade/skills) |
+| Cline | Rules | file | `.clinerules/` | `.md`, `.txt` | [Docs](https://docs.cline.bot/customization/cline-rules) |
+| Cline | Skills | directory | `.cline/skills/` | - | [Docs](https://docs.cline.bot/customization/skills) |
 | **Universal** | **AGENTS.md** | file | `.` (root) | `.md` | [Standard](https://agents.md/) |
 
 **Modes:**
@@ -595,6 +599,40 @@ ais warp skills remove my-skill
 ais warp skills install
 ```
 
+### Windsurf
+
+```bash
+# Add rule
+ais windsurf add project-style
+
+# Add skill
+ais windsurf skills add deploy-staging
+
+# Remove
+ais windsurf remove project-style
+
+# Install all
+ais windsurf install
+```
+
+> Note: Windsurf Memories are managed inside Cascade UI/runtime. AIS syncs file-based artifacts (`.windsurf/rules` and `.windsurf/skills`).
+
+### Cline
+
+```bash
+# Add rule
+ais cline add coding
+
+# Add skill
+ais cline skills add release-checklist
+
+# Remove
+ais cline remove coding
+
+# Install all
+ais cline install
+```
+
 ---
 
 ## Advanced Features
@@ -847,6 +885,26 @@ Create `ai-rules-sync.json` in your rules repository:
       "commands": ".opencode/commands",
       "tools": ".opencode/tools"
     },
+    "codex": {
+      "rules": ".codex/rules",
+      "skills": ".agents/skills"
+    },
+    "gemini": {
+      "commands": ".gemini/commands",
+      "skills": ".gemini/skills",
+      "agents": ".gemini/agents"
+    },
+    "warp": {
+      "skills": ".agents/skills"
+    },
+    "windsurf": {
+      "rules": ".windsurf/rules",
+      "skills": ".windsurf/skills"
+    },
+    "cline": {
+      "rules": ".clinerules",
+      "skills": ".cline/skills"
+    },
     "agentsMd": {
       "file": "."
     }
@@ -923,7 +981,7 @@ ais copilot instructions add <Tab>
 }
 ```
 
-All other tools (`copilot`, `trae`, `opencode`, `codex`, `gemini`) follow the same structure — see [Supported Tools](#supported-tools) for their key names.
+All other tools (`copilot`, `trae`, `opencode`, `codex`, `gemini`, `warp`, `windsurf`, `cline`) follow the same structure — see [Supported Tools](#supported-tools) for their key names.
 
 **Format types:**
 

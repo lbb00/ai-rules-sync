@@ -8,7 +8,7 @@
 
 **AI Rules Sync (AIS)** - 跨项目和团队同步、管理和共享你的 AI 代理规则。
 
-不再复制粘贴 `.mdc` 文件。在 Git 仓库中管理规则，通过软链接同步。支持 9 款 AI 工具及 **User 模式**（管理个人配置文件）——详见[支持的工具](#支持的工具)。
+不再复制粘贴 `.mdc` 文件。在 Git 仓库中管理规则，通过软链接同步。支持 11 款 AI 工具及 **User 模式**（管理个人配置文件）——详见[支持的工具](#支持的工具)。
 
 ---
 
@@ -98,6 +98,10 @@ ais completion install
 | Gemini CLI | Subagents | file | `.gemini/agents/` | `.md` | [文档](https://geminicli.com/docs/core/subagents/) |
 | Warp | Rules | file | `.`（根目录） | `.md` | [文档](https://docs.warp.dev/agent-platform/capabilities/rules) — 与 AGENTS.md 相同，使用 `ais agents-md` |
 | Warp | Skills | directory | `.agents/skills/` | - | [文档](https://docs.warp.dev/agent-platform/capabilities/skills) |
+| Windsurf | Rules | file | `.windsurf/rules/` | `.md` | [文档](https://docs.windsurf.com/windsurf/cascade/memories) |
+| Windsurf | Skills | directory | `.windsurf/skills/` | - | [文档](https://docs.windsurf.com/windsurf/cascade/skills) |
+| Cline | Rules | file | `.clinerules/` | `.md`, `.txt` | [文档](https://docs.cline.bot/customization/cline-rules) |
+| Cline | Skills | directory | `.cline/skills/` | - | [文档](https://docs.cline.bot/customization/skills) |
 | **通用** | **AGENTS.md** | file | `.`（根目录） | `.md` | [标准](https://agents.md/) |
 
 **模式说明：**
@@ -595,6 +599,40 @@ ais warp skills remove my-skill
 ais warp skills install
 ```
 
+### Windsurf
+
+```bash
+# 添加规则
+ais windsurf add project-style
+
+# 添加技能
+ais windsurf skills add deploy-staging
+
+# 移除
+ais windsurf remove project-style
+
+# 安装全部
+ais windsurf install
+```
+
+> 说明：Windsurf Memories 由 Cascade 运行时/界面管理。AIS 仅同步可文件化内容（`.windsurf/rules` 与 `.windsurf/skills`）。
+
+### Cline
+
+```bash
+# 添加规则
+ais cline add coding
+
+# 添加技能
+ais cline skills add release-checklist
+
+# 移除
+ais cline remove coding
+
+# 安装全部
+ais cline install
+```
+
 ---
 
 ## 高级功能
@@ -847,6 +885,26 @@ ais user install
       "commands": ".opencode/commands",
       "tools": ".opencode/tools"
     },
+    "codex": {
+      "rules": ".codex/rules",
+      "skills": ".agents/skills"
+    },
+    "gemini": {
+      "commands": ".gemini/commands",
+      "skills": ".gemini/skills",
+      "agents": ".gemini/agents"
+    },
+    "warp": {
+      "skills": ".agents/skills"
+    },
+    "windsurf": {
+      "rules": ".windsurf/rules",
+      "skills": ".windsurf/skills"
+    },
+    "cline": {
+      "rules": ".clinerules",
+      "skills": ".cline/skills"
+    },
     "agentsMd": {
       "file": "."
     }
@@ -923,7 +981,7 @@ ais copilot instructions add <Tab>
 }
 ```
 
-其他工具（`copilot`、`trae`、`opencode`、`codex`、`gemini`）的结构相同，键名参见[支持的工具](#支持的工具)。
+其他工具（`copilot`、`trae`、`opencode`、`codex`、`gemini`、`warp`、`windsurf`、`cline`）的结构相同，键名参见[支持的工具](#支持的工具)。
 
 **格式类型：**
 
