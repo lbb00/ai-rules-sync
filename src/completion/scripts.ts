@@ -518,7 +518,7 @@ function buildZshScript(): string {
     '  subcmds=('
   ];
 
-  for (const cmd of TOP_LEVEL_COMMANDS) {
+  for (const cmd of expandEntriesWithAliases(TOP_LEVEL_COMMANDS)) {
     lines.push(`    '${escapeSingleQuotes(cmd.name)}:${escapeSingleQuotes(cmd.description)}'`);
   }
   lines.push('  )');
