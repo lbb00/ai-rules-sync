@@ -167,7 +167,7 @@ function registerAdapterCommands(options: RegisterCommandsOptions): void {
 ```typescript
 // All handlers work with any adapter
 async function handleAdd(adapter, ctx, name, alias?): Promise<AddResult>
-async function handleRemove(adapter, projectPath, alias): Promise<RemoveResult>
+async function handleRemove(adapter, projectPath, alias, isUser?, options?): Promise<RemoveResult>
 async function handleImport(adapter, ctx, name, options): Promise<void>
 ```
 
@@ -325,8 +325,12 @@ interface ProjectConfig {
 
 ### 1. Repository Management
 - **Use**: `ais use <url|name>` - Configure or switch the active rules repository.
-- **List**: `ais list` - Show configured repositories and the active one.
+- **List**: `ais ls` (alias: `ais list`) - Show configured repositories and the active one.
+- **Status**: `ais status` - Show repository availability and project config summary.
+- **Search**: `ais search [query]` - Search available entries in the current repository.
 - **Git Proxy**: `ais git <args...>` - Run git commands directly in the active rules repository context.
+- **Script-friendly output**: Query commands support `--json` (`list/ls`, `status`, `search`, `config repo list/ls`, `config repo show`).
+- **Safe previews**: `--dry-run` supported for destructive commands (`remove/rm`, `import`).
 
 ### 2. Cursor Rule Synchronization
 - **Syntax**: `ais cursor add <rule_name> [alias]` or `ais cursor rules add <rule_name> [alias]`
@@ -968,6 +972,26 @@ ais user install
 - Use **hybrid** mode when entries can be either files or directories (cursor-rules)
 
 ## Recent Changes
+
+### Command UX Enhancements (2026-03)
+
+- Added Linux-style aliases while keeping backward compatibility:
+  - `ais list` → `ais ls`
+  - `ais remove` → `ais rm`
+  - Adapter subcommands also support `rm` (for example `ais cursor rules rm react`).
+- Added query commands:
+  - `ais status` for repository/project snapshot output
+  - `ais search [query]` to discover available entries in the active repository
+- Added machine-readable query output with `--json`:
+  - `ais list/ls --json`
+  - `ais status --json`
+  - `ais search --json`
+  - `ais config repo list/ls --json`
+  - `ais config repo show <repo> --json`
+- Added `--dry-run` support for destructive operations:
+  - remove/rm commands
+  - import commands
+- Updated shell completion metadata to include aliases and new query commands across bash/zsh/fish.
 
 ### Windsurf & Cline Support (2026-02)
 

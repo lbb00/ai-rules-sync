@@ -21,6 +21,7 @@ Stop copying `.mdc` files around. Manage your rules in Git repositories and sync
 - [Supported Tools](#supported-tools)
 - [Quick Start](#quick-start)
 - [Core Concepts](#core-concepts)
+- [Recommended Command Style](#recommended-command-style)
 - [Basic Usage](#basic-usage)
 - [Tool-Specific Guides](#tool-specific-guides)
 - [Advanced Features](#advanced-features)
@@ -213,7 +214,9 @@ my-rules-repo/
 # Set current repository
 ais use https://github.com/your-org/rules-repo.git
 
-# List all repositories
+# List all repositories (Linux-style alias)
+ais ls
+# Alias kept for compatibility:
 ais list
 
 # Switch between repositories
@@ -260,6 +263,37 @@ Read `ai-rules-sync.json` and recreate all symlinks. Use this after cloning a pr
     }
   }
 }
+```
+
+## Recommended Command Style
+
+Use Linux-style commands as the default workflow (`remove` / `list` remain fully compatible):
+
+```bash
+# Recommended
+ais ls
+ais rm old-rule
+ais cursor rules rm react
+
+# Legacy-compatible forms (still supported)
+ais list
+ais remove old-rule
+ais cursor rules remove react
+
+# Query commands
+ais status
+ais search react
+
+# Script/CI JSON output
+ais ls --json
+ais status --json
+ais search react --json
+ais config repo ls --json
+ais config repo show company-rules --json
+
+# Safe preview before destructive operations
+ais cursor rules rm react --dry-run
+ais cursor rules import my-rule --dry-run
 ```
 
 ---
@@ -360,11 +394,11 @@ ais cursor rules import my-rule --force
 
 ```bash
 # Remove a rule (deletes symlink and config entry)
-ais cursor remove react
+ais cursor rm react
 
 # Remove from specific tool
-ais cursor commands remove deploy
-ais cursor skills remove code-review
+ais cursor commands rm deploy
+ais cursor skills rm code-review
 ```
 
 ### Install from Configuration
@@ -407,7 +441,7 @@ ais cursor add readme.md
 ais cursor add my-rule-dir
 
 # Remove
-ais cursor remove react
+ais cursor rm react
 ```
 
 #### Commands
@@ -417,7 +451,7 @@ ais cursor remove react
 ais cursor commands add deploy-docs
 
 # Remove command
-ais cursor commands remove deploy-docs
+ais cursor commands rm deploy-docs
 ```
 
 #### Skills
@@ -427,7 +461,7 @@ ais cursor commands remove deploy-docs
 ais cursor skills add code-review
 
 # Remove skill
-ais cursor skills remove code-review
+ais cursor skills rm code-review
 ```
 
 #### Subagents
@@ -437,7 +471,7 @@ ais cursor skills remove code-review
 ais cursor agents add code-analyzer
 
 # Remove subagent
-ais cursor agents remove code-analyzer
+ais cursor agents rm code-analyzer
 ```
 
 ### GitHub Copilot
@@ -460,10 +494,10 @@ ais copilot skills add web-scraping
 ais copilot agents add code-reviewer
 
 # Remove
-ais copilot instructions remove coding-style
-ais copilot prompts remove generate-tests
-ais copilot skills remove web-scraping
-ais copilot agents remove code-reviewer
+ais copilot instructions rm coding-style
+ais copilot prompts rm generate-tests
+ais copilot skills rm web-scraping
+ais copilot agents rm code-reviewer
 ```
 
 ### Claude Code
@@ -486,10 +520,10 @@ ais claude md add CLAUDE                  # → .claude/CLAUDE.md (project)
 ais claude install
 
 # Remove
-ais claude rules remove general
-ais claude skills remove code-review
-ais claude agents remove debugger
-ais claude md remove CLAUDE --user
+ais claude rules rm general
+ais claude skills rm code-review
+ais claude agents rm debugger
+ais claude md rm CLAUDE --user
 ```
 
 ### Trae
@@ -502,8 +536,8 @@ ais trae rules add project-rules
 ais trae skills add adapter-builder
 
 # Remove
-ais trae rules remove project-rules
-ais trae skills remove adapter-builder
+ais trae rules rm project-rules
+ais trae skills rm adapter-builder
 ```
 
 ### OpenCode
@@ -522,7 +556,7 @@ ais opencode commands add build-optimizer
 ais opencode tools add project-analyzer
 
 # Remove
-ais opencode agents remove code-reviewer
+ais opencode agents rm code-reviewer
 ```
 
 ### Codex
@@ -545,7 +579,7 @@ ais codex rules import my-sandbox-rules
 ais codex skills import my-helper-skill
 
 # Remove
-ais codex rules remove default
+ais codex rules rm default
 ```
 
 **Note:** Codex skills use `.agents/skills/` (not `.codex/skills/`) per OpenAI documentation.
@@ -597,7 +631,7 @@ ais agents-md add frontend fe-agents
 ais agents-md add backend be-agents
 
 # Remove
-ais agents-md remove fe-agents
+ais agents-md rm fe-agents
 ```
 
 ### Warp
@@ -614,14 +648,14 @@ ais agents-md add .
 ais agents-md add src
 
 # Remove
-ais agents-md remove .
+ais agents-md rm .
 ```
 
 #### Skills
 
 ```bash
 ais warp skills add my-skill
-ais warp skills remove my-skill
+ais warp skills rm my-skill
 ais warp skills install
 ```
 
@@ -635,7 +669,7 @@ ais windsurf add project-style
 ais windsurf skills add deploy-staging
 
 # Remove
-ais windsurf remove project-style
+ais windsurf rm project-style
 
 # Install all
 ais windsurf install
@@ -653,7 +687,7 @@ ais cline add coding
 ais cline skills add release-checklist
 
 # Remove
-ais cline remove coding
+ais cline rm coding
 
 # Install all
 ais cline install
@@ -680,7 +714,7 @@ ais cursor add my-utils -t personal-rules
 
 **View current repository:**
 ```bash
-ais list
+ais ls
 # * company-rules (current)
 #   personal-rules
 #   community-rules
@@ -1130,7 +1164,7 @@ ais cursor install
 
 ```bash
 # List repositories
-ais list
+ais ls
 
 # Set repository
 ais use <repo-name-or-url>

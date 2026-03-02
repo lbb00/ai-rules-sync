@@ -69,13 +69,15 @@ export function registerAdapterCommands(options: RegisterCommandsOptions): void 
   // Remove command
   parentCommand
     .command('remove <alias>')
+    .alias('rm')
     .description(`Remove a ${adapter.tool} ${entityName} from project`)
     .option('-u, --user', 'Remove from user config')
-    .action(async (alias: string, cmdOptions: { user?: boolean }) => {
+    .option('--dry-run', 'Preview changes without applying')
+    .action(async (alias: string, cmdOptions: { user?: boolean; dryRun?: boolean }) => {
       try {
         const isUser = cmdOptions.user || false;
         const projectPath = isUser ? os.homedir() : process.cwd();
-        await handleRemove(adapter, projectPath, alias, isUser);
+        await handleRemove(adapter, projectPath, alias, isUser, { dryRun: cmdOptions.dryRun });
       } catch (error: any) {
         console.error(chalk.red(`Error removing ${adapter.tool} ${entityName}:`), error.message);
         process.exit(1);
@@ -174,7 +176,8 @@ export function registerAdapterCommands(options: RegisterCommandsOptions): void 
     .option('-m, --message <message>', 'Custom git commit message')
     .option('-f, --force', 'Overwrite if entry already exists in repository')
     .option('-p, --push', 'Push to remote repository after commit')
-    .action(async (name: string, cmdOptions: ImportCommandOptions & { local?: boolean }) => {
+    .option('--dry-run', 'Preview changes without applying')
+    .action(async (name: string, cmdOptions: ImportCommandOptions & { local?: boolean; dryRun?: boolean }) => {
       try {
         const repo = await getTargetRepo(programOpts());
         await handleImport(adapter, {

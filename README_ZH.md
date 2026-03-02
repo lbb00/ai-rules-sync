@@ -21,6 +21,7 @@
 - [支持的工具](#支持的工具)
 - [快速开始](#快速开始)
 - [核心概念](#核心概念)
+- [推荐命令风格](#推荐命令风格)
 - [基础使用](#基础使用)
 - [各工具使用指南](#各工具使用指南)
 - [高级功能](#高级功能)
@@ -213,7 +214,9 @@ my-rules-repo/
 # 设置当前仓库
 ais use https://github.com/your-org/rules-repo.git
 
-# 列出所有仓库
+# 列出所有仓库（Linux 风格别名）
+ais ls
+# 兼容保留：
 ais list
 
 # 在仓库之间切换
@@ -260,6 +263,37 @@ ais use personal-rules
     }
   }
 }
+```
+
+## 推荐命令风格
+
+日常使用请优先采用 Linux 风格命令（`remove` / `list` 仍完整兼容）：
+
+```bash
+# 推荐写法
+ais ls
+ais rm old-rule
+ais cursor rules rm react
+
+# 兼容写法（仍可用）
+ais list
+ais remove old-rule
+ais cursor rules remove react
+
+# 查询命令
+ais status
+ais search react
+
+# 脚本/CI 的 JSON 输出
+ais ls --json
+ais status --json
+ais search react --json
+ais config repo ls --json
+ais config repo show company-rules --json
+
+# 破坏性操作前先预览
+ais cursor rules rm react --dry-run
+ais cursor rules import my-rule --dry-run
 ```
 
 ---
@@ -360,11 +394,11 @@ ais cursor rules import my-rule --force
 
 ```bash
 # 移除规则（删除软链接和配置条目）
-ais cursor remove react
+ais cursor rm react
 
 # 从特定工具移除
-ais cursor commands remove deploy
-ais cursor skills remove code-review
+ais cursor commands rm deploy
+ais cursor skills rm code-review
 ```
 
 ### 从配置安装
@@ -407,7 +441,7 @@ ais cursor add readme.md
 ais cursor add my-rule-dir
 
 # 移除
-ais cursor remove react
+ais cursor rm react
 ```
 
 #### 命令
@@ -417,7 +451,7 @@ ais cursor remove react
 ais cursor commands add deploy-docs
 
 # 移除命令
-ais cursor commands remove deploy-docs
+ais cursor commands rm deploy-docs
 ```
 
 #### 技能
@@ -427,7 +461,7 @@ ais cursor commands remove deploy-docs
 ais cursor skills add code-review
 
 # 移除技能
-ais cursor skills remove code-review
+ais cursor skills rm code-review
 ```
 
 #### Subagents
@@ -437,7 +471,7 @@ ais cursor skills remove code-review
 ais cursor agents add code-analyzer
 
 # 移除 subagent
-ais cursor agents remove code-analyzer
+ais cursor agents rm code-analyzer
 ```
 
 ### GitHub Copilot
@@ -460,10 +494,10 @@ ais copilot skills add web-scraping
 ais copilot agents add code-reviewer
 
 # 移除
-ais copilot instructions remove coding-style
-ais copilot prompts remove generate-tests
-ais copilot skills remove web-scraping
-ais copilot agents remove code-reviewer
+ais copilot instructions rm coding-style
+ais copilot prompts rm generate-tests
+ais copilot skills rm web-scraping
+ais copilot agents rm code-reviewer
 ```
 
 ### Claude Code
@@ -486,10 +520,10 @@ ais claude md add CLAUDE                  # → .claude/CLAUDE.md（项目级）
 ais claude install
 
 # 移除
-ais claude rules remove general
-ais claude skills remove code-review
-ais claude agents remove debugger
-ais claude md remove CLAUDE --user
+ais claude rules rm general
+ais claude skills rm code-review
+ais claude agents rm debugger
+ais claude md rm CLAUDE --user
 ```
 
 ### Trae
@@ -502,8 +536,8 @@ ais trae rules add project-rules
 ais trae skills add adapter-builder
 
 # 移除
-ais trae rules remove project-rules
-ais trae skills remove adapter-builder
+ais trae rules rm project-rules
+ais trae skills rm adapter-builder
 ```
 
 ### OpenCode
@@ -522,7 +556,7 @@ ais opencode commands add build-optimizer
 ais opencode tools add project-analyzer
 
 # 移除
-ais opencode agents remove code-reviewer
+ais opencode agents rm code-reviewer
 ```
 
 ### Codex
@@ -545,7 +579,7 @@ ais codex rules import my-sandbox-rules
 ais codex skills import my-helper-skill
 
 # 移除
-ais codex rules remove default
+ais codex rules rm default
 ```
 
 **注意：** Codex 技能使用 `.agents/skills/` 目录（而非 `.codex/skills/`），这是按照 OpenAI 文档的规定。
@@ -597,7 +631,7 @@ ais agents-md add frontend fe-agents
 ais agents-md add backend be-agents
 
 # 移除
-ais agents-md remove fe-agents
+ais agents-md rm fe-agents
 ```
 
 ### Warp
@@ -614,14 +648,14 @@ ais agents-md add .
 ais agents-md add src
 
 # 移除
-ais agents-md remove .
+ais agents-md rm .
 ```
 
 #### 技能（Skills）
 
 ```bash
 ais warp skills add my-skill
-ais warp skills remove my-skill
+ais warp skills rm my-skill
 ais warp skills install
 ```
 
@@ -635,7 +669,7 @@ ais windsurf add project-style
 ais windsurf skills add deploy-staging
 
 # 移除
-ais windsurf remove project-style
+ais windsurf rm project-style
 
 # 安装全部
 ais windsurf install
@@ -653,7 +687,7 @@ ais cline add coding
 ais cline skills add release-checklist
 
 # 移除
-ais cline remove coding
+ais cline rm coding
 
 # 安装全部
 ais cline install
@@ -680,7 +714,7 @@ ais cursor add my-utils -t personal-rules
 
 **查看当前仓库：**
 ```bash
-ais list
+ais ls
 # * company-rules (current)
 #   personal-rules
 #   community-rules
@@ -1130,7 +1164,7 @@ ais cursor install
 
 ```bash
 # 列出仓库
-ais list
+ais ls
 
 # 设置仓库
 ais use <repo-name-or-url>

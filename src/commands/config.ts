@@ -9,6 +9,10 @@ import chalk from 'chalk';
 import { getConfig, setConfig, getUserConfigPath } from '../config.js';
 import { SourceDirConfig } from '../project-config.js';
 
+export interface QueryOutputOptions {
+    json?: boolean;
+}
+
 /**
  * Set sourceDir for a repository
  * @param repoName - Repository name
@@ -84,12 +88,22 @@ export async function clearRepoSourceDir(
  * Show repository configuration
  * @param repoName - Repository name
  */
-export async function showRepoConfig(repoName: string): Promise<void> {
+export async function showRepoConfig(repoName: string, options?: QueryOutputOptions): Promise<void> {
     const config = await getConfig();
     const repo = config.repos[repoName];
 
     if (!repo) {
         throw new Error(`Repository "${repoName}" not found`);
+    }
+
+    if (options?.json) {
+        console.log(JSON.stringify({
+            name: repoName,
+            url: repo.url,
+            path: repo.path,
+            sourceDir: repo.sourceDir
+        }, null, 2));
+        return;
     }
 
     console.log(chalk.bold(`\nRepository: ${repoName}`));
@@ -100,10 +114,28 @@ export async function showRepoConfig(repoName: string): Promise<void> {
 /**
  * List all repositories
  */
-export async function listRepos(): Promise<void> {
+export async function listRepos(options?: QueryOutputOptions): Promise<void> {
     const config = await getConfig();
     const repos = config.repos || {};
     const names = Object.keys(repos);
+
+    if (options?.json) {
+        const repositories = names.map(name => {
+            const repo = repos[name];
+            return {
+                name,
+                url: repo.url,
+                path: repo.path,
+                sourceDir: repo.sourceDir,
+                isCurrent: name === config.currentRepo
+            };
+        });
+        console.log(JSON.stringify({
+            currentRepo: config.currentRepo || null,
+            repositories
+        }, null, 2));
+        return;
+    }
 
     if (names.length === 0) {
         console.log(chalk.yellow('No repositories configured.'));

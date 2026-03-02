@@ -23,6 +23,23 @@ describe('completion scripts metadata generation', () => {
     expect(fishScript).toContain('ais _complete cline-skills');
   });
 
+  it('should include linux-style aliases and new query commands', () => {
+    expect(bashScript).toContain('list ls');
+    expect(bashScript).toContain('remove rm');
+    expect(bashScript).toContain('status');
+    expect(bashScript).toContain('search');
+
+    expect(zshScript).toContain("'ls:Alias for list'");
+    expect(zshScript).toContain("'rm:Alias for remove'");
+    expect(zshScript).toContain("'status:Show repository and config status'");
+    expect(zshScript).toContain("'search:Search entries in repository'");
+
+    expect(fishScript).toContain('-a "ls" -d "Alias for list"');
+    expect(fishScript).toContain('-a "rm" -d "Alias for remove"');
+    expect(fishScript).toContain('-a "status" -d "Show repository and config status"');
+    expect(fishScript).toContain('-a "search" -d "Search entries in repository"');
+  });
+
   it('should return trimmed completion scripts for each shell', () => {
     expect(getCompletionScript('bash')).toBe(bashScript.trim());
     expect(getCompletionScript('zsh')).toBe(zshScript.trim());

@@ -17,6 +17,11 @@ interface ToolCompletionSpec {
   nestedAddCompletionTypes?: Record<string, string>;
 }
 
+const COMMAND_ALIASES: Record<string, string[]> = {
+  list: ['ls'],
+  remove: ['rm']
+};
+
 const TOOL_SPECS: ToolCompletionSpec[] = [
   {
     tool: 'cursor',
@@ -384,7 +389,12 @@ const EXTRA_TOP_LEVEL_COMMANDS: CompletionEntry[] = [
   { name: 'add', description: 'Add a rule (smart dispatch)' },
   { name: 'remove', description: 'Remove a rule (smart dispatch)' },
   { name: 'install', description: 'Install all rules (smart dispatch)' },
+  { name: 'add-all', description: 'Install all entries from repository' },
   { name: 'import', description: 'Import entry to rules repository' },
+  { name: 'status', description: 'Show repository and config status' },
+  { name: 'search', description: 'Search entries in repository' },
+  { name: 'config', description: 'Manage repository configuration' },
+  { name: 'user', description: 'Manage user-level AI config entries' },
   { name: 'completion', description: 'Output shell completion script' }
 ];
 
@@ -397,8 +407,23 @@ function toVarName(name: string): string {
   return name.replace(/-/g, '_');
 }
 
+function expandEntriesWithAliases(entries: CompletionEntry[]): CompletionEntry[] {
+  const expanded: CompletionEntry[] = [];
+  for (const entry of entries) {
+    expanded.push(entry);
+    const aliases = COMMAND_ALIASES[entry.name] || [];
+    for (const alias of aliases) {
+      expanded.push({
+        name: alias,
+        description: `Alias for ${entry.name}`
+      });
+    }
+  }
+  return expanded;
+}
+
 function quotedNames(entries: CompletionEntry[]): string {
-  return entries.map(entry => entry.name).join(' ');
+  return expandEntriesWithAliases(entries).map(entry => entry.name).join(' ');
 }
 
 function escapeSingleQuotes(value: string): string {
@@ -406,7 +431,9 @@ function escapeSingleQuotes(value: string): string {
 }
 
 function buildZshDescribeItems(entries: CompletionEntry[]): string {
-  return entries.map(entry => `'${escapeSingleQuotes(entry.name)}:${escapeSingleQuotes(entry.description)}'`).join(' ');
+  return expandEntriesWithAliases(entries)
+    .map(entry => `'${escapeSingleQuotes(entry.name)}:${escapeSingleQuotes(entry.description)}'`)
+    .join(' ');
 }
 
 function buildZshCompleteTypeBlock(completeType: string, indent: string): string[] {
@@ -491,7 +518,7 @@ function buildZshScript(): string {
     '  subcmds=('
   ];
 
-  for (const cmd of TOP_LEVEL_COMMANDS) {
+  for (const cmd of expandEntriesWithAliases(TOP_LEVEL_COMMANDS)) {
     lines.push(`    '${escapeSingleQuotes(cmd.name)}:${escapeSingleQuotes(cmd.description)}'`);
   }
   lines.push('  )');
@@ -624,14 +651,18 @@ function buildFishScript(): string {
   ];
 
   for (const cmd of TOP_LEVEL_COMMANDS) {
-    lines.push(`complete -c ais -n "__fish_use_subcommand" -a "${cmd.name}" -d "${cmd.description}"`);
+    const entries = expandEntriesWithAliases([cmd]);
+    for (const entry of entries) {
+      lines.push(`complete -c ais -n "__fish_use_subcommand" -a "${entry.name}" -d "${entry.description}"`);
+    }
   }
   lines.push('');
 
   for (const spec of TOOL_SPECS) {
-    const allRoot = quotedNames(spec.rootSubcommands);
+    const rootEntries = expandEntriesWithAliases(spec.rootSubcommands);
+    const allRoot = rootEntries.map(entry => entry.name).join(' ');
     lines.push(`# ${spec.tool} subcommands`);
-    for (const subcommand of spec.rootSubcommands) {
+    for (const subcommand of rootEntries) {
       lines.push(`complete -c ais -n "__fish_seen_subcommand_from ${spec.tool}; and not __fish_seen_subcommand_from ${allRoot}" -a "${subcommand.name}" -d "${subcommand.description}"`);
     }
     lines.push('');
@@ -639,9 +670,10 @@ function buildFishScript(): string {
 
   for (const spec of TOOL_SPECS) {
     for (const [nested, nestedEntries] of Object.entries(spec.nestedSubcommands)) {
-      const nestedNames = quotedNames(nestedEntries);
+      const expandedNestedEntries = expandEntriesWithAliases(nestedEntries);
+      const nestedNames = expandedNestedEntries.map(entry => entry.name).join(' ');
       lines.push(`# ${spec.tool} ${nested} subcommands`);
-      for (const subcommand of nestedEntries) {
+      for (const subcommand of expandedNestedEntries) {
         lines.push(`complete -c ais -n "__fish_seen_subcommand_from ${spec.tool}; and __fish_seen_subcommand_from ${nested}; and not __fish_seen_subcommand_from ${nestedNames}" -a "${subcommand.name}" -d "${subcommand.description}"`);
       }
       lines.push('');
