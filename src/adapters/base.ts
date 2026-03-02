@@ -1,8 +1,14 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { SyncAdapter, SyncOptions, LinkResult, ResolvedSource } from './types.js';
-import { linkEntry as engineLinkEntry, unlinkEntry as engineUnlinkEntry } from '../sync-engine.js';
+import { unlinkEntry as engineUnlinkEntry } from '../sync-engine.js';
 import { addDependencyGeneric, removeDependencyGeneric } from '../project-config.js';
+import { dotfile } from '../dotany/index.js';
+import { GitRepoSource } from '../plugin/git-repo-source.js';
+import { AiRulesSyncManifest } from '../plugin/ai-rules-sync-manifest.js';
+import type { DotfileManager } from '../dotany/manager.js';
+import { RepoConfig } from '../config.js';
+import type { RepoResolverFn } from '../dotany/types.js';
 
 /**
  * Configuration for creating a base adapter
@@ -23,8 +29,8 @@ export interface AdapterConfig {
 }
 
 /**
- * Create a base adapter with common functionality
- * This factory function handles add/remove/link/unlink operations generically
+ * Create a base adapter with common functionality.
+ * Delegates link/unlink to the dotfile abstraction layer.
  */
 export function createBaseAdapter(config: AdapterConfig): SyncAdapter {
     return {
@@ -41,6 +47,17 @@ export function createBaseAdapter(config: AdapterConfig): SyncAdapter {
         resolveSource: config.resolveSource,
         resolveTargetName: config.resolveTargetName,
 
+        forProject(projectPath: string, repoOrResolver: RepoConfig | RepoResolverFn | null, isLocal?: boolean): DotfileManager {
+            return dotfile.create({
+                name: config.name,
+                source: new GitRepoSource(repoOrResolver, config),
+                targetDir: config.targetDir,
+                targetRoot: projectPath,
+                manifest: new AiRulesSyncManifest(projectPath, config.configPath, isLocal),
+                resolveTargetName: config.resolveTargetName,
+            });
+        },
+
         async addDependency(projectPath, name, repoUrl, alias, isLocal = false, targetDir) {
             return addDependencyGeneric(projectPath, config.configPath, name, repoUrl, alias, isLocal, targetDir);
         },
@@ -50,12 +67,29 @@ export function createBaseAdapter(config: AdapterConfig): SyncAdapter {
         },
 
         async link(options: SyncOptions): Promise<LinkResult> {
-            return engineLinkEntry(this, options);
+            // Delegate to DotfileManager.add() (symlink only — manifest is written separately by addDependency)
+            // In user/global mode (skipIgnore=true), use userTargetDir if defined
+            const effectiveTargetDir = options.skipIgnore && config.userTargetDir
+                ? config.userTargetDir
+                : config.targetDir;
+            const manager = dotfile.create({
+                name: config.name,
+                source: new GitRepoSource(options.repo, config),
+                targetDir: effectiveTargetDir,
+                targetRoot: options.projectPath,
+                resolveTargetName: config.resolveTargetName,
+                // No manifest here: addDependency handles manifest writes separately
+            });
+            return manager.add(options.name, {
+                alias: options.alias,
+                targetDir: options.targetDir,
+                repoUrl: options.repo.url,
+            });
         },
 
         async unlink(projectPath: string, alias: string): Promise<void> {
             return engineUnlinkEntry(this, projectPath, alias);
-        }
+        },
     };
 }
 

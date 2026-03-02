@@ -6,8 +6,8 @@ import path from 'path';
 import chalk from 'chalk';
 import { getConfig, setConfig, getReposBaseDir, getCurrentRepo, RepoConfig } from '../config.js';
 import { cloneOrUpdateRepo } from '../git.js';
-import { getCombinedProjectConfig, ProjectConfig } from '../project-config.js';
-import { stripCopilotSuffix } from '../adapters/index.js';
+import { getCombinedProjectConfig } from '../project-config.js';
+import { stripCopilotSuffix, adapterRegistry } from '../adapters/index.js';
 
 /**
  * Get the target repository based on CLI options
@@ -70,68 +70,36 @@ export async function getTargetRepo(options: { target?: string }): Promise<RepoC
   return currentRepo;
 }
 
-export type DefaultMode =
-  | 'cursor'
-  | 'copilot'
-  | 'claude'
-  | 'trae'
-  | 'opencode'
-  | 'codex'
-  | 'gemini'
-  | 'warp'
-  | 'windsurf'
-  | 'cline'
-  | 'agents-md'
-  | 'ambiguous'
-  | 'none';
+/**
+ * DefaultMode is now a string to support dynamically registered tools.
+ * Well-known values: tool names (e.g. 'cursor', 'copilot'), 'agents-md', 'ambiguous', 'none'.
+ */
+export type DefaultMode = string;
 
 /**
- * Infer the default mode based on project configuration
+ * Infer the default mode based on project configuration.
+ * Registry-driven: counts entries for each registered adapter's tool,
+ * no hardcoded tool list required.
  */
 export async function inferDefaultMode(projectPath: string): Promise<DefaultMode> {
   const cfg = await getCombinedProjectConfig(projectPath);
-  const counts: Record<Exclude<DefaultMode, 'ambiguous' | 'none'>, number> = {
-    cursor:
-      Object.keys(cfg.cursor?.rules || {}).length +
-      Object.keys(cfg.cursor?.commands || {}).length +
-      Object.keys(cfg.cursor?.skills || {}).length +
-      Object.keys(cfg.cursor?.agents || {}).length,
-    copilot:
-      Object.keys(cfg.copilot?.instructions || {}).length +
-      Object.keys(cfg.copilot?.skills || {}).length +
-      Object.keys(cfg.copilot?.prompts || {}).length +
-      Object.keys(cfg.copilot?.agents || {}).length,
-    claude:
-      Object.keys(cfg.claude?.skills || {}).length +
-      Object.keys(cfg.claude?.agents || {}).length +
-      Object.keys(cfg.claude?.rules || {}).length +
-      Object.keys(cfg.claude?.md || {}).length,
-    trae:
-      Object.keys(cfg.trae?.rules || {}).length +
-      Object.keys(cfg.trae?.skills || {}).length,
-    opencode:
-      Object.keys(cfg.opencode?.agents || {}).length +
-      Object.keys(cfg.opencode?.skills || {}).length +
-      Object.keys(cfg.opencode?.commands || {}).length +
-      Object.keys(cfg.opencode?.tools || {}).length,
-    codex:
-      Object.keys(cfg.codex?.rules || {}).length +
-      Object.keys(cfg.codex?.skills || {}).length,
-    gemini:
-      Object.keys(cfg.gemini?.commands || {}).length +
-      Object.keys(cfg.gemini?.skills || {}).length +
-      Object.keys(cfg.gemini?.agents || {}).length,
-    warp: Object.keys(cfg.warp?.skills || {}).length,
-    windsurf:
-      Object.keys(cfg.windsurf?.rules || {}).length +
-      Object.keys(cfg.windsurf?.skills || {}).length,
-    cline:
-      Object.keys(cfg.cline?.rules || {}).length +
-      Object.keys(cfg.cline?.skills || {}).length,
-    'agents-md': Object.keys(cfg.agentsMd || {}).length
-  };
 
-  const activeModes = (Object.entries(counts) as [Exclude<DefaultMode, 'ambiguous' | 'none'>, number][])
+  // Count total entries per tool using the adapter registry
+  const toolCounts: Record<string, number> = {};
+
+  for (const adapter of adapterRegistry.all()) {
+    const [topLevel, subLevel] = adapter.configPath;
+    // agentsMd is flat (no subLevel nesting)
+    const count = topLevel === 'agentsMd'
+      ? Object.keys((cfg as any).agentsMd || {}).length
+      : Object.keys((cfg as any)[topLevel]?.[subLevel] || {}).length;
+
+    // Map adapter tool name to CLI mode name (agentsMd → agents-md)
+    const modeName = topLevel === 'agentsMd' ? 'agents-md' : topLevel;
+    toolCounts[modeName] = (toolCounts[modeName] || 0) + count;
+  }
+
+  const activeModes = Object.entries(toolCounts)
     .filter(([, count]) => count > 0)
     .map(([mode]) => mode);
 
@@ -141,10 +109,17 @@ export async function inferDefaultMode(projectPath: string): Promise<DefaultMode
 }
 
 /**
- * Throw an error requiring explicit mode specification
+ * Throw an error requiring explicit mode specification.
+ * Tool list generated dynamically from the adapter registry.
  */
 export function requireExplicitMode(mode: DefaultMode): never {
-  const explicitTools = '"ais cursor ...", "ais copilot ...", "ais claude ...", "ais trae ...", "ais opencode ...", "ais codex ...", "ais gemini ...", "ais warp ...", "ais windsurf ...", "ais cline ...", or "ais agents-md ..."';
+  // Build tool list from registry, deduplicated and mapped to CLI names
+  const tools = [...new Set(
+    adapterRegistry.all().map(a => a.tool === 'agentsMd' ? 'agents-md' : a.tool)
+  )];
+  const toolCommands = tools.map(t => `"ais ${t} ..."`).join(', ');
+  const explicitTools = toolCommands || '"ais <tool> ..."';
+
   if (mode === 'ambiguous') {
     throw new Error(`Multiple tool configs exist in this project. Please use ${explicitTools} explicitly.`);
   }

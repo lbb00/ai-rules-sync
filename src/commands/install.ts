@@ -11,6 +11,7 @@ import { getCombinedProjectConfig, getConfigSource, RuleEntry, ProjectConfig } f
 import { getConfig, setConfig, getReposBaseDir, getUserProjectConfig, getUserConfigPath, RepoConfig } from '../config.js';
 import { cloneOrUpdateRepo } from '../git.js';
 import { parseConfigEntry } from './helpers.js';
+import type { RepoResolverFn } from '../dotany/types.js';
 
 const LOCAL_CONFIG_FILENAME = 'ai-rules-sync.local.json';
 
@@ -94,12 +95,34 @@ function getEntriesFromConfig(
 }
 
 /**
- * Generic install function - works with any adapter
+ * Generic install function - works with any adapter.
+ * Uses manager.apply() when the adapter supports forProject() (dotfile API).
+ * Falls back to manual loop for adapters without forProject().
  */
 export async function installEntriesForAdapter(
     adapter: SyncAdapter,
     projectPath: string
 ): Promise<void> {
+    if (adapter.forProject) {
+        // Modern path: use manager.apply() which reads manifest and re-links all entries
+        const globalConfig = await getConfig();
+        const repos = globalConfig.repos || {};
+
+        const repoResolver: RepoResolverFn = (repoUrl: string, entryName: string) =>
+            findOrCreateRepo(repos, repoUrl, entryName);
+
+        const manager = adapter.forProject(projectPath, repoResolver);
+        const result = await manager.apply();
+
+        if (result.linked.length === 0 && result.skipped.length === 0) {
+            console.log(chalk.yellow(`No ${adapter.tool} ${adapter.subtype} found in ai-rules-sync*.json.`));
+            return;
+        }
+        console.log(chalk.green(`All ${adapter.tool} ${adapter.subtype} installed successfully.`));
+        return;
+    }
+
+    // Legacy fallback: manual loop for adapters without forProject()
     const config = await getCombinedProjectConfig(projectPath);
     const entries = getEntriesFromConfig(config, adapter);
 
@@ -110,8 +133,6 @@ export async function installEntriesForAdapter(
 
     const globalConfig = await getConfig();
     const repos = globalConfig.repos || {};
-
-    // Get local entries to determine isLocal flag
     const localEntries = await getLocalEntries(projectPath, adapter);
 
     for (const [key, value] of Object.entries(entries)) {
@@ -121,8 +142,6 @@ export async function installEntriesForAdapter(
 
         const repoConfig = await findOrCreateRepo(repos, repoUrl, entryName);
         const isLocal = Object.prototype.hasOwnProperty.call(localEntries, key);
-
-        // Extract targetDir from config entry if it exists
         const targetDir = typeof value === 'object' && value.targetDir ? value.targetDir : undefined;
 
         await adapter.link({
