@@ -4,10 +4,10 @@ import chalk from 'chalk';
 import path from 'path';
 import os from 'os';
 import fs from 'fs-extra';
-import { getConfig, setConfig, getReposBaseDir, getCurrentRepo, RepoConfig } from './config.js';
+import { getConfig, setConfig, getReposBaseDir, getCurrentRepo, getUserConfigPath, getUserProjectConfig, RepoConfig } from './config.js';
 import { cloneOrUpdateRepo, runGitCommand } from './git.js';
 import { addIgnoreEntry } from './utils.js';
-import { getCombinedProjectConfig, getRepoSourceConfig, getSourceDir } from './project-config.js';
+import { getCombinedProjectConfig, getConfigSource, getRepoSourceConfig, getSourceDir, ProjectConfig } from './project-config.js';
 import { checkAndPromptCompletion, forceInstallCompletion } from './completion.js';
 import { getCompletionScript } from './completion/scripts.js';
 import { adapterRegistry, getAdapter, findAdapterForAlias } from './adapters/index.js';
@@ -27,7 +27,7 @@ import {
 } from './commands/helpers.js';
 import { handleAdd, handleRemove, handleImport } from './commands/handlers.js';
 import { installEntriesForAdapter, installEntriesForTool, installAllUserEntries, installAllGlobalEntries } from './commands/install.js';
-import { handleAddAll } from './commands/add-all.js';
+import { discoverAllEntries, handleAddAll } from './commands/add-all.js';
 import { parseSourceDirParams } from './cli/source-dir-parser.js';
 import { setRepoSourceDir, clearRepoSourceDir, showRepoConfig, listRepos, handleUserConfigShow, handleUserConfigSet, handleUserConfigReset, handleGlobalConfigShow, handleGlobalConfigSet, handleGlobalConfigReset } from './commands/config.js';
 import { getFormattedVersion } from './commands/version.js';
@@ -46,6 +46,52 @@ const program = new Command();
  */
 function collect(value: string, previous: string[]): string[] {
   return previous ? previous.concat([value]) : [value];
+}
+
+function getAdapterEntryCount(config: ProjectConfig, adapter: SyncAdapter): number {
+  const [topLevel, subLevel] = adapter.configPath;
+  if (topLevel === 'agentsMd') {
+    return Object.keys(config.agentsMd || {}).length;
+  }
+
+  const topConfig = (config as any)[topLevel];
+  if (!topConfig || typeof topConfig !== 'object') {
+    return 0;
+  }
+
+  const section = topConfig[subLevel];
+  if (!section || typeof section !== 'object') {
+    return 0;
+  }
+
+  return Object.keys(section).length;
+}
+
+function collectToolCounts(config: ProjectConfig): { perTool: Record<string, number>; total: number } {
+  const perTool: Record<string, number> = {};
+  let total = 0;
+
+  for (const adapter of adapterRegistry.all()) {
+    const count = getAdapterEntryCount(config, adapter);
+    if (count === 0) {
+      continue;
+    }
+    perTool[adapter.tool] = (perTool[adapter.tool] || 0) + count;
+    total += count;
+  }
+
+  return { perTool, total };
+}
+
+function parseCsvOption(input?: string): string[] | undefined {
+  if (!input) {
+    return undefined;
+  }
+  const values = input
+    .split(',')
+    .map((item: string) => item.trim())
+    .filter(Boolean);
+  return values.length > 0 ? values : undefined;
 }
 
 program
@@ -115,10 +161,25 @@ program
   .command('list')
   .alias('ls')
   .description('List all cursor rules git repositories')
-  .action(async () => {
+  .option('--json', 'Output repositories as JSON')
+  .action(async (cmdOptions: { json?: boolean }) => {
     const config = await getConfig();
     const repos = config.repos || {};
     const names = Object.keys(repos);
+
+    if (cmdOptions.json) {
+      const repositories = names.map(name => ({
+        name,
+        url: repos[name].url,
+        path: repos[name].path,
+        isCurrent: name === config.currentRepo
+      }));
+      console.log(JSON.stringify({
+        currentRepo: config.currentRepo || null,
+        repositories
+      }, null, 2));
+      return;
+    }
 
     if (names.length === 0) {
       console.log(chalk.yellow('No repositories configured. Use "ais use [url]" to configure.'));
@@ -134,6 +195,204 @@ program
       if (isCurrent) {
         console.log(`    Local path: ${repo.path}`);
       }
+    }
+  });
+
+program
+  .command('status')
+  .description('Show repository and configuration status')
+  .option('-u, --user', 'Include user config status')
+  .option('--json', 'Output status as JSON')
+  .action(async (cmdOptions: { user?: boolean; json?: boolean }) => {
+    try {
+      const globalConfig = await getConfig();
+      const currentRepo = globalConfig.currentRepo ? globalConfig.repos?.[globalConfig.currentRepo] : undefined;
+      const repoExists = currentRepo ? await fs.pathExists(currentRepo.path) : false;
+
+      const projectPath = process.cwd();
+      const projectConfigSource = await getConfigSource(projectPath);
+      const projectConfig = await getCombinedProjectConfig(projectPath);
+      const projectMode = await inferDefaultMode(projectPath);
+      const projectCounts = collectToolCounts(projectConfig);
+
+      let userStatus:
+        | {
+            path: string;
+            exists: boolean;
+            totalEntries: number;
+            perTool: Record<string, number>;
+          }
+        | undefined;
+      if (cmdOptions.user) {
+        const userConfigPath = await getUserConfigPath();
+        const userConfigExists = await fs.pathExists(userConfigPath);
+        const userConfig = await getUserProjectConfig();
+        const userCounts = collectToolCounts(userConfig);
+        userStatus = {
+          path: userConfigPath,
+          exists: userConfigExists,
+          totalEntries: userCounts.total,
+          perTool: userCounts.perTool
+        };
+      }
+
+      const statusPayload = {
+        repository: currentRepo
+          ? {
+              name: currentRepo.name,
+              url: currentRepo.url,
+              path: currentRepo.path,
+              exists: repoExists
+            }
+          : null,
+        project: {
+          path: projectPath,
+          configSource: projectConfigSource,
+          inferredMode: projectMode,
+          totalEntries: projectCounts.total,
+          perTool: projectCounts.perTool
+        },
+        user: userStatus
+      };
+
+      if (cmdOptions.json) {
+        console.log(JSON.stringify(statusPayload, null, 2));
+        return;
+      }
+
+      console.log(chalk.bold('Repository:'));
+      if (!currentRepo) {
+        console.log(chalk.yellow('  No repository configured. Use "ais use <url>" first.'));
+      } else {
+        console.log(`  Name: ${chalk.cyan(currentRepo.name)}`);
+        console.log(`  URL: ${chalk.gray(currentRepo.url)}`);
+        console.log(`  Path: ${currentRepo.path}`);
+        console.log(`  Available locally: ${repoExists ? chalk.green('yes') : chalk.red('no')}`);
+      }
+
+      console.log(chalk.bold('\nProject:'));
+      console.log(`  Path: ${projectPath}`);
+      console.log(`  Config source: ${projectConfigSource}`);
+      console.log(`  Inferred mode: ${projectMode}`);
+      console.log(`  Configured entries: ${projectCounts.total}`);
+      if (projectCounts.total > 0) {
+        for (const [tool, count] of Object.entries(projectCounts.perTool)) {
+          console.log(`    - ${tool}: ${count}`);
+        }
+      }
+
+      if (userStatus) {
+        console.log(chalk.bold('\nUser config:'));
+        console.log(`  Path: ${userStatus.path}`);
+        console.log(`  Exists: ${userStatus.exists ? chalk.green('yes') : chalk.red('no')}`);
+        console.log(`  Configured entries: ${userStatus.totalEntries}`);
+        if (userStatus.totalEntries > 0) {
+          for (const [tool, count] of Object.entries(userStatus.perTool)) {
+            console.log(`    - ${tool}: ${count}`);
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error(chalk.red('Error getting status:'), error.message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('search [query]')
+  .description('Search entries available in the rules repository')
+  .option('--tools <tools>', 'Filter by tools (comma-separated)')
+  .option('--adapters <adapters>', 'Filter by adapter names (comma-separated)')
+  .option('--configured', 'Show only entries already in project config')
+  .option('--unconfigured', 'Show only entries not in project config')
+  .option('--json', 'Output search results as JSON')
+  .action(async (query: string | undefined, cmdOptions: { tools?: string; adapters?: string; configured?: boolean; unconfigured?: boolean; json?: boolean }) => {
+    try {
+      if (cmdOptions.configured && cmdOptions.unconfigured) {
+        throw new Error('Cannot use both --configured and --unconfigured together.');
+      }
+
+      const opts = program.opts();
+      const repo = await getTargetRepo(opts);
+      const tools = parseCsvOption(cmdOptions.tools);
+      const adapters = parseCsvOption(cmdOptions.adapters);
+      const normalizedQuery = (query || '').trim().toLowerCase();
+
+      let entries = await discoverAllEntries(process.cwd(), repo, adapterRegistry, {
+        tools,
+        adapters
+      });
+
+      if (normalizedQuery) {
+        entries = entries.filter(entry => {
+          const haystacks = [
+            entry.entryName,
+            entry.sourceName,
+            entry.adapter.name,
+            entry.adapter.tool,
+            entry.adapter.subtype
+          ];
+          return haystacks.some(value => value.toLowerCase().includes(normalizedQuery));
+        });
+      }
+
+      if (cmdOptions.configured) {
+        entries = entries.filter(entry => entry.alreadyInConfig);
+      }
+      if (cmdOptions.unconfigured) {
+        entries = entries.filter(entry => !entry.alreadyInConfig);
+      }
+
+      const serialized = entries.map(entry => ({
+        adapter: entry.adapter.name,
+        tool: entry.adapter.tool,
+        subtype: entry.adapter.subtype,
+        entryName: entry.entryName,
+        sourceName: entry.sourceName,
+        isDirectory: entry.isDirectory,
+        configured: entry.alreadyInConfig
+      }));
+
+      if (cmdOptions.json) {
+        console.log(JSON.stringify({
+          repository: {
+            name: repo.name,
+            url: repo.url
+          },
+          query: query || null,
+          total: serialized.length,
+          entries: serialized
+        }, null, 2));
+        return;
+      }
+
+      if (serialized.length === 0) {
+        console.log(chalk.yellow('No matching entries found.'));
+        return;
+      }
+
+      const grouped = new Map<string, typeof serialized>();
+      for (const item of serialized) {
+        const key = item.adapter;
+        const list = grouped.get(key) || [];
+        list.push(item);
+        grouped.set(key, list);
+      }
+
+      console.log(chalk.bold(`Found ${serialized.length} entries:`));
+      for (const [adapterName, items] of grouped) {
+        console.log(chalk.cyan(`\n${adapterName} (${items.length})`));
+        for (const item of items) {
+          const flags: string[] = [];
+          if (item.configured) flags.push('configured');
+          if (item.isDirectory) flags.push('dir');
+          const suffix = flags.length > 0 ? ` ${chalk.gray(`[${flags.join(', ')}]`)}` : '';
+          console.log(`  - ${item.entryName}${suffix}`);
+        }
+      }
+    } catch (error: any) {
+      console.error(chalk.red('Error searching entries:'), error.message);
+      process.exit(1);
     }
   });
 
@@ -199,7 +458,8 @@ program
   .alias('rm')
   .description('Remove an entry (auto-detects cursor/copilot if unambiguous)')
   .argument('<alias>', 'Alias/name in the project to remove')
-  .action(async (alias) => {
+  .option('--dry-run', 'Preview changes without applying')
+  .action(async (alias, cmdOptions: { dryRun?: boolean }) => {
     try {
       const projectPath = process.cwd();
       const cfg = await getCombinedProjectConfig(projectPath);
@@ -208,7 +468,7 @@ program
       const found = findAdapterForAlias(cfg, alias);
 
       if (found) {
-        await handleRemove(found.adapter, projectPath, alias);
+        await handleRemove(found.adapter, projectPath, alias, false, { dryRun: cmdOptions.dryRun });
       } else {
         // Alias not found in config, try to infer mode
         const mode = await inferDefaultMode(projectPath);
@@ -228,36 +488,31 @@ program
           // Try all Claude adapters
           const claudeAdapters = adapterRegistry.getForTool('claude');
           for (const a of claudeAdapters) {
-            await a.unlink(projectPath, alias);
-            await a.removeDependency(projectPath, alias);
+            await handleRemove(a, projectPath, alias, false, { dryRun: cmdOptions.dryRun });
           }
           return;
         } else if (mode === 'trae') {
           const traeAdapters = adapterRegistry.getForTool('trae');
           for (const a of traeAdapters) {
-            await a.unlink(projectPath, alias);
-            await a.removeDependency(projectPath, alias);
+            await handleRemove(a, projectPath, alias, false, { dryRun: cmdOptions.dryRun });
           }
           return;
         } else if (mode === 'opencode') {
           const opencodeAdapters = adapterRegistry.getForTool('opencode');
           for (const a of opencodeAdapters) {
-            await a.unlink(projectPath, alias);
-            await a.removeDependency(projectPath, alias);
+            await handleRemove(a, projectPath, alias, false, { dryRun: cmdOptions.dryRun });
           }
           return;
         } else if (mode === 'codex') {
           const codexAdapters = adapterRegistry.getForTool('codex');
           for (const a of codexAdapters) {
-            await a.unlink(projectPath, alias);
-            await a.removeDependency(projectPath, alias);
+            await handleRemove(a, projectPath, alias, false, { dryRun: cmdOptions.dryRun });
           }
           return;
         } else if (mode === 'gemini') {
           const geminiAdapters = adapterRegistry.getForTool('gemini');
           for (const a of geminiAdapters) {
-            await a.unlink(projectPath, alias);
-            await a.removeDependency(projectPath, alias);
+            await handleRemove(a, projectPath, alias, false, { dryRun: cmdOptions.dryRun });
           }
           return;
         } else if (mode === 'warp') {
@@ -272,7 +527,7 @@ program
           throw new Error(`Cannot determine which tool to use for alias "${alias}"`);
         }
 
-        await handleRemove(adapter, projectPath, alias);
+        await handleRemove(adapter, projectPath, alias, false, { dryRun: cmdOptions.dryRun });
       }
     } catch (error: any) {
       console.error(chalk.red('Error removing entry:'), error.message);
@@ -419,6 +674,7 @@ program
   .option('-m, --message <message>', 'Custom git commit message')
   .option('-f, --force', 'Overwrite if entry already exists in repository')
   .option('-p, --push', 'Push to remote repository after commit')
+  .option('--dry-run', 'Preview changes without applying')
   .action(async (name, options) => {
     try {
       const projectPath = process.cwd();
@@ -479,10 +735,11 @@ cursor
   .command('remove <alias>')
   .alias('rm')
   .description('Remove a Cursor rule from project')
-  .action(async (alias) => {
+  .option('--dry-run', 'Preview changes without applying')
+  .action(async (alias, options: { dryRun?: boolean }) => {
     try {
       const adapter = getAdapter('cursor', 'rules');
-      await handleRemove(adapter, process.cwd(), alias);
+      await handleRemove(adapter, process.cwd(), alias, false, { dryRun: options.dryRun });
     } catch (error: any) {
       console.error(chalk.red('Error removing Cursor rule:'), error.message);
       process.exit(1);
@@ -578,6 +835,7 @@ cursor
   .option('-m, --message <message>', 'Custom git commit message')
   .option('-f, --force', 'Overwrite if entry already exists in repository')
   .option('-p, --push', 'Push to remote repository after commit')
+  .option('--dry-run', 'Preview changes without applying')
   .action(async (name, options) => {
     try {
       const projectPath = process.cwd();
@@ -962,6 +1220,7 @@ opencode
   .option('-m, --message <message>', 'Custom git commit message')
   .option('-f, --force', 'Overwrite if entry already exists in repository')
   .option('-p, --push', 'Push to remote repository after commit')
+  .option('--dry-run', 'Preview changes without applying')
   .action(async (name, options) => {
     try {
       const projectPath = process.cwd();
@@ -1094,6 +1353,7 @@ codex
   .option('-m, --message <message>', 'Custom git commit message')
   .option('-f, --force', 'Overwrite if entry already exists in repository')
   .option('-p, --push', 'Push to remote repository after commit')
+  .option('--dry-run', 'Preview changes without applying')
   .action(async (name, options) => {
     try {
       const projectPath = process.cwd();
@@ -1221,6 +1481,7 @@ gemini
   .option('-m, --message <message>', 'Custom git commit message')
   .option('-f, --force', 'Overwrite if entry already exists in repository')
   .option('-p, --push', 'Push to remote repository after commit')
+  .option('--dry-run', 'Preview changes without applying')
   .action(async (name, options) => {
     try {
       const projectPath = process.cwd();
@@ -1285,6 +1546,7 @@ warp
   .option('-m, --message <message>', 'Custom git commit message')
   .option('-f, --force', 'Overwrite if entry already exists in repository')
   .option('-p, --push', 'Push to remote repository after commit')
+  .option('--dry-run', 'Preview changes without applying')
   .action(async (name, options) => {
     try {
       const repo = await getTargetRepo(program.opts());
@@ -1370,10 +1632,11 @@ function registerRulesAndSkillsToolGroup(config: RulesAndSkillsToolGroupOptions)
     .command('remove <alias>')
     .alias('rm')
     .description(`Remove a ${displayName} rule from project`)
-    .action(async (alias) => {
+    .option('--dry-run', 'Preview changes without applying')
+    .action(async (alias, options: { dryRun?: boolean }) => {
       try {
         const adapter = getAdapter(tool, 'rules');
-        await handleRemove(adapter, process.cwd(), alias);
+        await handleRemove(adapter, process.cwd(), alias, false, { dryRun: options.dryRun });
       } catch (error: any) {
         console.error(chalk.red(`Error removing ${displayName} rule:`), error.message);
         process.exit(1);
@@ -1452,6 +1715,7 @@ function registerRulesAndSkillsToolGroup(config: RulesAndSkillsToolGroupOptions)
     .option('-m, --message <message>', 'Custom git commit message')
     .option('-f, --force', 'Overwrite if entry already exists in repository')
     .option('-p, --push', 'Push to remote repository after commit')
+    .option('--dry-run', 'Preview changes without applying')
     .action(async (name, options) => {
       try {
         const projectPath = process.cwd();
@@ -1694,9 +1958,10 @@ configRepo
 configRepo
   .command('show <repoName>')
   .description('Show repository configuration')
-  .action(async (repoName: string) => {
+  .option('--json', 'Output configuration as JSON')
+  .action(async (repoName: string, options: { json?: boolean }) => {
     try {
-      await showRepoConfig(repoName);
+      await showRepoConfig(repoName, { json: options.json });
     } catch (error: any) {
       console.error(chalk.red('Error showing repository config:'), error.message);
       process.exit(1);
@@ -1707,9 +1972,10 @@ configRepo
   .command('list')
   .alias('ls')
   .description('List all repositories')
-  .action(async () => {
+  .option('--json', 'Output repositories as JSON')
+  .action(async (options: { json?: boolean }) => {
     try {
-      await listRepos();
+      await listRepos({ json: options.json });
     } catch (error: any) {
       console.error(chalk.red('Error listing repositories:'), error.message);
       process.exit(1);

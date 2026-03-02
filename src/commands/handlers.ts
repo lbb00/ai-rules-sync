@@ -5,11 +5,11 @@
 import path from 'path';
 import chalk from 'chalk';
 import fs from 'fs-extra';
-import { RepoConfig } from '../config.js';
+import { RepoConfig, getUserConfigPath, getUserProjectConfig } from '../config.js';
 import { SyncAdapter } from '../adapters/types.js';
 import { linkEntry, unlinkEntry, importEntry, ImportOptions } from '../sync-engine.js';
 import { addIgnoreEntry } from '../utils.js';
-import { addUserDependency, removeUserDependency } from '../project-config.js';
+import { addUserDependency, removeUserDependency, getCombinedProjectConfig, getRepoSourceConfig, getSourceDir, getTargetDir } from '../project-config.js';
 
 /**
  * Context for command execution
@@ -164,6 +164,122 @@ export interface RemoveResult {
   migrated: boolean;
 }
 
+export interface RemoveCommandOptions {
+  dryRun?: boolean;
+}
+
+export interface ImportPreviewResult {
+  sourcePath: string;
+  sourceExists: boolean;
+  sourceIsSymlink: boolean;
+  destinationPath: string;
+  destinationExists: boolean;
+  configFileName: string;
+  commitMessage: string;
+}
+
+async function getConfigHitsForAlias(
+  adapter: SyncAdapter,
+  projectPath: string,
+  alias: string,
+  isUser: boolean
+): Promise<string[]> {
+  const [topLevel, subLevel] = adapter.configPath;
+  const hits: string[] = [];
+
+  if (isUser) {
+    const userConfig = await getUserProjectConfig();
+    const userPath = await getUserConfigPath();
+    if ((userConfig as any)[topLevel]?.[subLevel]?.[alias]) {
+      hits.push(path.basename(userPath));
+    }
+    return hits;
+  }
+
+  const mainPath = path.join(projectPath, 'ai-rules-sync.json');
+  const localPath = path.join(projectPath, 'ai-rules-sync.local.json');
+
+  if (await fs.pathExists(mainPath)) {
+    const mainConfig = await fs.readJson(mainPath);
+    if (mainConfig?.[topLevel]?.[subLevel]?.[alias]) {
+      hits.push('ai-rules-sync.json');
+    }
+  }
+
+  if (await fs.pathExists(localPath)) {
+    const localConfig = await fs.readJson(localPath);
+    if (localConfig?.[topLevel]?.[subLevel]?.[alias]) {
+      hits.push('ai-rules-sync.local.json');
+    }
+  }
+
+  // Legacy support for Cursor rules.
+  if (adapter.tool === 'cursor' && adapter.subtype === 'rules') {
+    const legacyMainPath = path.join(projectPath, 'cursor-rules.json');
+    const legacyLocalPath = path.join(projectPath, 'cursor-rules.local.json');
+
+    if (await fs.pathExists(legacyMainPath)) {
+      const legacyMain = await fs.readJson(legacyMainPath);
+      if (legacyMain?.rules?.[alias]) {
+        hits.push('cursor-rules.json');
+      }
+    }
+
+    if (await fs.pathExists(legacyLocalPath)) {
+      const legacyLocal = await fs.readJson(legacyLocalPath);
+      if (legacyLocal?.rules?.[alias]) {
+        hits.push('cursor-rules.local.json');
+      }
+    }
+  }
+
+  return hits;
+}
+
+async function resolveRemoveTargetPath(
+  adapter: SyncAdapter,
+  projectPath: string,
+  alias: string,
+  isUser: boolean
+): Promise<{ targetPath: string; exists: boolean; isSymlink: boolean }> {
+  let targetDirPath: string;
+  if (isUser) {
+    targetDirPath = adapter.userTargetDir || adapter.targetDir;
+  } else {
+    const config = await getCombinedProjectConfig(projectPath);
+    targetDirPath = getTargetDir(config, adapter.tool, adapter.subtype, alias, adapter.targetDir);
+  }
+
+  const targetDir = path.join(path.resolve(projectPath), targetDirPath);
+  const candidates = [path.join(targetDir, alias)];
+
+  const suffixes = adapter.fileSuffixes || adapter.hybridFileSuffixes;
+  if (suffixes && suffixes.length > 0) {
+    for (const suffix of suffixes) {
+      if (!alias.endsWith(suffix)) {
+        candidates.push(path.join(targetDir, `${alias}${suffix}`));
+      }
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (await fs.pathExists(candidate)) {
+      const stats = await fs.lstat(candidate);
+      return {
+        targetPath: candidate,
+        exists: true,
+        isSymlink: stats.isSymbolicLink()
+      };
+    }
+  }
+
+  return {
+    targetPath: candidates[0],
+    exists: false,
+    isSymlink: false
+  };
+}
+
 /**
  * Generic remove command handler - works with any adapter
  */
@@ -171,8 +287,32 @@ export async function handleRemove(
   adapter: SyncAdapter,
   projectPath: string,
   alias: string,
-  isUser: boolean = false
+  isUser: boolean = false,
+  options?: RemoveCommandOptions
 ): Promise<RemoveResult> {
+  if (options?.dryRun) {
+    const hits = await getConfigHitsForAlias(adapter, projectPath, alias, isUser);
+    const target = await resolveRemoveTargetPath(adapter, projectPath, alias, isUser);
+    console.log(chalk.bold(`[DRY RUN] Remove ${adapter.tool} ${adapter.subtype} "${alias}"`));
+    if (hits.length > 0) {
+      console.log(chalk.gray(`  Config entries: ${hits.join(', ')}`));
+    } else {
+      console.log(chalk.gray('  Config entries: none'));
+    }
+
+    if (target.exists) {
+      const kind = target.isSymlink ? 'symlink' : 'file/directory';
+      console.log(chalk.gray(`  Filesystem: remove ${target.targetPath} (${kind})`));
+    } else {
+      console.log(chalk.gray(`  Filesystem: no matching path found (checked around ${target.targetPath})`));
+    }
+
+    return {
+      removedFrom: hits,
+      migrated: false
+    };
+  }
+
   await adapter.unlink(projectPath, alias);
 
   if (isUser) {
@@ -210,6 +350,49 @@ export interface ImportCommandOptions {
   message?: string;
   force?: boolean;
   push?: boolean;
+  dryRun?: boolean;
+}
+
+export async function previewImport(
+  adapter: SyncAdapter,
+  ctx: CommandContext,
+  name: string,
+  options: ImportCommandOptions
+): Promise<ImportPreviewResult> {
+  const absoluteProjectPath = path.resolve(ctx.projectPath);
+  const projectConfig = await getCombinedProjectConfig(ctx.projectPath);
+  const targetDirPath = getTargetDir(
+    projectConfig,
+    adapter.tool,
+    adapter.subtype,
+    name,
+    adapter.targetDir
+  );
+
+  const sourcePath = path.join(absoluteProjectPath, targetDirPath, name);
+  let sourceExists = false;
+  let sourceIsSymlink = false;
+
+  if (await fs.pathExists(sourcePath)) {
+    sourceExists = true;
+    const stats = await fs.lstat(sourcePath);
+    sourceIsSymlink = stats.isSymbolicLink();
+  }
+
+  const repoConfig = await getRepoSourceConfig(ctx.repo.path);
+  const sourceDir = getSourceDir(repoConfig, adapter.tool, adapter.subtype, adapter.defaultSourceDir);
+  const destinationPath = path.join(ctx.repo.path, sourceDir, name);
+  const destinationExists = await fs.pathExists(destinationPath);
+
+  return {
+    sourcePath,
+    sourceExists,
+    sourceIsSymlink,
+    destinationPath,
+    destinationExists,
+    configFileName: ctx.isLocal ? 'ai-rules-sync.local.json' : 'ai-rules-sync.json',
+    commitMessage: options.message || `Import ${adapter.tool} ${adapter.subtype}: ${name}`
+  };
 }
 
 /**
@@ -222,6 +405,31 @@ export async function handleImport(
   options: ImportCommandOptions
 ): Promise<void> {
   console.log(chalk.gray(`Using repository: ${chalk.cyan(ctx.repo.name)} (${ctx.repo.url})`));
+
+  if (options.dryRun) {
+    const preview = await previewImport(adapter, ctx, name, options);
+    console.log(chalk.bold(`[DRY RUN] Import ${adapter.tool} ${adapter.subtype} "${name}"`));
+    if (!preview.sourceExists) {
+      throw new Error(`Entry "${name}" not found in project at ${preview.sourcePath}`);
+    }
+    if (preview.sourceIsSymlink) {
+      throw new Error(`Entry "${name}" is already a symlink (already managed by ai-rules-sync)`);
+    }
+
+    console.log(chalk.gray(`  Copy: ${preview.sourcePath} -> ${preview.destinationPath}`));
+    if (preview.destinationExists && !options.force) {
+      throw new Error(`Entry "${name}" already exists in rules repository at ${preview.destinationPath}. Use --force to overwrite.`);
+    }
+    if (preview.destinationExists && options.force) {
+      console.log(chalk.gray('  Destination exists and would be overwritten (--force).'));
+    }
+    console.log(chalk.gray(`  Git commit message: ${preview.commitMessage}`));
+    if (options.push) {
+      console.log(chalk.gray('  Git push: enabled'));
+    }
+    console.log(chalk.gray(`  Config update: ${preview.configFileName}`));
+    return;
+  }
 
   const importOpts: ImportOptions = {
     projectPath: ctx.projectPath,
