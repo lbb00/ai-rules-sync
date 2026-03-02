@@ -69,6 +69,7 @@ export function registerAdapterCommands(options: RegisterCommandsOptions): void 
   // Remove command
   parentCommand
     .command('remove <alias>')
+    .alias('rm')
     .description(`Remove a ${adapter.tool} ${entityName} from project`)
     .option('-u, --user', 'Remove from user config')
     .action(async (alias: string, cmdOptions: { user?: boolean }) => {

@@ -113,6 +113,7 @@ program
 // ============ List command ============
 program
   .command('list')
+  .alias('ls')
   .description('List all cursor rules git repositories')
   .action(async () => {
     const config = await getConfig();
@@ -195,6 +196,7 @@ program
 
 program
   .command('remove')
+  .alias('rm')
   .description('Remove an entry (auto-detects cursor/copilot if unambiguous)')
   .argument('<alias>', 'Alias/name in the project to remove')
   .action(async (alias) => {
@@ -475,6 +477,7 @@ cursor
 // cursor remove (default to rules)
 cursor
   .command('remove <alias>')
+  .alias('rm')
   .description('Remove a Cursor rule from project')
   .action(async (alias) => {
     try {
@@ -1365,6 +1368,7 @@ function registerRulesAndSkillsToolGroup(config: RulesAndSkillsToolGroupOptions)
 
   group
     .command('remove <alias>')
+    .alias('rm')
     .description(`Remove a ${displayName} rule from project`)
     .action(async (alias) => {
       try {
@@ -1701,6 +1705,7 @@ configRepo
 
 configRepo
   .command('list')
+  .alias('ls')
   .description('List all repositories')
   .action(async () => {
     try {
