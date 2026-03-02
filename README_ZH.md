@@ -24,6 +24,7 @@
 - [基础使用](#基础使用)
 - [各工具使用指南](#各工具使用指南)
 - [高级功能](#高级功能)
+  - [命令易用性（Linux 风格 + 脚本友好）](#命令易用性linux-风格--脚本友好)
   - [User 模式](#user-模式个人-ai-配置文件)
 - [配置参考](#配置参考)
 - [架构](#架构)
@@ -213,7 +214,9 @@ my-rules-repo/
 # 设置当前仓库
 ais use https://github.com/your-org/rules-repo.git
 
-# 列出所有仓库
+# 列出所有仓库（Linux 风格别名）
+ais ls
+# 兼容保留：
 ais list
 
 # 在仓库之间切换
@@ -680,7 +683,7 @@ ais cursor add my-utils -t personal-rules
 
 **查看当前仓库：**
 ```bash
-ais list
+ais ls
 # * company-rules (current)
 #   personal-rules
 #   community-rules
@@ -689,6 +692,32 @@ ais list
 **切换默认仓库：**
 ```bash
 ais use personal-rules
+```
+
+### 命令易用性（Linux 风格 + 脚本友好）
+
+AIS 提供更符合 Linux 习惯的别名，并支持机器可读的查询输出：
+
+```bash
+# Linux 风格别名（向后兼容）
+ais ls                      # 等价于：ais list
+ais rm old-rule             # 等价于：ais remove old-rule
+ais cursor rules rm react   # 等价于：ais cursor rules remove react
+
+# 查询命令
+ais status                  # 查看当前仓库与项目配置摘要
+ais search react            # 在当前规则仓库中搜索可用条目
+
+# 脚本/CI 的 JSON 输出
+ais ls --json
+ais status --json
+ais search react --json
+ais config repo ls --json
+ais config repo show company-rules --json
+
+# 对破坏性命令先预览
+ais cursor rules rm react --dry-run
+ais cursor rules import my-rule --dry-run
 ```
 
 ### 全局选项
@@ -1130,7 +1159,7 @@ ais cursor install
 
 ```bash
 # 列出仓库
-ais list
+ais ls
 
 # 设置仓库
 ais use <repo-name-or-url>

@@ -24,6 +24,7 @@ Stop copying `.mdc` files around. Manage your rules in Git repositories and sync
 - [Basic Usage](#basic-usage)
 - [Tool-Specific Guides](#tool-specific-guides)
 - [Advanced Features](#advanced-features)
+  - [Command Ergonomics (Linux-style + Script-friendly)](#command-ergonomics-linux-style--script-friendly)
   - [User Mode](#user-mode-personal-ai-config-files)
 - [Configuration Reference](#configuration-reference)
 - [Architecture](#architecture)
@@ -213,7 +214,9 @@ my-rules-repo/
 # Set current repository
 ais use https://github.com/your-org/rules-repo.git
 
-# List all repositories
+# List all repositories (Linux-style alias)
+ais ls
+# Alias kept for compatibility:
 ais list
 
 # Switch between repositories
@@ -680,7 +683,7 @@ ais cursor add my-utils -t personal-rules
 
 **View current repository:**
 ```bash
-ais list
+ais ls
 # * company-rules (current)
 #   personal-rules
 #   community-rules
@@ -689,6 +692,32 @@ ais list
 **Switch default repository:**
 ```bash
 ais use personal-rules
+```
+
+### Command Ergonomics (Linux-style + Script-friendly)
+
+AIS provides ergonomic aliases and machine-readable query output:
+
+```bash
+# Linux-style aliases (backward compatible)
+ais ls                      # same as: ais list
+ais rm old-rule             # same as: ais remove old-rule
+ais cursor rules rm react   # same as: ais cursor rules remove react
+
+# Query commands
+ais status                  # repo + project config summary
+ais search react            # search available entries in current repository
+
+# JSON output for scripts/CI
+ais ls --json
+ais status --json
+ais search react --json
+ais config repo ls --json
+ais config repo show company-rules --json
+
+# Safe preview for destructive commands
+ais cursor rules rm react --dry-run
+ais cursor rules import my-rule --dry-run
 ```
 
 ### Global Options
@@ -1130,7 +1159,7 @@ ais cursor install
 
 ```bash
 # List repositories
-ais list
+ais ls
 
 # Set repository
 ais use <repo-name-or-url>
