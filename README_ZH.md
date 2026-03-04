@@ -23,6 +23,7 @@
 - [核心概念](#核心概念)
 - [推荐命令风格](#推荐命令风格)
 - [基础使用](#基础使用)
+- [仓库生命周期](#仓库生命周期)
 - [各工具使用指南](#各工具使用指南)
 - [高级功能](#高级功能)
   - [User 模式](#user-模式个人-ai-配置文件)
@@ -286,17 +287,20 @@ ais cursor rules remove react
 # 查询命令
 ais status
 ais search react
+ais check
 
 # 脚本/CI 的 JSON 输出
 ais ls --json
 ais status --json
 ais search react --json
+ais check --json
 ais config repo ls --json
 ais config repo show company-rules --json
 
 # 破坏性操作前先预览
 ais cursor rules rm react --dry-run
 ais cursor rules import my-rule --dry-run
+ais update --dry-run
 ```
 
 ---
@@ -317,11 +321,13 @@ mkdir ~/my-rules-repo
 cd ~/my-rules-repo
 git init
 
+# 生成默认 ai-rules-sync.json 和源目录结构
+ais init
+
 # 设置为当前仓库
 ais use ~/my-rules-repo
 
-# 创建规则结构
-mkdir -p .cursor/rules
+# 添加第一条规则
 echo "# React Rules" > .cursor/rules/react.mdc
 git add .
 git commit -m "Initial commit"
@@ -422,6 +428,28 @@ ais install
 ais cursor install
 ais copilot install  # 所有 copilot 条目（指令 + 技能 + 提示词 + 代理）
 ais install  # 所有工具
+```
+
+## 仓库生命周期
+
+```bash
+# 检查配置中依赖仓库是否落后于远端
+ais check
+
+# 检查 user 配置中的仓库
+ais check --user
+
+# 只预览更新，不执行 pull
+ais update --dry-run
+
+# 拉取仓库更新并根据配置重装链接
+ais update
+
+# 在当前目录初始化规则仓库模板
+ais init
+
+# 在子目录初始化模板
+ais init my-rules-repo
 ```
 
 ---

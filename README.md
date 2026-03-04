@@ -23,6 +23,7 @@ Stop copying `.mdc` files around. Manage your rules in Git repositories and sync
 - [Core Concepts](#core-concepts)
 - [Recommended Command Style](#recommended-command-style)
 - [Basic Usage](#basic-usage)
+- [Repository Lifecycle](#repository-lifecycle)
 - [Tool-Specific Guides](#tool-specific-guides)
 - [Advanced Features](#advanced-features)
   - [User Mode](#user-mode-personal-ai-config-files)
@@ -286,17 +287,20 @@ ais cursor rules remove react
 # Query commands
 ais status
 ais search react
+ais check
 
 # Script/CI JSON output
 ais ls --json
 ais status --json
 ais search react --json
+ais check --json
 ais config repo ls --json
 ais config repo show company-rules --json
 
 # Safe preview before destructive operations
 ais cursor rules rm react --dry-run
 ais cursor rules import my-rule --dry-run
+ais update --dry-run
 ```
 
 ---
@@ -317,11 +321,13 @@ mkdir ~/my-rules-repo
 cd ~/my-rules-repo
 git init
 
+# Scaffold default ai-rules-sync.json + source directories
+ais init
+
 # Set as current repository
 ais use ~/my-rules-repo
 
-# Create rules structure
-mkdir -p .cursor/rules
+# Add your first rule
 echo "# React Rules" > .cursor/rules/react.mdc
 git add .
 git commit -m "Initial commit"
@@ -422,6 +428,28 @@ ais install
 ais cursor install
 ais copilot install  # All copilot entries (instructions + skills)
 ais install  # All tools
+```
+
+## Repository Lifecycle
+
+```bash
+# Check whether configured repositories are behind upstream
+ais check
+
+# Check user config repositories
+ais check --user
+
+# Preview updates without pulling repositories
+ais update --dry-run
+
+# Pull updates and reinstall entries from config
+ais update
+
+# Initialize a rules repository template in current directory
+ais init
+
+# Initialize template in a subdirectory
+ais init my-rules-repo
 ```
 
 ---

@@ -72,6 +72,7 @@ src/
 │   ├── helpers.ts           # Helper functions (getTargetRepo, parseConfigEntry, etc.)
 │   ├── install.ts           # Generic install function
 │   ├── add-all.ts           # Discover and install all entries from repository
+│   ├── lifecycle.ts         # check/update/init lifecycle commands
 │   └── index.ts             # Module exports
 ├── completion/              # Shell completion
 │   └── scripts.ts           # Shell completion scripts (bash, zsh, fish)
@@ -188,6 +189,11 @@ async function handleImport(adapter, ctx, name, options): Promise<void>
 async function installEntriesForAdapter(adapter, projectPath): Promise<void>
 async function installEntriesForTool(adapters[], projectPath): Promise<void>
 ```
+
+**Repository Lifecycle Commands (`src/commands/lifecycle.ts`):**
+- `checkRepositories(options)`: collects repo URLs from project/user config and compares local HEAD vs upstream (`ahead/behind`) using `git fetch` + `git rev-list`.
+- `updateRepositories(options)`: updates repos (`git pull` via `cloneOrUpdateRepo`) and reapplies links from config.
+- `initRulesRepository(options)`: scaffolds `ai-rules-sync.json` with adapter-driven `sourceDir` defaults and creates default source directories.
 
 **Helper Functions (`src/commands/helpers.ts`):**
 - `getTargetRepo(options)`: Resolve target repository from options or config

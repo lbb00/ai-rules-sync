@@ -31,6 +31,7 @@ import { discoverAllEntries, handleAddAll } from './commands/add-all.js';
 import { parseSourceDirParams } from './cli/source-dir-parser.js';
 import { setRepoSourceDir, clearRepoSourceDir, showRepoConfig, listRepos, handleUserConfigShow, handleUserConfigSet, handleUserConfigReset, handleGlobalConfigShow, handleGlobalConfigSet, handleGlobalConfigReset } from './commands/config.js';
 import { getFormattedVersion } from './commands/version.js';
+import { checkRepositories, updateRepositories, initRulesRepository } from './commands/lifecycle.js';
 
 // Intercept version flags to show detailed version info before Commander processes them
 if (process.argv.includes('-v') || process.argv.includes('--version')) {
@@ -92,6 +93,27 @@ function parseCsvOption(input?: string): string[] | undefined {
     .map((item: string) => item.trim())
     .filter(Boolean);
   return values.length > 0 ? values : undefined;
+}
+
+function formatCheckStatus(status: string): string {
+  switch (status) {
+    case 'up-to-date':
+      return chalk.green('up-to-date');
+    case 'update-available':
+      return chalk.yellow('update-available');
+    case 'diverged':
+      return chalk.yellow('diverged');
+    case 'ahead':
+      return chalk.blue('ahead');
+    case 'no-upstream':
+      return chalk.gray('no-upstream');
+    case 'missing-local':
+      return chalk.yellow('missing-local');
+    case 'not-configured':
+      return chalk.yellow('not-configured');
+    default:
+      return chalk.red(status);
+  }
 }
 
 program
@@ -392,6 +414,150 @@ program
       }
     } catch (error: any) {
       console.error(chalk.red('Error searching entries:'), error.message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('check')
+  .description('Check for repository updates used by current config')
+  .option('-u, --user', 'Check repositories from user config')
+  .option('-g, --global', 'Check repositories from user config (deprecated alias for --user)')
+  .option('--no-fetch', 'Skip git fetch before checking')
+  .option('--json', 'Output results as JSON')
+  .action(async (cmdOptions: { user?: boolean; global?: boolean; fetch?: boolean; json?: boolean }) => {
+    try {
+      const opts = program.opts();
+      const result = await checkRepositories({
+        projectPath: process.cwd(),
+        user: cmdOptions.user || cmdOptions.global,
+        fetch: cmdOptions.fetch,
+        target: opts.target
+      });
+
+      if (cmdOptions.json) {
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
+      if (result.total === 0) {
+        console.log(chalk.yellow('No repository references found in the selected config.'));
+        return;
+      }
+
+      console.log(chalk.bold(`Repository check (${result.scope} scope):`));
+      for (const entry of result.entries) {
+        const name = entry.repoName || entry.repoUrl;
+        const counts =
+          entry.status === 'update-available' || entry.status === 'ahead' || entry.status === 'diverged'
+            ? chalk.gray(` (ahead ${entry.ahead}, behind ${entry.behind})`)
+            : '';
+        const detail = entry.message ? chalk.gray(` - ${entry.message}`) : '';
+        console.log(`  - ${chalk.cyan(name)}: ${formatCheckStatus(entry.status)}${counts}${detail}`);
+      }
+
+      if (result.updateAvailable > 0) {
+        console.log(chalk.yellow(`\n${result.updateAvailable} repositories have updates available.`));
+      } else {
+        console.log(chalk.green('\nAll repositories are up-to-date.'));
+      }
+    } catch (error: any) {
+      console.error(chalk.red('Error checking repositories:'), error.message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('update')
+  .description('Update repositories used by current config and reinstall entries')
+  .option('-u, --user', 'Update repositories from user config')
+  .option('-g, --global', 'Update repositories from user config (deprecated alias for --user)')
+  .option('--dry-run', 'Preview updates without pulling repositories')
+  .option('--json', 'Output results as JSON')
+  .action(async (cmdOptions: { user?: boolean; global?: boolean; dryRun?: boolean; json?: boolean }) => {
+    try {
+      const opts = program.opts();
+      const result = await updateRepositories({
+        projectPath: process.cwd(),
+        user: cmdOptions.user || cmdOptions.global,
+        dryRun: cmdOptions.dryRun,
+        target: opts.target
+      });
+
+      if (cmdOptions.json) {
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
+      if (result.total === 0) {
+        console.log(chalk.yellow('No repository references found in the selected config.'));
+        return;
+      }
+
+      console.log(chalk.bold(`${result.dryRun ? '[DRY RUN] ' : ''}Repository update (${result.scope} scope):`));
+      for (const entry of result.entries) {
+        const name = entry.repoName || entry.repoUrl;
+        const detail = entry.message ? chalk.gray(` - ${entry.message}`) : '';
+        const commitChange = entry.beforeCommit || entry.afterCommit
+          ? chalk.gray(` (${entry.beforeCommit || '-'} -> ${entry.afterCommit || '-'})`)
+          : '';
+        const actionColor =
+          entry.action === 'updated'
+            ? chalk.green(entry.action)
+            : entry.action === 'error'
+              ? chalk.red(entry.action)
+              : entry.action === 'would-update' || entry.action === 'would-clone'
+                ? chalk.yellow(entry.action)
+                : chalk.gray(entry.action);
+        console.log(`  - ${chalk.cyan(name)}: ${actionColor}${commitChange}${detail}`);
+      }
+
+      console.log(chalk.bold('\nSummary:'));
+      console.log(`  Updated: ${chalk.green(String(result.updated))}`);
+      console.log(`  Unchanged: ${chalk.gray(String(result.unchanged))}`);
+      console.log(`  Failed: ${result.failed > 0 ? chalk.red(String(result.failed)) : chalk.gray('0')}`);
+      if (!result.dryRun) {
+        console.log(`  Reinstalled entries: ${result.reinstalled ? chalk.green('yes') : chalk.yellow('no')}`);
+      }
+
+      if (result.failed > 0) {
+        process.exit(1);
+      }
+    } catch (error: any) {
+      console.error(chalk.red('Error updating repositories:'), error.message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('init [name]')
+  .description('Initialize an ai-rules-sync repository template')
+  .option('-f, --force', 'Overwrite existing ai-rules-sync.json')
+  .option('--no-dirs', 'Do not create default source directories')
+  .option('--json', 'Output results as JSON')
+  .action(async (name: string | undefined, cmdOptions: { force?: boolean; dirs?: boolean; json?: boolean }) => {
+    try {
+      const result = await initRulesRepository({
+        cwd: process.cwd(),
+        name,
+        force: cmdOptions.force,
+        createDirs: cmdOptions.dirs
+      });
+
+      if (cmdOptions.json) {
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
+      console.log(chalk.green(`Initialized repository template at ${result.projectPath}`));
+      console.log(chalk.gray(`Config: ${result.configPath}`));
+      if (result.createdDirectories.length > 0) {
+        console.log(chalk.gray(`Created ${result.createdDirectories.length} source directories.`));
+      } else {
+        console.log(chalk.gray('No source directories created.'));
+      }
+    } catch (error: any) {
+      console.error(chalk.red('Error initializing repository template:'), error.message);
       process.exit(1);
     }
   });
