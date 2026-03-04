@@ -51,7 +51,7 @@ jobs:
         id: test_version
         if: github.event_name == 'workflow_dispatch' && inputs.publish_test
         run: |
-          VERSION=$(node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));const [major,minor,patch]=pkg.version.split('-')[0].split('.').map(Number);console.log(`${major}.${minor}.${patch+1}-test.${process.env.GITHUB_RUN_NUMBER}.${process.env.GITHUB_RUN_ATTEMPT}`);")
+          VERSION=$(node -e 'const fs=require("fs");const pkg=JSON.parse(fs.readFileSync("package.json","utf8"));const [major,minor,patch]=pkg.version.split("-")[0].split(".").map(Number);console.log([major,minor,patch+1].join(".")+"-test."+process.env.GITHUB_RUN_NUMBER+"."+process.env.GITHUB_RUN_ATTEMPT);')
           npm version "$VERSION" --no-git-tag-version
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
