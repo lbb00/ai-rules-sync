@@ -21,8 +21,8 @@ importers:
         specifier: ^11.3.3
         version: 11.3.3
       linkany:
-        specifier: ^0.0.3
-        version: 0.0.3
+        specifier: ^0.0.4
+        version: 0.0.4
     devDependencies:
       '@changesets/cli':
         specifier: ^2.29.8
@@ -674,8 +674,8 @@ packages:
   jsonfile@6.2.0:
     resolution: {integrity: sha512-FGuPw30AdOIUTRMC2OMRtQV+jkVj2cfPqSeWXv1NEAJ1qZ5zb1X6z1mFhbfOB/iy3ssJCD+3KuZ8r8C3uVFlAg==}
 
-  linkany@0.0.3:
-    resolution: {integrity: sha512-MIKiWi2DksOV2ID621c5qmsaXyu2ZIWd6IScwBKw+KGmRJwta48Ozb8Nc+dQ3/3BD51phlvcl9CyGDjRQ/Wkdg==}
+  linkany@0.0.4:
+    resolution: {integrity: sha512-Rp+iC0M9SbYab9u+qx/5PaLFWh2llszBFTiw6onoint//dhS9miOYFUB6A4egt79W/ld+EzS6mq+uX/sjeBQkw==}
     hasBin: true
 
   locate-path@5.0.0:
@@ -1625,7 +1625,7 @@ snapshots:
     optionalDependencies:
       graceful-fs: 4.2.11
 
-  linkany@0.0.3:
+  linkany@0.0.4:
     dependencies:
       fs-extra: 11.3.3
 

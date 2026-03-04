@@ -249,7 +249,8 @@ async function getConfigHitsForAlias(
   adapter: SyncAdapter,
   projectPath: string,
   alias: string,
-  isUser: boolean
+  isUser: boolean,
+  includeLegacy: boolean = true
 ): Promise<string[]> {
   const [topLevel, subLevel] = adapter.configPath;
   const hits: string[] = [];
@@ -281,7 +282,7 @@ async function getConfigHitsForAlias(
   }
 
   // Legacy support for Cursor rules.
-  if (adapter.tool === 'cursor' && adapter.subtype === 'rules') {
+  if (includeLegacy && adapter.tool === 'cursor' && adapter.subtype === 'rules') {
     const legacyMainPath = path.join(projectPath, 'cursor-rules.json');
     const legacyLocalPath = path.join(projectPath, 'cursor-rules.local.json');
 
@@ -330,8 +331,8 @@ async function resolveRemoveTargetPath(
   }
 
   for (const candidate of candidates) {
-    if (await fs.pathExists(candidate)) {
-      const stats = await fs.lstat(candidate);
+    const stats = await fs.lstat(candidate).catch(() => null);
+    if (stats) {
       return {
         targetPath: candidate,
         exists: true,
@@ -395,11 +396,37 @@ export async function handleRemove(
 
   // Project mode: use forProject().remove() to do symlink deletion + manifest update in one step
   if (adapter.forProject) {
+    const removedFrom = await getConfigHitsForAlias(adapter, projectPath, alias, false, false);
+    const target = await resolveRemoveTargetPath(adapter, projectPath, alias, false);
+    const projectRoot = path.resolve(projectPath);
+    const targetDirAbsolute = path.dirname(target.targetPath);
+    const ignoreEntries = new Set<string>();
+
+    const addIgnoreCandidate = (baseName: string): void => {
+      const relativePath = path.relative(projectRoot, path.join(targetDirAbsolute, baseName));
+      if (relativePath && relativePath !== '.') {
+        ignoreEntries.add(relativePath);
+      }
+    };
+
+    addIgnoreCandidate(alias);
+    if (target.exists) {
+      addIgnoreCandidate(path.basename(target.targetPath));
+    }
+
+    const suffixes = adapter.fileSuffixes || adapter.hybridFileSuffixes;
+    if (suffixes && suffixes.length > 0) {
+      for (const suffix of suffixes) {
+        if (!alias.endsWith(suffix)) {
+          addIgnoreCandidate(`${alias}${suffix}`);
+        }
+      }
+    }
+
     await adapter.forProject(projectPath, null, false).remove(alias);
 
     // Ignore cleanup — try both gitignore and git/info/exclude since we don't know
     // which was used when the entry was originally added
-    const ignoreEntries = [`${adapter.targetDir}/${alias}`];
     const gitignorePath = path.join(projectPath, '.gitignore');
     const gitInfoExclude = path.join(projectPath, '.git', 'info', 'exclude');
     for (const entry of ignoreEntries) {
@@ -411,8 +438,7 @@ export async function handleRemove(
       }
     }
 
-    const configFileName = 'ai-rules-sync.json';
-    return { removedFrom: [configFileName], migrated: false };
+    return { removedFrom, migrated: false };
   }
 
   // Legacy fallback

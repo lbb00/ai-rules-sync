@@ -1,7 +1,8 @@
 import fs from 'fs-extra';
 import path from 'path';
 import chalk from 'chalk';
-import { add as linkanyAdd } from 'linkany';
+import type { Stats } from 'fs';
+import { add as linkanyAdd, uninstall as linkanyUninstall } from 'linkany';
 import { DotfileCreateOptions, LinkResult, AddOptions, ApplyResult, ManifestEntry, StowResult, DiffResult, StatusEntry, StatusResult, ManagerImportOptions } from './types.js';
 
 /**
@@ -87,7 +88,7 @@ export class DotfileManager {
         let actualFileName = alias;
         let targetPath = path.join(targetDir, alias);
 
-        if (!await fs.pathExists(targetPath)) {
+        if (!await this.pathExistsNoFollow(targetPath)) {
             const found = await this.findWithCommonSuffix(targetDir, alias);
             if (found) {
                 actualFileName = path.basename(found);
@@ -375,13 +376,13 @@ export class DotfileManager {
      * Returns 'linked' (created/updated) | 'noop' (already correct) | 'conflict' (real file in the way).
      */
     private async doLink(source: string, target: string): Promise<'linked' | 'noop' | 'conflict'> {
-        if (await fs.pathExists(target)) {
-            const st = await fs.lstat(target);
+        const st = await this.lstatIfExists(target);
+        if (st) {
             if (!st.isSymbolicLink()) return 'conflict';
             const current = await fs.readlink(target);
             if (current !== source) {
-                // linkany rejects migrating an existing symlink; unlink first
-                await fs.unlink(target);
+                // linkany rejects migrating an existing symlink; remove first via linkany.
+                await this.unlinkSymlinkWithLinkany(target);
             }
             // current === source: linkany will detect isSymlinkTo → noop
         }
@@ -399,11 +400,9 @@ export class DotfileManager {
      * Returns true if removed.
      */
     private async doUnlink(target: string): Promise<boolean> {
-        if (await fs.pathExists(target)) {
-            const st = await fs.lstat(target);
-            if (st.isSymbolicLink()) { await fs.unlink(target); return true; }
-        }
-        return false;
+        const st = await this.lstatIfExists(target);
+        if (!st || !st.isSymbolicLink()) return false;
+        return this.unlinkSymlinkWithLinkany(target);
     }
 
     private async findWithCommonSuffix(targetDir: string, alias: string): Promise<string | undefined> {
@@ -411,10 +410,38 @@ export class DotfileManager {
         for (const suffix of suffixes) {
             if (!alias.endsWith(suffix)) {
                 const candidate = path.join(targetDir, `${alias}${suffix}`);
-                if (await fs.pathExists(candidate)) return candidate;
+                if (await this.pathExistsNoFollow(candidate)) return candidate;
             }
         }
         return undefined;
+    }
+
+    private async lstatIfExists(target: string): Promise<Stats | null> {
+        try {
+            return await fs.lstat(target);
+        } catch {
+            return null;
+        }
+    }
+
+    private async pathExistsNoFollow(target: string): Promise<boolean> {
+        return (await this.lstatIfExists(target)) !== null;
+    }
+
+    private async unlinkSymlinkWithLinkany(target: string): Promise<boolean> {
+        const { result } = await linkanyUninstall(
+            {
+                version: 1 as const,
+                installs: [{ source: target, target }],
+            },
+            { audit: false }
+        );
+
+        if (!result.ok) {
+            throw new Error(result.errors.join('; ') || `Failed to unlink symlink: ${target}`);
+        }
+
+        return result.changes.some(c => c.action === 'unlink');
     }
 
 }
