@@ -8,7 +8,7 @@ const SUFFIX = '.md';
  * Mode: file - links individual .md files from .gemini/ directory
  *
  * Global mode usage:
- *   ais gemini md add GEMINI --global
+ *   ais gemini md add GEMINI --user
  *   → creates symlink at ~/.gemini/GEMINI.md
  *
  * Project mode usage:

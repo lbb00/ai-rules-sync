@@ -1,8 +1,7 @@
 import path from 'path';
 import fs from 'fs-extra';
-import { SyncAdapter, ResolvedSource, SyncOptions, LinkResult } from './types.js';
+import { SyncAdapter, ResolvedSource } from './types.js';
 import { createBaseAdapter } from './base.js';
-import { linkEntry as engineLinkEntry, unlinkEntry as engineUnlinkEntry } from '../sync-engine.js';
 
 const SUFFIX = '.md';
 const CONFIG_FILENAME = 'ai-rules-sync.json';
@@ -144,7 +143,7 @@ export const agentsMdAdapter: SyncAdapter = {
   ...baseAdapter,
 
   // Custom addDependency that writes to flat agentsMd structure
-  async addDependency(projectPath: string, name: string, repoUrl: string, alias?: string, isLocal: boolean = false, targetDir?: string): Promise<{ migrated: boolean }> {
+  async addDependency(projectPath: string, name: string, repoUrl: string, alias?: string, isLocal: boolean = false, targetDir?: string): Promise<void> {
     const configPath = path.join(projectPath, isLocal ? LOCAL_CONFIG_FILENAME : CONFIG_FILENAME);
     const config = await readConfigFile<any>(configPath);
 
@@ -167,11 +166,10 @@ export const agentsMdAdapter: SyncAdapter = {
     config.agentsMd[targetName] = entryValue;
 
     await writeConfigFile(configPath, config);
-    return { migrated: false };
   },
 
   // Custom removeDependency that removes from flat agentsMd structure
-  async removeDependency(projectPath: string, alias: string): Promise<{ removedFrom: string[]; migrated: boolean }> {
+  async removeDependency(projectPath: string, alias: string): Promise<{ removedFrom: string[] }> {
     const removedFrom: string[] = [];
 
     const mainPath = path.join(projectPath, CONFIG_FILENAME);
@@ -190,6 +188,6 @@ export const agentsMdAdapter: SyncAdapter = {
       removedFrom.push(LOCAL_CONFIG_FILENAME);
     }
 
-    return { removedFrom, migrated: false };
+    return { removedFrom };
   }
 };

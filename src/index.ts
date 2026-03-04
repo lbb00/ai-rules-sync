@@ -26,10 +26,10 @@ import {
   DefaultMode
 } from './commands/helpers.js';
 import { handleAdd, handleRemove, handleImport } from './commands/handlers.js';
-import { installEntriesForAdapter, installEntriesForTool, installAllUserEntries, installAllGlobalEntries } from './commands/install.js';
+import { installEntriesForAdapter, installEntriesForTool, installAllUserEntries } from './commands/install.js';
 import { discoverAllEntries, handleAddAll } from './commands/add-all.js';
 import { parseSourceDirParams } from './cli/source-dir-parser.js';
-import { setRepoSourceDir, clearRepoSourceDir, showRepoConfig, listRepos, handleUserConfigShow, handleUserConfigSet, handleUserConfigReset, handleGlobalConfigShow, handleGlobalConfigSet, handleGlobalConfigReset } from './commands/config.js';
+import { setRepoSourceDir, clearRepoSourceDir, showRepoConfig, listRepos, handleUserConfigShow, handleUserConfigSet, handleUserConfigReset } from './commands/config.js';
 import { getFormattedVersion } from './commands/version.js';
 import { checkRepositories, updateRepositories, initRulesRepository } from './commands/lifecycle.js';
 
@@ -422,15 +422,14 @@ program
   .command('check')
   .description('Check for repository updates used by current config')
   .option('-u, --user', 'Check repositories from user config')
-  .option('-g, --global', 'Check repositories from user config (deprecated alias for --user)')
   .option('--no-fetch', 'Skip git fetch before checking')
   .option('--json', 'Output results as JSON')
-  .action(async (cmdOptions: { user?: boolean; global?: boolean; fetch?: boolean; json?: boolean }) => {
+  .action(async (cmdOptions: { user?: boolean; fetch?: boolean; json?: boolean }) => {
     try {
       const opts = program.opts();
       const result = await checkRepositories({
         projectPath: process.cwd(),
-        user: cmdOptions.user || cmdOptions.global,
+        user: cmdOptions.user,
         fetch: cmdOptions.fetch,
         target: opts.target
       });
@@ -471,15 +470,14 @@ program
   .command('update')
   .description('Update repositories used by current config and reinstall entries')
   .option('-u, --user', 'Update repositories from user config')
-  .option('-g, --global', 'Update repositories from user config (deprecated alias for --user)')
   .option('--dry-run', 'Preview updates without pulling repositories')
   .option('--json', 'Output results as JSON')
-  .action(async (cmdOptions: { user?: boolean; global?: boolean; dryRun?: boolean; json?: boolean }) => {
+  .action(async (cmdOptions: { user?: boolean; dryRun?: boolean; json?: boolean }) => {
     try {
       const opts = program.opts();
       const result = await updateRepositories({
         projectPath: process.cwd(),
-        user: cmdOptions.user || cmdOptions.global,
+        user: cmdOptions.user,
         dryRun: cmdOptions.dryRun,
         target: opts.target
       });
@@ -705,10 +703,9 @@ program
   .command('install')
   .description('Install all entries from config, or --user for user config')
   .option('-u, --user', 'Install all user config entries (~/.config/ai-rules-sync/user.json)')
-  .option('-g, --global', 'Install all user config entries (deprecated alias for --user)')
-  .action(async (cmdOptions: { user?: boolean; global?: boolean }) => {
+  .action(async (cmdOptions: { user?: boolean }) => {
     try {
-      if (cmdOptions.user || cmdOptions.global) {
+      if (cmdOptions.user) {
         await installAllUserEntries(adapterRegistry.all());
         return;
       }
@@ -1191,7 +1188,7 @@ registerAdapterCommands({ adapter: getAdapter('claude', 'skills'), parentCommand
 const claudeAgents = claude.command('agents').description('Manage Claude agents');
 registerAdapterCommands({ adapter: getAdapter('claude', 'agents'), parentCommand: claudeAgents, programOpts: () => program.opts() });
 
-// claude md subgroup (for CLAUDE.md files, supports --global)
+// claude md subgroup (for CLAUDE.md files)
 const claudeMd = claude.command('md').description('Manage Claude CLAUDE.md files (.claude/CLAUDE.md)');
 registerAdapterCommands({ adapter: getAdapter('claude', 'md'), parentCommand: claudeMd, programOpts: () => program.opts() });
 
@@ -1553,7 +1550,7 @@ registerAdapterCommands({ adapter: getAdapter('codex', 'rules'), parentCommand: 
 const codexSkills = codex.command('skills').description('Manage Codex skills');
 registerAdapterCommands({ adapter: getAdapter('codex', 'skills'), parentCommand: codexSkills, programOpts: () => program.opts() });
 
-// codex md subgroup (for AGENTS.md files, supports --global)
+// codex md subgroup (for AGENTS.md files)
 const codexMd = codex.command('md').description('Manage Codex AGENTS.md files (.codex/AGENTS.md)');
 registerAdapterCommands({ adapter: getAdapter('codex', 'md'), parentCommand: codexMd, programOpts: () => program.opts() });
 
@@ -1684,7 +1681,7 @@ registerAdapterCommands({ adapter: getAdapter('gemini', 'skills'), parentCommand
 const geminiAgents = gemini.command('agents').description('Manage Gemini agents');
 registerAdapterCommands({ adapter: getAdapter('gemini', 'agents'), parentCommand: geminiAgents, programOpts: () => program.opts() });
 
-// gemini md subgroup (for GEMINI.md files, supports --global)
+// gemini md subgroup (for GEMINI.md files)
 const geminiMd = gemini.command('md').description('Manage Gemini GEMINI.md files (.gemini/GEMINI.md)');
 registerAdapterCommands({ adapter: getAdapter('gemini', 'md'), parentCommand: geminiMd, programOpts: () => program.opts() });
 
@@ -2180,47 +2177,6 @@ configUser
 configUser
   .command('reset')
   .description('Reset user config path to default')
-  .action(async () => {
-    try {
-      await handleUserConfigReset();
-    } catch (error: any) {
-      console.error(chalk.red('Error resetting user config path:'), error.message);
-      process.exit(1);
-    }
-  });
-
-// config global subgroup (deprecated alias for config user)
-const configGlobal = configCmd
-  .command('global')
-  .description('Deprecated: use "ais config user" instead');
-
-configGlobal
-  .command('show')
-  .description('Show current user config path (deprecated: use "ais config user show")')
-  .action(async () => {
-    try {
-      await handleUserConfigShow();
-    } catch (error: any) {
-      console.error(chalk.red('Error showing user config path:'), error.message);
-      process.exit(1);
-    }
-  });
-
-configGlobal
-  .command('set <path>')
-  .description('Set custom user config path (deprecated: use "ais config user set")')
-  .action(async (customPath: string) => {
-    try {
-      await handleUserConfigSet(customPath);
-    } catch (error: any) {
-      console.error(chalk.red('Error setting user config path:'), error.message);
-      process.exit(1);
-    }
-  });
-
-configGlobal
-  .command('reset')
-  .description('Reset user config path to default (deprecated: use "ais config user reset")')
   .action(async () => {
     try {
       await handleUserConfigReset();

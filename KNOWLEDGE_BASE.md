@@ -10,7 +10,7 @@ A key feature is **User Mode** (`--user` / `-u`): use `$HOME` as project root to
 - **Symbolic Links**: Entries are linked from the local cache of the repo to project directories, avoiding file duplication and drift.
 - **Dependency Tracking**: Uses `ai-rules-sync.json` to track project dependencies (Cursor rules/commands/skills/subagents, Copilot instructions, Claude Code rules/skills/subagents/CLAUDE.md, Trae rules/skills, OpenCode agents/skills/commands/tools, Codex rules/skills/AGENTS.md, Gemini CLI commands/skills/agents/GEMINI.md, Windsurf rules/skills, Cline rules/skills, universal AGENTS.md).
 - **Privacy**: Supports private/local entries via `ai-rules-sync.local.json` and `.git/info/exclude`.
-- **User Mode**: `--user` / `-u` flag on add/remove/install commands. Sets `projectPath = $HOME`, stores dependencies in `~/.config/ai-rules-sync/user.json`, skips gitignore management. Enables `ais user install` to restore all user-scope symlinks on a new machine. (`--global`/`-g` kept as deprecated aliases.)
+- **User Mode**: `--user` / `-u` flag on add/remove/install commands. Sets `projectPath = $HOME`, stores dependencies in `~/.config/ai-rules-sync/user.json`, skips gitignore management. Enables `ais user install` to restore all user-scope symlinks on a new machine.
 - **User Config Path**: Configurable via `ais config user set <path>` for dotfiles integration (e.g. `~/dotfiles/ai-rules-sync/user.json`).
 
 ## Architecture
@@ -112,8 +112,8 @@ interface SyncAdapter {
   resolveTargetName?(...): string;
 
   // Unified operations (provided by createBaseAdapter)
-  addDependency(projectPath, name, repoUrl, alias?, isLocal?): Promise<{migrated}>;
-  removeDependency(projectPath, alias): Promise<{removedFrom, migrated}>;
+  addDependency(projectPath, name, repoUrl, alias?, isLocal?): Promise<void>;
+  removeDependency(projectPath, alias): Promise<{removedFrom}>;
   link(options): Promise<LinkResult>;
   unlink(projectPath, alias): Promise<void>;
 }
@@ -529,7 +529,7 @@ Gemini CLI (https://geminicli.com/) is supported with three entry types:
 - `ais cline install` - Install all Cline rules and skills.
 - `ais agents-md install` - Install AGENTS.md files.
 - `ais install` - Install everything (smart dispatch).
-- `ais install --user` / `ais user install` - Install all user-scope AI config files from `~/.config/ai-rules-sync/user.json`. (`--global` and `ais global install` kept as deprecated aliases.)
+- `ais install --user` / `ais user install` - Install all user-scope AI config files from `~/.config/ai-rules-sync/user.json`.
 
 ### 17. Bulk Discovery and Installation (add-all)
 
@@ -741,7 +741,6 @@ ais cursor rules add-all -s experimental/rules
 - `--user` / `-u` flag sets `projectPath = $HOME` and stores dependencies in `~/.config/ai-rules-sync/user.json` instead of a project's `ai-rules-sync.json`
 - Gitignore management is skipped automatically (home dir is not a git repo)
 - Symlinks are created at absolute paths (e.g., `~/.claude/CLAUDE.md`)
-- `--global` / `-g` are kept as deprecated backward-compatible aliases
 
 **Commands:**
 ```bash
@@ -913,8 +912,7 @@ ais user install
 ```
 
 - **`ai-rules-sync.local.json`**: Private dependencies (merged, takes precedence).
-- **Legacy format**: Old configs with `cursor.rules` as string are still supported.
-- **Legacy files**: `cursor-rules*.json` are read-only compatible; write operations migrate to new format.
+- **Config files**: Only `ai-rules-sync.json` and `ai-rules-sync.local.json` are supported.
 
 ### 21. Shell Completion
 - **Auto-Install**: On first run, AIS prompts to install shell completion automatically.
@@ -1023,7 +1021,7 @@ ais user install
 - Added **User Config Path**: `ais config user set <path>` for dotfiles integration
 - Added **Gemini CLI support**: commands (`.toml`), skills (directory), subagents (`.md`)
 - Added **OpenAI Codex support**: rules (`.rules`, Starlark), skills (`.agents/skills/`)
-- Renamed deprecated `--global` / `-g` flags to `--user` / `-u`
+- Standardized user-scope flags on `--user` / `-u` (legacy `--global` / `-g` aliases removed)
 
 ### Proper User-Level Sync for All Tools + gemini-md / codex-md Adapters (2026-02)
 
@@ -1102,7 +1100,6 @@ ais user install
    - Sets `projectPath = $HOME` automatically
    - Stores dependencies in `~/.config/ai-rules-sync/user.json`
    - Skips gitignore management (home dir isn't a git repo)
-   - `--global` / `-g` kept as deprecated backward-compatible aliases
 
 2. **claude-md Adapter**:
    - New adapter for CLAUDE.md-style files (`.claude/<name>.md`)
@@ -1113,14 +1110,12 @@ ais user install
 3. **One-click User Install**:
    - `ais user install` / `ais install --user`
    - Reads all entries from `user.json` and recreates symlinks (perfect for new machine setup)
-   - `ais global install` and `ais install --global` kept as deprecated aliases
 
 4. **User Config Path Management**:
    - `ais config user show` - View current user.json path
    - `ais config user set <path>` - Set custom path (for dotfiles integration)
    - `ais config user reset` - Reset to default path
    - Stored as `userConfigPath` in `~/.config/ai-rules-sync/config.json`
-   - `ais config global show|set|reset` kept as deprecated aliases
 
 5. **claude-rules Adapter** (formalized):
    - Adapter for `.claude/rules/` files (`.md` suffix)
@@ -1144,7 +1139,7 @@ ais user install
 - `src/commands/handlers.ts` - Added `user?` and `skipIgnore?` to `CommandContext`; user path for `handleAdd`/`handleRemove`
 - `src/commands/install.ts` - Added `installUserEntriesForAdapter()`, `installAllUserEntries()`
 - `src/commands/config.ts` - Added `handleUserConfigShow/Set/Reset()`
-- `src/cli/register.ts` - Added `-u, --user` flag to add/remove/install commands (with `-g, --global` as deprecated aliases)
+- `src/cli/register.ts` - Added `-u, --user` flag to add/remove/install commands
 - `src/index.ts` - Added `ais claude md` subgroup, `ais user install`, `ais config user` commands
 
 **Files Changed:** 11 modified/new, all tests passing (206/206)

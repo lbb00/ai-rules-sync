@@ -146,20 +146,6 @@ describe('Completion Module', () => {
       expect(result).toBe(true);
     });
 
-    it('should return true if config contains legacy ais completion marker', async () => {
-      vi.mocked(fs.pathExists).mockResolvedValue(true);
-      vi.mocked(fs.readFile).mockResolvedValue('# some config\n# ais shell completion\neval "$(ais completion)"');
-      const result = await completionModule.isCompletionInstalled('/mock/path/.zshrc');
-      expect(result).toBe(true);
-    });
-
-    it('should return true if config contains ais completion command', async () => {
-      vi.mocked(fs.pathExists).mockResolvedValue(true);
-      vi.mocked(fs.readFile).mockResolvedValue('# some config\neval "$(ais completion)"');
-      const result = await completionModule.isCompletionInstalled('/mock/path/.zshrc');
-      expect(result).toBe(true);
-    });
-
     it('should return false if config does not contain ais completion', async () => {
       vi.mocked(fs.pathExists).mockResolvedValue(true);
       vi.mocked(fs.readFile).mockResolvedValue('# some other config\nexport PATH=$PATH:/usr/local/bin');
@@ -179,45 +165,17 @@ describe('Completion Module', () => {
       expect(result).toContain('# more config');
     });
 
-    it('should remove legacy bash format', () => {
-      const content = '# some config\n# ais shell completion\neval "$(ais completion)"\n# more config';
+    it('should remove completion block while preserving unrelated lines', () => {
+      const content = `# config\nexport PATH=/usr/bin:$PATH\n${completionModule.COMPLETION_START_MARKER}\nsome content\n${completionModule.COMPLETION_END_MARKER}\n# end`;
       const result = completionModule.removeCompletionCode(content);
-      expect(result).not.toContain('# ais shell completion');
-      expect(result).not.toContain('eval "$(ais completion)"');
-      expect(result).toContain('# some config');
-      expect(result).toContain('# more config');
-    });
-
-    it('should remove legacy zsh format with all lines', () => {
-      const content = '# some config\n# ais shell completion\n# Save and source AIS completion script\nais completion > ~/.zsh/ais_completion.zsh 2>/dev/null && source ~/.zsh/ais_completion.zsh\n# more config';
-      const result = completionModule.removeCompletionCode(content);
-      expect(result).not.toContain('# ais shell completion');
-      expect(result).not.toContain('# Save and source AIS completion script');
-      expect(result).not.toContain('ais completion > ~/.zsh/ais_completion.zsh');
-      expect(result).toContain('# some config');
-      expect(result).toContain('# more config');
-    });
-
-    it('should remove legacy fish format', () => {
-      const content = '# some config\n# ais shell completion\nais completion fish | source\n# more config';
-      const result = completionModule.removeCompletionCode(content);
-      expect(result).not.toContain('# ais shell completion');
-      expect(result).not.toContain('ais completion fish | source');
-      expect(result).toContain('# some config');
-      expect(result).toContain('# more config');
-    });
-
-    it('should handle mixed old and new formats', () => {
-      const content = `# config\n# ais shell completion\neval "$(ais completion)"\n${completionModule.COMPLETION_START_MARKER}\nsome content\n${completionModule.COMPLETION_END_MARKER}\n# end`;
-      const result = completionModule.removeCompletionCode(content);
-      expect(result).not.toContain('# ais shell completion');
       expect(result).not.toContain(completionModule.COMPLETION_START_MARKER);
+      expect(result).toContain('export PATH=/usr/bin:$PATH');
       expect(result).toContain('# config');
       expect(result).toContain('# end');
     });
 
     it('should clean up multiple consecutive empty lines', () => {
-      const content = '# config\n\n\n\n# ais shell completion\neval "$(ais completion)"\n\n\n# end';
+      const content = '# config\n\n\n\nline\n\n\n# end';
       const result = completionModule.removeCompletionCode(content);
       // Should not have more than 2 consecutive newlines
       expect(result).not.toMatch(/\n{3,}/);
@@ -233,15 +191,6 @@ describe('Completion Module', () => {
     it('should return alreadyInstalled true if completion exists (new format)', async () => {
       vi.mocked(fs.pathExists).mockResolvedValue(true);
       vi.mocked(fs.readFile).mockResolvedValue(`${completionModule.COMPLETION_START_MARKER}\neval "$(ais completion)"\n${completionModule.COMPLETION_END_MARKER}`);
-
-      const result = await completionModule.installCompletionToFile('zsh');
-      expect(result.alreadyInstalled).toBe(true);
-      expect(result.success).toBe(true);
-    });
-
-    it('should return alreadyInstalled true if completion exists (legacy format)', async () => {
-      vi.mocked(fs.pathExists).mockResolvedValue(true);
-      vi.mocked(fs.readFile).mockResolvedValue('# ais shell completion\neval "$(ais completion)"');
 
       const result = await completionModule.installCompletionToFile('zsh');
       expect(result.alreadyInstalled).toBe(true);

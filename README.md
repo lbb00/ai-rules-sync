@@ -1128,13 +1128,12 @@ ais cursor add company-secrets --local
 - Should be in `.gitignore` (AIS adds it automatically)
 - Merges with main config (local takes precedence)
 
-### Legacy Compatibility
+### Config Compatibility
 
-**Old `cursor-rules.json` format is still supported:**
+AIS only reads and writes:
 
-- If `ai-rules-sync.json` doesn't exist but `cursor-rules.json` does, AIS will read it
-- Running any write command (add/remove) will migrate to new format
-- Only Cursor rules are supported in legacy format
+- `ai-rules-sync.json`
+- `ai-rules-sync.local.json`
 
 ---
 

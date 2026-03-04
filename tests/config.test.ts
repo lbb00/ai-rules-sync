@@ -45,20 +45,6 @@ describe('Config Module', () => {
     expect(config).toEqual(mockConfig);
   });
 
-  it('should migrate legacy config correctly', async () => {
-    const legacyConfig = { repoUrl: 'http://old.git' };
-    vi.mocked(fs.pathExists).mockResolvedValueOnce(true); // config exists
-    vi.mocked(fs.readJson).mockResolvedValue(legacyConfig);
-    // For migration check
-    vi.mocked(fs.pathExists).mockResolvedValue(false); // old repo dir check or default path check
-
-    const config = await configModule.getConfig();
-
-    expect(config.currentRepo).toBe('default');
-    expect(config.repos.default.url).toBe('http://old.git');
-    expect(config.repos.default.name).toBe('default');
-  });
-
   it('should save config correctly', async () => {
     vi.mocked(fs.pathExists).mockResolvedValue(false); // no existing config
 
@@ -79,16 +65,4 @@ describe('Config Module', () => {
     );
   });
 
-  it('should remove legacy repoUrl field when saving', async () => {
-    vi.mocked(fs.pathExists).mockResolvedValue(false);
-
-    await configModule.setConfig({ repoUrl: 'legacy' } as any);
-
-    expect(fs.writeJson).toHaveBeenCalledWith(
-        mockConfigFile,
-        expect.not.objectContaining({ repoUrl: 'legacy' }),
-        { spaces: 2 }
-    );
-  });
 });
-

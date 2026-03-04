@@ -7,45 +7,11 @@ import os from 'os';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 import { SyncAdapter } from '../adapters/types.js';
-import { getCombinedProjectConfig, getConfigSource, RuleEntry, ProjectConfig } from '../project-config.js';
+import { RuleEntry } from '../project-config.js';
 import { getConfig, setConfig, getReposBaseDir, getUserProjectConfig, getUserConfigPath, RepoConfig } from '../config.js';
 import { cloneOrUpdateRepo } from '../git.js';
 import { parseConfigEntry } from './helpers.js';
 import type { RepoResolverFn } from '../dotany/types.js';
-
-const LOCAL_CONFIG_FILENAME = 'ai-rules-sync.local.json';
-
-/**
- * Read local config entries for a specific adapter
- */
-async function getLocalEntries(
-    projectPath: string,
-    adapter: SyncAdapter
-): Promise<Record<string, RuleEntry>> {
-    const source = await getConfigSource(projectPath);
-    const localFileName = source === 'new' ? 'ai-rules-sync.local.json' : 'cursor-rules.local.json';
-    const localPath = path.join(projectPath, localFileName);
-
-    if (!await fs.pathExists(localPath)) {
-        return {};
-    }
-
-    try {
-        const raw = await fs.readJson(localPath);
-        const [topLevel, subLevel] = adapter.configPath;
-
-        if (source === 'new') {
-            return (raw as any)?.[topLevel]?.[subLevel] || {};
-        } else {
-            // Legacy format only has cursor.rules
-            return adapter.configPath[0] === 'cursor' && adapter.configPath[1] === 'rules'
-                ? (raw?.rules || {})
-                : {};
-        }
-    } catch {
-        return {};
-    }
-}
 
 /**
  * Find or create a repo configuration
@@ -84,74 +50,25 @@ async function findOrCreateRepo(
 }
 
 /**
- * Get entries from project config for a specific adapter
- */
-function getEntriesFromConfig(
-    config: ProjectConfig,
-    adapter: SyncAdapter
-): Record<string, RuleEntry> | undefined {
-    const [topLevel, subLevel] = adapter.configPath;
-    return (config as any)?.[topLevel]?.[subLevel];
-}
-
-/**
  * Generic install function - works with any adapter.
- * Uses manager.apply() when the adapter supports forProject() (dotfile API).
- * Falls back to manual loop for adapters without forProject().
+ * Uses manager.apply() from the dotfile API.
  */
 export async function installEntriesForAdapter(
     adapter: SyncAdapter,
     projectPath: string
 ): Promise<void> {
-    if (adapter.forProject) {
-        // Modern path: use manager.apply() which reads manifest and re-links all entries
-        const globalConfig = await getConfig();
-        const repos = globalConfig.repos || {};
-
-        const repoResolver: RepoResolverFn = (repoUrl: string, entryName: string) =>
-            findOrCreateRepo(repos, repoUrl, entryName);
-
-        const manager = adapter.forProject(projectPath, repoResolver);
-        const result = await manager.apply();
-
-        if (result.linked.length === 0 && result.skipped.length === 0) {
-            console.log(chalk.yellow(`No ${adapter.tool} ${adapter.subtype} found in ai-rules-sync*.json.`));
-            return;
-        }
-        console.log(chalk.green(`All ${adapter.tool} ${adapter.subtype} installed successfully.`));
-        return;
-    }
-
-    // Legacy fallback: manual loop for adapters without forProject()
-    const config = await getCombinedProjectConfig(projectPath);
-    const entries = getEntriesFromConfig(config, adapter);
-
-    if (!entries || Object.keys(entries).length === 0) {
-        console.log(chalk.yellow(`No ${adapter.tool} ${adapter.subtype} found in ai-rules-sync*.json.`));
-        return;
-    }
-
     const globalConfig = await getConfig();
     const repos = globalConfig.repos || {};
-    const localEntries = await getLocalEntries(projectPath, adapter);
 
-    for (const [key, value] of Object.entries(entries)) {
-        const { repoUrl, entryName, alias } = parseConfigEntry(key, value);
+    const repoResolver: RepoResolverFn = (repoUrl: string, entryName: string) =>
+        findOrCreateRepo(repos, repoUrl, entryName);
 
-        console.log(chalk.blue(`Installing ${adapter.tool} ${adapter.subtype} "${entryName}" (as "${key}") from ${repoUrl}...`));
+    const manager = adapter.forProject(projectPath, repoResolver);
+    const result = await manager.apply();
 
-        const repoConfig = await findOrCreateRepo(repos, repoUrl, entryName);
-        const isLocal = Object.prototype.hasOwnProperty.call(localEntries, key);
-        const targetDir = typeof value === 'object' && value.targetDir ? value.targetDir : undefined;
-
-        await adapter.link({
-            projectPath,
-            name: entryName,
-            repo: repoConfig,
-            alias,
-            isLocal,
-            targetDir
-        });
+    if (result.linked.length === 0 && result.skipped.length === 0) {
+        console.log(chalk.yellow(`No ${adapter.tool} ${adapter.subtype} found in ai-rules-sync*.json.`));
+        return;
     }
 
     console.log(chalk.green(`All ${adapter.tool} ${adapter.subtype} installed successfully.`));
@@ -211,13 +128,6 @@ export async function installUserEntriesForAdapter(
     console.log(chalk.green(`All user ${adapter.tool} ${adapter.subtype} installed successfully.`));
 }
 
-/** @deprecated Use installUserEntriesForAdapter() instead */
-export async function installGlobalEntriesForAdapter(
-    adapter: SyncAdapter
-): Promise<void> {
-    return installUserEntriesForAdapter(adapter);
-}
-
 /**
  * Install all user entries for all adapters
  */
@@ -248,11 +158,3 @@ export async function installAllUserEntries(
 
     return { total };
 }
-
-/** @deprecated Use installAllUserEntries() instead */
-export async function installAllGlobalEntries(
-    adapters: SyncAdapter[]
-): Promise<{ total: number }> {
-    return installAllUserEntries(adapters);
-}
-

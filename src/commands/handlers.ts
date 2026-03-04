@@ -7,7 +7,7 @@ import chalk from 'chalk';
 import fs from 'fs-extra';
 import { RepoConfig, getUserConfigPath, getUserProjectConfig } from '../config.js';
 import { SyncAdapter } from '../adapters/types.js';
-import { linkEntry, unlinkEntry, importEntry, ImportOptions } from '../sync-engine.js';
+import { importEntry, ImportOptions } from '../sync-engine.js';
 import { addIgnoreEntry, removeIgnoreEntry } from '../utils.js';
 import { addUserDependency, removeUserDependency, getCombinedProjectConfig, getRepoSourceConfig, getSourceDir, getTargetDir } from '../project-config.js';
 
@@ -20,8 +20,6 @@ export interface CommandContext {
   isLocal: boolean;
   /** When true, uses user config (user.json) instead of project config */
   user?: boolean;
-  /** @deprecated Use user instead */
-  global?: boolean;
   /** When true, skip gitignore management (used for user mode) */
   skipIgnore?: boolean;
 }
@@ -34,8 +32,6 @@ export interface AddOptions {
   targetDir?: string;
   /** When true, uses user config (user.json) instead of project config */
   user?: boolean;
-  /** @deprecated Use user instead */
-  global?: boolean;
 }
 
 /**
@@ -45,7 +41,6 @@ export interface AddResult {
   sourceName: string;
   targetName: string;
   linked: boolean;
-  migrated: boolean;
 }
 
 /**
@@ -96,8 +91,7 @@ export async function handleAdd(
     }
   }
 
-  let migrated = false;
-  if (ctx.user || ctx.global) {
+  if (ctx.user) {
     // User mode: link only (no manifest for user mode via forProject)
     const result = await adapter.link({
       projectPath: ctx.projectPath,
@@ -120,92 +114,46 @@ export async function handleAdd(
     return {
       sourceName: result.sourceName,
       targetName: result.targetName,
-      linked: result.linked,
-      migrated: false
+      linked: result.linked
     };
   }
 
   // Project mode: use forProject().add() to do symlink + manifest in one step
-  if (adapter.forProject) {
-    const manager = adapter.forProject(ctx.projectPath, ctx.repo, ctx.isLocal);
-    const result = await manager.add(name, {
-      alias,
-      targetDir: options?.targetDir,
-      repoUrl: ctx.repo.url,
-    });
+  const manager = adapter.forProject(ctx.projectPath, ctx.repo, ctx.isLocal);
+  const result = await manager.add(name, {
+    alias,
+    targetDir: options?.targetDir,
+    repoUrl: ctx.repo.url,
+  });
 
-    // Ignore file management (ai-rules-sync specific, not dotfile layer responsibility)
-    if (result.linked) {
-      const relEntry = path.relative(path.resolve(ctx.projectPath), result.targetPath);
-      if (ctx.isLocal) {
-        const gitInfoExclude = path.join(ctx.projectPath, '.git', 'info', 'exclude');
-        if (await fs.pathExists(path.dirname(gitInfoExclude))) {
-          await fs.ensureFile(gitInfoExclude);
-          if (await addIgnoreEntry(gitInfoExclude, relEntry, '# AI Rules Sync')) {
-            console.log(chalk.green(`Added "${relEntry}" to .git/info/exclude.`));
-          } else {
-            console.log(chalk.gray(`"${relEntry}" already in .git/info/exclude.`));
-          }
+  // Ignore file management (ai-rules-sync specific, not dotfile layer responsibility)
+  if (result.linked) {
+    const relEntry = path.relative(path.resolve(ctx.projectPath), result.targetPath);
+    if (ctx.isLocal) {
+      const gitInfoExclude = path.join(ctx.projectPath, '.git', 'info', 'exclude');
+      if (await fs.pathExists(path.dirname(gitInfoExclude))) {
+        await fs.ensureFile(gitInfoExclude);
+        if (await addIgnoreEntry(gitInfoExclude, relEntry, '# AI Rules Sync')) {
+          console.log(chalk.green(`Added "${relEntry}" to .git/info/exclude.`));
         } else {
-          console.log(chalk.yellow(`Warning: Could not find .git/info/exclude. Skipping automatic ignore for private entry.`));
-          console.log(chalk.yellow(`Please manually add "${relEntry}" to your private ignore file.`));
+          console.log(chalk.gray(`"${relEntry}" already in .git/info/exclude.`));
         }
       } else {
-        const gitignorePath = path.join(ctx.projectPath, '.gitignore');
-        if (await addIgnoreEntry(gitignorePath, relEntry, '# AI Rules Sync')) {
-          console.log(chalk.green(`Added "${relEntry}" to .gitignore.`));
-        } else {
-          console.log(chalk.gray(`"${relEntry}" already in .gitignore.`));
-        }
+        console.log(chalk.yellow(`Warning: Could not find .git/info/exclude. Skipping automatic ignore for private entry.`));
+        console.log(chalk.yellow(`Please manually add "${relEntry}" to your private ignore file.`));
       }
-    }
-
-    const configFileName = ctx.isLocal ? 'ai-rules-sync.local.json' : 'ai-rules-sync.json';
-    console.log(chalk.green(`Updated ${configFileName} dependency.`));
-
-    if (ctx.isLocal) {
+    } else {
       const gitignorePath = path.join(ctx.projectPath, '.gitignore');
-      const added = await addIgnoreEntry(gitignorePath, 'ai-rules-sync.local.json', '# Local AI Rules Sync Config');
-      if (added) {
-        console.log(chalk.green(`Added "ai-rules-sync.local.json" to .gitignore.`));
+      if (await addIgnoreEntry(gitignorePath, relEntry, '# AI Rules Sync')) {
+        console.log(chalk.green(`Added "${relEntry}" to .gitignore.`));
+      } else {
+        console.log(chalk.gray(`"${relEntry}" already in .gitignore.`));
       }
     }
-
-    return {
-      sourceName: result.sourceName,
-      targetName: result.targetName,
-      linked: result.linked,
-      migrated: false
-    };
   }
-
-  // Legacy fallback: separate link + addDependency calls
-  const result = await adapter.link({
-    projectPath: ctx.projectPath,
-    name,
-    repo: ctx.repo,
-    alias,
-    isLocal: ctx.isLocal,
-    targetDir: options?.targetDir,
-    skipIgnore: ctx.skipIgnore
-  });
-  const depAlias = alias || (result.targetName === result.sourceName ? undefined : result.targetName);
-  const migration = await adapter.addDependency(
-    ctx.projectPath,
-    result.sourceName,
-    ctx.repo.url,
-    depAlias,
-    ctx.isLocal,
-    options?.targetDir
-  );
-  migrated = migration.migrated;
 
   const configFileName = ctx.isLocal ? 'ai-rules-sync.local.json' : 'ai-rules-sync.json';
   console.log(chalk.green(`Updated ${configFileName} dependency.`));
-
-  if (migrated) {
-    console.log(chalk.yellow('Detected legacy "cursor-rules*.json". Migrated to "ai-rules-sync*.json". Consider deleting the legacy files to avoid ambiguity.'));
-  }
 
   if (ctx.isLocal) {
     const gitignorePath = path.join(ctx.projectPath, '.gitignore');
@@ -218,8 +166,7 @@ export async function handleAdd(
   return {
     sourceName: result.sourceName,
     targetName: result.targetName,
-    linked: result.linked,
-    migrated
+    linked: result.linked
   };
 }
 
@@ -228,7 +175,6 @@ export async function handleAdd(
  */
 export interface RemoveResult {
   removedFrom: string[];
-  migrated: boolean;
 }
 
 export interface RemoveCommandOptions {
@@ -249,8 +195,7 @@ async function getConfigHitsForAlias(
   adapter: SyncAdapter,
   projectPath: string,
   alias: string,
-  isUser: boolean,
-  includeLegacy: boolean = true
+  isUser: boolean
 ): Promise<string[]> {
   const [topLevel, subLevel] = adapter.configPath;
   const hits: string[] = [];
@@ -278,26 +223,6 @@ async function getConfigHitsForAlias(
     const localConfig = await fs.readJson(localPath);
     if (localConfig?.[topLevel]?.[subLevel]?.[alias]) {
       hits.push('ai-rules-sync.local.json');
-    }
-  }
-
-  // Legacy support for Cursor rules.
-  if (includeLegacy && adapter.tool === 'cursor' && adapter.subtype === 'rules') {
-    const legacyMainPath = path.join(projectPath, 'cursor-rules.json');
-    const legacyLocalPath = path.join(projectPath, 'cursor-rules.local.json');
-
-    if (await fs.pathExists(legacyMainPath)) {
-      const legacyMain = await fs.readJson(legacyMainPath);
-      if (legacyMain?.rules?.[alias]) {
-        hits.push('cursor-rules.json');
-      }
-    }
-
-    if (await fs.pathExists(legacyLocalPath)) {
-      const legacyLocal = await fs.readJson(legacyLocalPath);
-      if (legacyLocal?.rules?.[alias]) {
-        hits.push('cursor-rules.local.json');
-      }
     }
   }
 
@@ -376,8 +301,7 @@ export async function handleRemove(
     }
 
     return {
-      removedFrom: hits,
-      migrated: false
+      removedFrom: hits
     };
   }
 
@@ -391,71 +315,53 @@ export async function handleRemove(
       console.log(chalk.yellow(`"${alias}" was not found in user config.`));
     }
 
-    return { removedFrom, migrated: false };
+    return { removedFrom };
   }
 
   // Project mode: use forProject().remove() to do symlink deletion + manifest update in one step
-  if (adapter.forProject) {
-    const removedFrom = await getConfigHitsForAlias(adapter, projectPath, alias, false, false);
-    const target = await resolveRemoveTargetPath(adapter, projectPath, alias, false);
-    const projectRoot = path.resolve(projectPath);
-    const targetDirAbsolute = path.dirname(target.targetPath);
-    const ignoreEntries = new Set<string>();
+  const removedFrom = await getConfigHitsForAlias(adapter, projectPath, alias, false);
+  const target = await resolveRemoveTargetPath(adapter, projectPath, alias, false);
+  const projectRoot = path.resolve(projectPath);
+  const targetDirAbsolute = path.dirname(target.targetPath);
+  const ignoreEntries = new Set<string>();
 
-    const addIgnoreCandidate = (baseName: string): void => {
-      const relativePath = path.relative(projectRoot, path.join(targetDirAbsolute, baseName));
-      if (relativePath && relativePath !== '.') {
-        ignoreEntries.add(relativePath);
-      }
-    };
-
-    addIgnoreCandidate(alias);
-    if (target.exists) {
-      addIgnoreCandidate(path.basename(target.targetPath));
+  const addIgnoreCandidate = (baseName: string): void => {
+    const relativePath = path.relative(projectRoot, path.join(targetDirAbsolute, baseName));
+    if (relativePath && relativePath !== '.') {
+      ignoreEntries.add(relativePath);
     }
+  };
 
-    const suffixes = adapter.fileSuffixes || adapter.hybridFileSuffixes;
-    if (suffixes && suffixes.length > 0) {
-      for (const suffix of suffixes) {
-        if (!alias.endsWith(suffix)) {
-          addIgnoreCandidate(`${alias}${suffix}`);
-        }
-      }
-    }
-
-    await adapter.forProject(projectPath, null, false).remove(alias);
-
-    // Ignore cleanup — try both gitignore and git/info/exclude since we don't know
-    // which was used when the entry was originally added
-    const gitignorePath = path.join(projectPath, '.gitignore');
-    const gitInfoExclude = path.join(projectPath, '.git', 'info', 'exclude');
-    for (const entry of ignoreEntries) {
-      if (await removeIgnoreEntry(gitignorePath, entry)) {
-        console.log(chalk.green(`Removed "${entry}" from .gitignore.`));
-      }
-      if (await removeIgnoreEntry(gitInfoExclude, entry)) {
-        console.log(chalk.green(`Removed "${entry}" from .git/info/exclude.`));
-      }
-    }
-
-    return { removedFrom, migrated: false };
+  addIgnoreCandidate(alias);
+  if (target.exists) {
+    addIgnoreCandidate(path.basename(target.targetPath));
   }
 
-  // Legacy fallback
-  await adapter.unlink(projectPath, alias);
-  const { removedFrom, migrated } = await adapter.removeDependency(projectPath, alias);
-
-  if (removedFrom.length > 0) {
-    console.log(chalk.green(`Removed "${alias}" from configuration: ${removedFrom.join(', ')}`));
-  } else {
-    console.log(chalk.yellow(`"${alias}" was not found in any configuration file.`));
+  const suffixes = adapter.fileSuffixes || adapter.hybridFileSuffixes;
+  if (suffixes && suffixes.length > 0) {
+    for (const suffix of suffixes) {
+      if (!alias.endsWith(suffix)) {
+        addIgnoreCandidate(`${alias}${suffix}`);
+      }
+    }
   }
 
-  if (migrated) {
-    console.log(chalk.yellow('Detected legacy "cursor-rules*.json". Migrated to "ai-rules-sync*.json". Consider deleting the legacy files to avoid ambiguity.'));
+  await adapter.forProject(projectPath, null, false).remove(alias);
+
+  // Ignore cleanup — try both gitignore and git/info/exclude since we don't know
+  // which was used when the entry was originally added
+  const gitignorePath = path.join(projectPath, '.gitignore');
+  const gitInfoExclude = path.join(projectPath, '.git', 'info', 'exclude');
+  for (const entry of ignoreEntries) {
+    if (await removeIgnoreEntry(gitignorePath, entry)) {
+      console.log(chalk.green(`Removed "${entry}" from .gitignore.`));
+    }
+    if (await removeIgnoreEntry(gitInfoExclude, entry)) {
+      console.log(chalk.green(`Removed "${entry}" from .git/info/exclude.`));
+    }
   }
 
-  return { removedFrom, migrated };
+  return { removedFrom };
 }
 
 /**

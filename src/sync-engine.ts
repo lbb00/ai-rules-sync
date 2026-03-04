@@ -271,42 +271,14 @@ export async function importEntry(
     const destPath = path.join(repoDir, sourceDir, name);
     const relativePath = path.relative(repoDir, destPath);
 
-    let sourceName: string;
-    let targetName: string;
-
-    if (adapter.forProject) {
-        // Modern path: delegate all fs operations (copy, remove, symlink) to manager.import()
-        const manager = adapter.forProject(projectPath, repo, options.isLocal);
-        const linkResult = await manager.import(targetPath, name, {
-            force,
-            repoUrl: repo.url,
-        });
-        sourceName = linkResult.sourceName;
-        targetName = linkResult.targetName;
-    } else {
-        // Legacy path: manual fs operations
-        if (!await fs.pathExists(targetPath)) {
-            throw new Error(`Entry "${name}" not found in project at ${targetPath}`);
-        }
-        const stats = await fs.lstat(targetPath);
-        if (stats.isSymbolicLink()) {
-            throw new Error(`Entry "${name}" is already a symlink (already managed by ai-rules-sync)`);
-        }
-        if (await fs.pathExists(destPath)) {
-            if (!force) {
-                throw new Error(`Entry "${name}" already exists in rules repository at ${destPath}. Use --force to overwrite.`);
-            }
-            console.log(chalk.yellow(`Entry "${name}" already exists in repository. Overwriting (--force)...`));
-            await fs.remove(destPath);
-        }
-        await fs.copy(targetPath, destPath);
-        console.log(chalk.green(`Copied "${name}" to rules repository.`));
-        await fs.remove(targetPath);
-        console.log(chalk.green(`Removed original from project.`));
-        const linkResult = await adapter.link(options);
-        sourceName = linkResult.sourceName;
-        targetName = linkResult.targetName;
-    }
+    // Delegate all fs operations (copy, remove, symlink) to manager.import()
+    const manager = adapter.forProject(projectPath, repo, options.isLocal);
+    const linkResult = await manager.import(targetPath, name, {
+        force,
+        repoUrl: repo.url,
+    });
+    const sourceName = linkResult.sourceName;
+    const targetName = linkResult.targetName;
 
     // Git add and commit (ai-rules-sync specific, stays in sync-engine)
     await execa('git', ['add', relativePath], { cwd: repoDir });

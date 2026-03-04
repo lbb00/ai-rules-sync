@@ -8,7 +8,7 @@ const SUFFIX = '.md';
  * Mode: file - links individual .md files from .claude/ directory
  *
  * Global mode usage:
- *   ais claude md add CLAUDE --global
+ *   ais claude md add CLAUDE --user
  *   → creates symlink at ~/.claude/CLAUDE.md
  *
  * Project mode usage:

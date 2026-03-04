@@ -165,7 +165,7 @@ function getAliasSectionConfig(cfg: ProjectConfig, adapter: SyncAdapter): Record
         return undefined;
     }
 
-    // AGENTS.md dependencies are stored in flat `agentsMd` object for backward compatibility.
+    // AGENTS.md dependencies use a flat `agentsMd` object.
     if (topLevel === 'agentsMd') {
         return top as Record<string, unknown>;
     }

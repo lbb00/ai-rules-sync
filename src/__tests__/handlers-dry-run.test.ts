@@ -19,15 +19,18 @@ describe('handleRemove dry-run', () => {
       targetDir: '.cursor/rules',
       mode: 'hybrid',
       hybridFileSuffixes: ['.md', '.mdc'],
-      addDependency: vi.fn(async () => ({ migrated: false })),
-      removeDependency: vi.fn(async () => ({ removedFrom: [], migrated: false })),
+      forProject: vi.fn(() => {
+        throw new Error('forProject should not be called in dry-run');
+      }) as any,
+      addDependency: vi.fn(async () => {}),
+      removeDependency: vi.fn(async () => ({ removedFrom: [] })),
       link: vi.fn(async () => ({ sourceName: 'rule', targetName: 'rule', linked: true })),
       unlink: vi.fn(async () => {})
     };
 
     const result = await handleRemove(adapter, projectPath, 'react', false, { dryRun: true });
 
-    expect(result).toEqual({ removedFrom: [], migrated: false });
+    expect(result).toEqual({ removedFrom: [] });
     expect(adapter.unlink).not.toHaveBeenCalled();
     expect(adapter.removeDependency).not.toHaveBeenCalled();
   });

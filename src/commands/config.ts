@@ -175,11 +175,6 @@ export async function handleUserConfigShow(): Promise<void> {
     console.log(`User config path: ${chalk.cyan(displayPath)} ${label}`);
 }
 
-/** @deprecated Use handleUserConfigShow() instead */
-export async function handleGlobalConfigShow(): Promise<void> {
-    return handleUserConfigShow();
-}
-
 /**
  * Set a custom user config path
  */
@@ -194,11 +189,6 @@ export async function handleUserConfigSet(customPath: string): Promise<void> {
     console.log(chalk.green(`✓ User config path set to: ${chalk.cyan(stored)}`));
 }
 
-/** @deprecated Use handleUserConfigSet() instead */
-export async function handleGlobalConfigSet(customPath: string): Promise<void> {
-    return handleUserConfigSet(customPath);
-}
-
 /**
  * Reset user config path to default
  */
@@ -211,9 +201,4 @@ export async function handleUserConfigReset(): Promise<void> {
     } else {
         console.log(chalk.gray('User config path is already at default.'));
     }
-}
-
-/** @deprecated Use handleUserConfigReset() instead */
-export async function handleGlobalConfigReset(): Promise<void> {
-    return handleUserConfigReset();
 }

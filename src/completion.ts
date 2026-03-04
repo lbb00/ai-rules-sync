@@ -11,16 +11,6 @@ export type ShellType = 'bash' | 'zsh' | 'fish' | 'unknown';
 export const COMPLETION_START_MARKER = '# >>> ais shell completion >>>';
 export const COMPLETION_END_MARKER = '# <<< ais shell completion <<<';
 
-// Legacy patterns for backward compatibility (removing old format)
-const LEGACY_PATTERNS = [
-    '# ais shell completion',
-    '# Save and source AIS completion script',
-    'ais completion fish | source',
-    'eval "$(ais completion)"',
-    'ais completion > ~/.zsh/ais_completion.zsh',
-    'source ~/.zsh/ais_completion.zsh',
-];
-
 /**
  * Detect the current shell type from environment variable
  */
@@ -82,7 +72,7 @@ export function getCompletionSnippet(shell: ShellType): string {
 
 /**
  * Check if completion is already installed in the config file
- * Detects both new block format and legacy format
+ * Detects marker-based block format.
  */
 export async function isCompletionInstalled(configPath: string): Promise<boolean> {
   if (!await fs.pathExists(configPath)) {
@@ -90,14 +80,7 @@ export async function isCompletionInstalled(configPath: string): Promise<boolean
   }
 
   const content = await fs.readFile(configPath, 'utf-8');
-
-  // Check for new block format
-  if (content.includes(COMPLETION_START_MARKER)) {
-    return true;
-  }
-
-  // Check for legacy patterns
-  return content.includes('# ais shell completion') || content.includes('ais completion');
+  return content.includes(COMPLETION_START_MARKER);
 }
 
 /**
@@ -252,28 +235,17 @@ async function doInstall(shell: ShellType, configPath: string): Promise<void> {
 }
 
 /**
- * Remove all ais completion code from content (both new block format and legacy format)
+ * Remove marker-based ais completion block from content.
  */
 export function removeCompletionCode(content: string): string {
-  // First, remove new block format using regex
+  // Remove block format using regex.
   // Match: optional newline, start marker, any content, end marker, optional newline
   const blockRegex = new RegExp(
     `\\n?${escapeRegex(COMPLETION_START_MARKER)}[\\s\\S]*?${escapeRegex(COMPLETION_END_MARKER)}\\n?`,
     'g'
   );
   content = content.replace(blockRegex, '\n');
-
-  // Then, remove any legacy patterns (line by line)
-  const lines = content.split('\n');
-  const filteredLines = lines.filter(line => {
-    return !LEGACY_PATTERNS.some(pattern => line.includes(pattern));
-  });
-
-  // Clean up multiple consecutive empty lines
-  let result = filteredLines.join('\n');
-  result = result.replace(/\n{3,}/g, '\n\n');
-
-  return result;
+  return content.replace(/\n{3,}/g, '\n\n');
 }
 
 /**

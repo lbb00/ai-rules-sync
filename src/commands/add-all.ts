@@ -5,7 +5,6 @@ import readline from 'readline';
 import { RepoConfig } from '../config.js';
 import { SyncAdapter, AdapterRegistry } from '../adapters/types.js';
 import { getRepoSourceConfig, getSourceDir, getCombinedProjectConfig } from '../project-config.js';
-import { linkEntry } from '../sync-engine.js';
 
 /**
  * Simple yes/no prompt using readline

@@ -1128,13 +1128,12 @@ ais cursor add company-secrets --local
 - 应在 `.gitignore` 中（AIS 自动添加）
 - 与主配置合并（本地优先）
 
-### Legacy 兼容性
+### 配置兼容性
 
-**旧的 `cursor-rules.json` 格式仍然支持：**
+AIS 仅读取和写入：
 
-- 如果 `ai-rules-sync.json` 不存在但 `cursor-rules.json` 存在，AIS 会读取它
-- 运行任何写命令（add/remove）会迁移到新格式
-- Legacy 格式仅支持 Cursor 规则
+- `ai-rules-sync.json`
+- `ai-rules-sync.local.json`
 
 ---
 

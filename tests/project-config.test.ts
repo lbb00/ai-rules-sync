@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import path from 'path';
 import fs from 'fs-extra';
-import { getConfigSource, getCombinedProjectConfig, migrateLegacyToNew, getRepoSourceConfig, getSourceDir } from '../src/project-config.js';
+import { getConfigSource, getCombinedProjectConfig, getRepoSourceConfig, getSourceDir } from '../src/project-config.js';
 import { findAdapterForAlias } from '../src/adapters/index.js';
 
 vi.mock('fs-extra');
 
-describe('project-config (ai-rules-sync + legacy compat)', () => {
+describe('project-config (ai-rules-sync)', () => {
   const projectPath = '/mock/project';
 
   beforeEach(() => {
@@ -18,7 +18,6 @@ describe('project-config (ai-rules-sync + legacy compat)', () => {
   it('prefers new config when ai-rules-sync.json exists', async () => {
     vi.mocked(fs.pathExists).mockImplementation(async (p) => {
       if (p === path.join(projectPath, 'ai-rules-sync.json')) return true;
-      if (p === path.join(projectPath, 'cursor-rules.json')) return true; // should be ignored
       return false;
     });
 
@@ -26,64 +25,39 @@ describe('project-config (ai-rules-sync + legacy compat)', () => {
     expect(source).toBe('new');
   });
 
-  it('falls back to legacy cursor-rules.json when no new config exists', async () => {
+  it('returns none when no ai-rules-sync config exists', async () => {
     vi.mocked(fs.pathExists).mockImplementation(async (p) => {
       if (p === path.join(projectPath, 'ai-rules-sync.json')) return false;
       if (p === path.join(projectPath, 'ai-rules-sync.local.json')) return false;
-      if (p === path.join(projectPath, 'cursor-rules.json')) return true;
-      if (p === path.join(projectPath, 'cursor-rules.local.json')) return false;
       return false;
     });
 
-    vi.mocked(fs.readJson).mockImplementation(async (p) => {
-      if (p === path.join(projectPath, 'cursor-rules.json')) {
-        return { rules: { react: 'https://example.com/repo.git' } };
-      }
-      return {};
-    });
-
+    const source = await getConfigSource(projectPath);
+    expect(source).toBe('none');
     const combined = await getCombinedProjectConfig(projectPath);
-    expect(combined.cursor?.rules?.react).toBe('https://example.com/repo.git');
-    expect(Object.keys(combined.copilot?.instructions || {})).toHaveLength(0);
+    expect(combined).toEqual({});
   });
 
-  it('migrates legacy cursor-rules*.json into ai-rules-sync*.json on write paths', async () => {
+  it('merges main/local ai-rules-sync configs', async () => {
     vi.mocked(fs.pathExists).mockImplementation(async (p) => {
-      if (p === path.join(projectPath, 'ai-rules-sync.json')) return false;
-      if (p === path.join(projectPath, 'ai-rules-sync.local.json')) return false;
-      if (p === path.join(projectPath, 'cursor-rules.json')) return true;
-      if (p === path.join(projectPath, 'cursor-rules.local.json')) return true;
+      if (p === path.join(projectPath, 'ai-rules-sync.json')) return true;
+      if (p === path.join(projectPath, 'ai-rules-sync.local.json')) return true;
       return false;
     });
 
     vi.mocked(fs.readJson).mockImplementation(async (p) => {
-      if (p === path.join(projectPath, 'cursor-rules.json')) {
-        return { rules: { a: 'url-a' } };
+      if (p === path.join(projectPath, 'ai-rules-sync.json')) {
+        return { cursor: { rules: { a: 'url-a' } } };
       }
-      if (p === path.join(projectPath, 'cursor-rules.local.json')) {
-        return { rules: { b: { url: 'url-b', rule: 'bb' } } };
+      if (p === path.join(projectPath, 'ai-rules-sync.local.json')) {
+        return { cursor: { rules: { b: { url: 'url-b', rule: 'bb' } } } };
       }
       return {};
     });
 
-    const res = await migrateLegacyToNew(projectPath);
-    expect(res.migrated).toBe(true);
-
-    expect(fs.writeJson).toHaveBeenCalledWith(
-      path.join(projectPath, 'ai-rules-sync.json'),
-      expect.objectContaining({
-        cursor: { rules: { a: 'url-a' } },
-      }),
-      { spaces: 2 }
-    );
-
-    expect(fs.writeJson).toHaveBeenCalledWith(
-      path.join(projectPath, 'ai-rules-sync.local.json'),
-      expect.objectContaining({
-        cursor: { rules: { b: { url: 'url-b', rule: 'bb' } } },
-      }),
-      { spaces: 2 }
-    );
+    const config = await getCombinedProjectConfig(projectPath);
+    expect(config.cursor?.rules?.a).toBe('url-a');
+    expect(config.cursor?.rules?.b).toEqual({ url: 'url-b', rule: 'bb' });
   });
 });
 
@@ -115,23 +89,6 @@ describe('getRepoSourceConfig - sourceDir format', () => {
     expect(config.cursor?.rules).toBe('.cursor/rules');
     expect(config.cursor?.commands).toBe('.cursor/commands');
     expect(config.copilot?.instructions).toBe('.github/instructions');
-  });
-
-  it('parses legacy flat format (string values) correctly', async () => {
-    vi.mocked(fs.pathExists).mockResolvedValue(true);
-    vi.mocked(fs.readJson).mockResolvedValue({
-      rootPath: 'config',
-      cursor: {
-        rules: 'custom-rules',
-        commands: 'custom-commands'
-      }
-    });
-
-    const config = await getRepoSourceConfig(repoPath);
-
-    expect(config.rootPath).toBe('config');
-    expect(config.cursor?.rules).toBe('custom-rules');
-    expect(config.cursor?.commands).toBe('custom-commands');
   });
 
   it('returns empty config when cursor/copilot are dependency records (not source dirs)', async () => {

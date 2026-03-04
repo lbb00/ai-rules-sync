@@ -59,7 +59,7 @@ export interface SyncAdapter {
      * Provides the full dotfile API (add, remove, apply, diff, status, import, readManifest).
      * Pass null as repo for remove-only operations (no source resolution needed).
      */
-    forProject?(projectPath: string, repo: RepoConfig | RepoResolverFn | null, isLocal?: boolean): DotfileManager;
+    forProject(projectPath: string, repo: RepoConfig | RepoResolverFn | null, isLocal?: boolean): DotfileManager;
 
     /** Add a dependency to project config */
     addDependency(
@@ -69,13 +69,13 @@ export interface SyncAdapter {
         alias?: string,
         isLocal?: boolean,
         targetDir?: string
-    ): Promise<{ migrated: boolean }>;
+    ): Promise<void>;
 
     /** Remove a dependency from project config */
     removeDependency(
         projectPath: string,
         alias: string
-    ): Promise<{ removedFrom: string[]; migrated: boolean }>;
+    ): Promise<{ removedFrom: string[] }>;
 
     /** Link entry from repo to project (filesystem) */
     link(options: SyncOptions): Promise<LinkResult>;

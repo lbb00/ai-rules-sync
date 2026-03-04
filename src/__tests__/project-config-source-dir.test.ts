@@ -59,35 +59,6 @@ describe('project-config source directory resolution', () => {
     expect(repoConfig.cline?.skills).toBe('.cline/skills');
   });
 
-  it('should parse legacy string-based source paths and ignore dependency objects', async () => {
-    const config = {
-      rootPath: 'legacy-root',
-      cursor: {
-        rules: {
-          localAlias: 'https://example.com/repo.git'
-        }
-      },
-      windsurf: {
-        rules: '.windsurf/rules'
-      },
-      cline: {
-        skills: '.cline/skills'
-      },
-      agentsMd: {
-        file: 'agents-md'
-      }
-    };
-
-    await fs.writeJson(path.join(tempDir, 'ai-rules-sync.json'), config, { spaces: 2 });
-
-    const repoConfig = await getRepoSourceConfig(tempDir);
-    expect(repoConfig.rootPath).toBe('legacy-root');
-    expect(repoConfig.windsurf?.rules).toBe('.windsurf/rules');
-    expect(repoConfig.cline?.skills).toBe('.cline/skills');
-    expect(repoConfig.agentsMd?.file).toBe('agents-md');
-    expect(repoConfig.cursor?.rules).toBeUndefined();
-  });
-
   it('should return only rootPath when config only contains dependency objects', async () => {
     const config: ProjectConfig = {
       rootPath: 'project-root',

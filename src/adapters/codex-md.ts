@@ -8,7 +8,7 @@ const SUFFIX = '.md';
  * Mode: file - links individual .md files from .codex/ directory
  *
  * Global mode usage:
- *   ais codex md add AGENTS --global
+ *   ais codex md add AGENTS --user
  *   → creates symlink at ~/.codex/AGENTS.md
  *
  * Project mode usage:
