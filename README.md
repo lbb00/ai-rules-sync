@@ -45,23 +45,23 @@ Stop copying `.mdc` files around. Manage your rules in Git repositories and sync
 
 ## Installation
 
-### Via Homebrew (macOS/Linux)
+### Via npm (Recommended)
 
 ```bash
-brew tap lbb00/ai-rules-sync
+npm install -g ai-rules-sync
+```
+
+### Via Homebrew (macOS only)
+
+```bash
+brew tap lbb00/ai-rules-sync https://github.com/lbb00/ai-rules-sync
 brew install ais
 
 # one-off install without tap:
 brew install --formula https://raw.githubusercontent.com/lbb00/ai-rules-sync/main/Formula/ais.rb
 ```
 
-> `brew tap lbb00/ai-rules-sync` follows Homebrew's naming convention and resolves to the tap repository `lbb00/homebrew-ai-rules-sync`.
-
-### Via npm
-
-```bash
-npm install -g ai-rules-sync
-```
+> This repository is the tap source. Use the explicit tap URL above to avoid Homebrew's default `homebrew-<repo>` mapping.
 
 **Verify installation:**
 ```bash
@@ -1180,6 +1180,26 @@ ais use <repo-name-or-url>
 # Add to ~/.zshrc before ais completion line:
 autoload -Uz compinit && compinit
 ```
+
+---
+
+## Maintainer Release Automation
+
+Releases are automated with GitHub Actions:
+
+1. Merge the Changesets release PR into `main`.
+2. `release.yml` publishes to npm.
+3. `update-homebrew.yml` updates `Formula/ais.rb` in this repository.
+
+### Required GitHub Secrets
+
+- `NPM_TOKEN`
+
+### Recovery / Rollback
+
+- If npm publish succeeds but Homebrew update fails, rerun:
+  - `Update Homebrew Tap` (`workflow_dispatch`, with `version`)
+- If a bad npm version is published, publish a fixed patch version and let automation sync downstream package channels.
 
 ---
 
