@@ -7,6 +7,12 @@ on:
     paths-ignore:
       - Formula/ais.rb
   workflow_dispatch:
+    inputs:
+      publish_test:
+        description: Publish a prerelease package to npm "test" tag
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: write
@@ -41,8 +47,23 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Set unique prerelease version for test publish
+        id: test_version
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_test
+        run: |
+          VERSION=$(node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));const [major,minor,patch]=pkg.version.split('-')[0].split('.').map(Number);console.log(`${major}.${minor}.${patch+1}-test.${process.env.GITHUB_RUN_NUMBER}.${process.env.GITHUB_RUN_ATTEMPT}`);")
+          npm version "$VERSION" --no-git-tag-version
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Publish npm test tag
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_test
+        run: pnpm publish --tag test --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Create release PR or publish
         id: changesets
+        if: github.event_name != 'workflow_dispatch' || inputs.publish_test != true
         uses: changesets/action@v1
         with:
           version: pnpm changeset version
@@ -60,6 +81,10 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Summary for test publish
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_test
+        run: echo "Published ai-rules-sync@${{ steps.test_version.outputs.version }} to npm tag 'test'."
 
   update-homebrew:
     needs: release
