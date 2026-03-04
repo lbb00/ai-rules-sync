@@ -1,0 +1,48 @@
+name: Publish Test Package
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test -- --run
+
+      - name: Build
+        run: pnpm build
+
+      - name: Set unique prerelease version
+        id: version
+        run: |
+          VERSION=$(node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));const [major,minor,patch]=pkg.version.split('-')[0].split('.').map(Number);console.log(`${major}.${minor}.${patch+1}-test.${process.env.GITHUB_RUN_NUMBER}.${process.env.GITHUB_RUN_ATTEMPT}`);")
+          npm version "$VERSION" --no-git-tag-version
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to npm test tag
+        run: pnpm publish --tag test --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Summary
+        run: echo "Published ai-rules-sync@${{ steps.version.outputs.version }} to npm tag 'test'."
