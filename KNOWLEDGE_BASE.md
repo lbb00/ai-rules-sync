@@ -1274,6 +1274,26 @@ CLI Parameters > Global Config > Repository Config > Adapter Defaults
 - `tests/config.test.ts` - Updated test fixtures
 - Documentation updated to reflect new paths
 
+### Automated Release Pipeline (npm + Homebrew) (2026-03)
+
+**Added end-to-end release automation via GitHub Actions:**
+
+1. **`release.yml`**:
+   - Triggered on push to `main` (and `workflow_dispatch`)
+   - Uses `changesets/action` to create/update release PRs and publish npm automatically
+   - Publishes downstream outputs (`published`, `published_version`) for dependent jobs
+
+2. **`update-homebrew.yml`** (refactored):
+   - Converted to reusable workflow (`workflow_call`) and manual rerun (`workflow_dispatch`)
+   - Accepts explicit `version` input (no registry race on version lookup)
+   - Computes npm tarball SHA256 and updates `Formula/ais.rb` in this repository
+
+**Distribution Impact:**
+- Homebrew tap uses explicit repository URL:
+  - `brew tap lbb00/ai-rules-sync https://github.com/lbb00/ai-rules-sync`
+  - `brew install ais`
+- npm remains the source artifact for Homebrew formula updates
+
 ### OpenCode AI Support (2026-01)
 
 **Added complete support for OpenCode AI (https://opencode.ai) with 5 component types:**

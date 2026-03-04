@@ -10,7 +10,8 @@
     "build": "tsc",
     "test": "vitest",
     "docs:sync-tools": "node scripts/sync-supported-tools.mjs",
-    "tap:setup": "bash scripts/setup-homebrew-tap.sh"
+    "release:version": "changeset version",
+    "release:publish": "changeset publish"
   },
   "files": [
     "dist"

@@ -45,23 +45,23 @@
 
 ## 安装
 
-### 通过 Homebrew（macOS/Linux）
+### 通过 npm（推荐）
 
 ```bash
-brew tap lbb00/ai-rules-sync
+npm install -g ai-rules-sync
+```
+
+### 通过 Homebrew（仅 macOS）
+
+```bash
+brew tap lbb00/ai-rules-sync https://github.com/lbb00/ai-rules-sync
 brew install ais
 
 # 不使用 tap 的一次性安装：
 brew install --formula https://raw.githubusercontent.com/lbb00/ai-rules-sync/main/Formula/ais.rb
 ```
 
-> `brew tap lbb00/ai-rules-sync` 会按 Homebrew 约定映射到 tap 仓库 `lbb00/homebrew-ai-rules-sync`。
-
-### 通过 npm
-
-```bash
-npm install -g ai-rules-sync
-```
+> 当前仓库本身就是 tap 源。使用上面的显式 URL 可避免 Homebrew 默认的 `homebrew-<repo>` 映射规则。
 
 **验证安装：**
 ```bash
@@ -1180,6 +1180,26 @@ ais use <repo-name-or-url>
 # 在 ~/.zshrc 中 ais completion 行之前添加：
 autoload -Uz compinit && compinit
 ```
+
+---
+
+## 维护者发布自动化
+
+发布流程已由 GitHub Actions 自动化：
+
+1. 将 Changesets 生成的 release PR 合并到 `main`。
+2. `release.yml` 自动发布 npm。
+3. `update-homebrew.yml` 自动更新当前仓库中的 `Formula/ais.rb`。
+
+### 必需的 GitHub Secrets
+
+- `NPM_TOKEN`
+
+### 故障恢复 / 回滚
+
+- 如果 npm 发布成功但 Homebrew 更新失败，可手动重跑：
+  - `Update Homebrew Tap`（`workflow_dispatch`，传 `version`）
+- 如果发布了错误的 npm 版本，发布一个修复后的 patch 版本，并由自动化流程同步到下游渠道。
 
 ---
 
