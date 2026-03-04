@@ -48,11 +48,14 @@
 ### 通过 Homebrew（macOS/Linux）
 
 ```bash
-brew install lbb00/ai-rules-sync/ais
-# 或先 tap，之后命令更简洁：
 brew tap lbb00/ai-rules-sync
 brew install ais
+
+# 不使用 tap 的一次性安装：
+brew install --formula https://raw.githubusercontent.com/lbb00/ai-rules-sync/main/Formula/ais.rb
 ```
+
+> `brew tap lbb00/ai-rules-sync` 会按 Homebrew 约定映射到 tap 仓库 `lbb00/homebrew-ai-rules-sync`。
 
 ### 通过 npm
 

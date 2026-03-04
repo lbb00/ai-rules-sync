@@ -48,11 +48,14 @@ Stop copying `.mdc` files around. Manage your rules in Git repositories and sync
 ### Via Homebrew (macOS/Linux)
 
 ```bash
-brew install lbb00/ai-rules-sync/ais
-# or tap first for shorter subsequent commands:
 brew tap lbb00/ai-rules-sync
 brew install ais
+
+# one-off install without tap:
+brew install --formula https://raw.githubusercontent.com/lbb00/ai-rules-sync/main/Formula/ais.rb
 ```
+
+> `brew tap lbb00/ai-rules-sync` follows Homebrew's naming convention and resolves to the tap repository `lbb00/homebrew-ai-rules-sync`.
 
 ### Via npm
 

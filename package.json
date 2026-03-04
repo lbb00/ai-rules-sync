@@ -9,7 +9,8 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest",
-    "docs:sync-tools": "node scripts/sync-supported-tools.mjs"
+    "docs:sync-tools": "node scripts/sync-supported-tools.mjs",
+    "tap:setup": "bash scripts/setup-homebrew-tap.sh"
   },
   "files": [
     "dist"
