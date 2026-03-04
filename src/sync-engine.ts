@@ -251,10 +251,9 @@ export async function importEntry(
 ): Promise<{ imported: boolean; sourceName: string; targetName: string }> {
     const { projectPath, name, repo, force = false, push = false, commitMessage } = options;
 
-    // 1. Check if entry exists in project
     const absoluteProjectPath = path.resolve(projectPath);
 
-    // Get dynamic target directory from project config
+    // Determine target path in project
     const projectConfig = await getCombinedProjectConfig(projectPath);
     const targetDirPath = getTargetDir(
         projectConfig,
@@ -263,63 +262,63 @@ export async function importEntry(
         name,
         adapter.targetDir
     );
+    const targetPath = path.join(absoluteProjectPath, targetDirPath, name);
 
-    const targetDir = path.join(absoluteProjectPath, targetDirPath);
-    const targetPath = path.join(targetDir, name);
-
-    if (!await fs.pathExists(targetPath)) {
-        throw new Error(`Entry "${name}" not found in project at ${targetPath}`);
-    }
-
-    // 2. Check if it's already a symlink (already managed)
-    const stats = await fs.lstat(targetPath);
-    if (stats.isSymbolicLink()) {
-        throw new Error(`Entry "${name}" is already a symlink (already managed by ai-rules-sync)`);
-    }
-
-    // 3. Determine destination in rules repository
+    // Determine destination path in repo (needed for git operations)
     const repoDir = repo.path;
     const repoConfig = await getRepoSourceConfig(repoDir);
     const sourceDir = getSourceDir(repoConfig, adapter.tool, adapter.subtype, adapter.defaultSourceDir);
     const destPath = path.join(repoDir, sourceDir, name);
+    const relativePath = path.relative(repoDir, destPath);
 
-    // 4. Check if destination already exists
-    if (await fs.pathExists(destPath)) {
-        if (!force) {
-            throw new Error(`Entry "${name}" already exists in rules repository at ${destPath}. Use --force to overwrite.`);
+    let sourceName: string;
+    let targetName: string;
+
+    if (adapter.forProject) {
+        // Modern path: delegate all fs operations (copy, remove, symlink) to manager.import()
+        const manager = adapter.forProject(projectPath, repo, options.isLocal);
+        const linkResult = await manager.import(targetPath, name, {
+            force,
+            repoUrl: repo.url,
+        });
+        sourceName = linkResult.sourceName;
+        targetName = linkResult.targetName;
+    } else {
+        // Legacy path: manual fs operations
+        if (!await fs.pathExists(targetPath)) {
+            throw new Error(`Entry "${name}" not found in project at ${targetPath}`);
         }
-        console.log(chalk.yellow(`Entry "${name}" already exists in repository. Overwriting (--force)...`));
-        await fs.remove(destPath);
+        const stats = await fs.lstat(targetPath);
+        if (stats.isSymbolicLink()) {
+            throw new Error(`Entry "${name}" is already a symlink (already managed by ai-rules-sync)`);
+        }
+        if (await fs.pathExists(destPath)) {
+            if (!force) {
+                throw new Error(`Entry "${name}" already exists in rules repository at ${destPath}. Use --force to overwrite.`);
+            }
+            console.log(chalk.yellow(`Entry "${name}" already exists in repository. Overwriting (--force)...`));
+            await fs.remove(destPath);
+        }
+        await fs.copy(targetPath, destPath);
+        console.log(chalk.green(`Copied "${name}" to rules repository.`));
+        await fs.remove(targetPath);
+        console.log(chalk.green(`Removed original from project.`));
+        const linkResult = await adapter.link(options);
+        sourceName = linkResult.sourceName;
+        targetName = linkResult.targetName;
     }
 
-    // 5. Copy to rules repository
-    await fs.copy(targetPath, destPath);
-    console.log(chalk.green(`Copied "${name}" to rules repository.`));
-
-    // 6. Git add and commit
-    const relativePath = path.relative(repoDir, destPath);
+    // Git add and commit (ai-rules-sync specific, stays in sync-engine)
     await execa('git', ['add', relativePath], { cwd: repoDir });
     const message = commitMessage || `Import ${adapter.tool} ${adapter.subtype}: ${name}`;
     await execa('git', ['commit', '-m', message], { cwd: repoDir, stdio: 'inherit' });
     console.log(chalk.green(`Committed to rules repository.`));
 
-    // 7. Push to remote if --push flag is set
     if (push) {
         console.log(chalk.gray('Pushing to remote repository...'));
         await execa('git', ['push'], { cwd: repoDir, stdio: 'inherit' });
         console.log(chalk.green(`Pushed to remote repository.`));
     }
 
-    // 8. Remove original from project
-    await fs.remove(targetPath);
-    console.log(chalk.green(`Removed original from project.`));
-
-    // 9. Create symlink using existing link functionality
-    const linkResult = await linkEntry(adapter, options);
-
-    return {
-        imported: true,
-        sourceName: linkResult.sourceName,
-        targetName: linkResult.targetName
-    };
+    return { imported: true, sourceName, targetName };
 }

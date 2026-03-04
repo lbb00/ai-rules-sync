@@ -9,40 +9,6 @@ const LOCAL_CONFIG_FILENAME = 'ai-rules-sync.local.json';
 const LEGACY_CONFIG_FILENAME = 'cursor-rules.json';
 const LEGACY_LOCAL_CONFIG_FILENAME = 'cursor-rules.local.json';
 
-const REPO_SOURCE_PATHS = [
-    ['cursor', 'rules'],
-    ['cursor', 'commands'],
-    ['cursor', 'skills'],
-    ['cursor', 'agents'],
-    ['copilot', 'instructions'],
-    ['copilot', 'skills'],
-    ['copilot', 'prompts'],
-    ['copilot', 'agents'],
-    ['claude', 'skills'],
-    ['claude', 'agents'],
-    ['claude', 'rules'],
-    ['claude', 'md'],
-    ['trae', 'rules'],
-    ['trae', 'skills'],
-    ['opencode', 'agents'],
-    ['opencode', 'skills'],
-    ['opencode', 'commands'],
-    ['opencode', 'tools'],
-    ['codex', 'rules'],
-    ['codex', 'skills'],
-    ['codex', 'md'],
-    ['gemini', 'commands'],
-    ['gemini', 'skills'],
-    ['gemini', 'agents'],
-    ['gemini', 'md'],
-    ['warp', 'skills'],
-    ['windsurf', 'rules'],
-    ['windsurf', 'skills'],
-    ['cline', 'rules'],
-    ['cline', 'skills'],
-    ['agentsMd', 'file']
-] as const;
-
 function readNestedStringValue(source: unknown, tool: string, subtype: string): string | undefined {
     if (!source || typeof source !== 'object') {
         return undefined;
@@ -68,15 +34,29 @@ function writeNestedStringValue(target: RepoSourceConfig, tool: string, subtype:
     mutable[tool] = toolConfig;
 }
 
+/**
+ * Dynamically iterate over all tool/subtype pairs present in a source object,
+ * extracting entries where the value is a string (source directory paths).
+ * Replaces the previous hardcoded REPO_SOURCE_PATHS constant.
+ */
 function buildRepoSourceFromNestedStrings(source: unknown, rootPath?: string): { hasAny: boolean; config: RepoSourceConfig } {
     const config: RepoSourceConfig = { rootPath };
     let hasAny = false;
 
-    for (const [tool, subtype] of REPO_SOURCE_PATHS) {
-        const value = readNestedStringValue(source, tool, subtype);
-        if (value !== undefined) {
-            hasAny = true;
-            writeNestedStringValue(config, tool, subtype, value);
+    if (!source || typeof source !== 'object') {
+        return { hasAny, config };
+    }
+
+    const src = source as Record<string, unknown>;
+    for (const [tool, toolConfig] of Object.entries(src)) {
+        if (tool === 'rootPath' || tool === 'sourceDir') continue;
+        if (!toolConfig || typeof toolConfig !== 'object') continue;
+
+        for (const [subtype, value] of Object.entries(toolConfig as Record<string, unknown>)) {
+            if (typeof value === 'string') {
+                hasAny = true;
+                writeNestedStringValue(config, tool, subtype, value);
+            }
         }
     }
 
@@ -93,231 +73,37 @@ export type RuleEntry = string | {
 };
 
 /**
- * Source directory configuration (for rules repositories)
- * Defines where source files are located in a rules repo
+ * Source directory configuration (for rules repositories).
+ * Defines where source files are located in a rules repo.
+ * Uses dynamic index signature to support any tool/subtype combination.
  */
 export interface SourceDirConfig {
-    cursor?: {
-        // Source directory for cursor rules, default: ".cursor/rules"
-        rules?: string;
-        // Source directory for cursor commands, default: ".cursor/commands"
-        commands?: string;
-        // Source directory for cursor skills, default: ".cursor/skills"
-        skills?: string;
-        // Source directory for cursor agents, default: ".cursor/agents"
-        agents?: string;
-    };
-    copilot?: {
-        // Source directory for copilot instructions, default: ".github/instructions"
-        instructions?: string;
-        // Source directory for copilot skills, default: ".github/skills"
-        skills?: string;
-        // Source directory for copilot prompts, default: ".github/prompts"
-        prompts?: string;
-        // Source directory for copilot agents, default: ".github/agents"
-        agents?: string;
-    };
-    claude?: {
-        // Source directory for claude skills, default: ".claude/skills"
-        skills?: string;
-        // Source directory for claude agents, default: ".claude/agents"
-        agents?: string;
-        // Source directory for claude rules, default: ".claude/rules"
-        rules?: string;
-        // Source directory for claude md files (CLAUDE.md), default: ".claude"
-        md?: string;
-    };
-    trae?: {
-        // Source directory for trae rules, default: ".trae/rules"
-        rules?: string;
-        // Source directory for trae skills, default: ".trae/skills"
-        skills?: string;
-    };
-    opencode?: {
-        // Source directory for opencode agents, default: ".opencode/agents"
-        agents?: string;
-        // Source directory for opencode skills, default: ".opencode/skills"
-        skills?: string;
-        // Source directory for opencode commands, default: ".opencode/commands"
-        commands?: string;
-        // Source directory for opencode tools, default: ".opencode/tools"
-        tools?: string;
-    };
-    codex?: {
-        // Source directory for codex rules, default: ".codex/rules"
-        rules?: string;
-        // Source directory for codex skills, default: ".agents/skills"
-        skills?: string;
-        // Source directory for codex md files (AGENTS.md), default: ".codex"
-        md?: string;
-    };
-    gemini?: {
-        // Source directory for gemini commands, default: ".gemini/commands"
-        commands?: string;
-        // Source directory for gemini skills, default: ".gemini/skills"
-        skills?: string;
-        // Source directory for gemini agents, default: ".gemini/agents"
-        agents?: string;
-        // Source directory for gemini md files (GEMINI.md), default: ".gemini"
-        md?: string;
-    };
-    warp?: {
-        // Source directory for warp skills, default: ".agents/skills"
-        skills?: string;
-    };
-    windsurf?: {
-        // Source directory for Windsurf rules, default: ".windsurf/rules"
-        rules?: string;
-        // Source directory for Windsurf skills, default: ".windsurf/skills"
-        skills?: string;
-    };
-    cline?: {
-        // Source directory for Cline rules, default: ".clinerules"
-        rules?: string;
-        // Source directory for Cline skills, default: ".cline/skills"
-        skills?: string;
-    };
-    agentsMd?: {
-        // Source directory for AGENTS.md files, default: "." (repository root)
-        file?: string;
-    };
+    [tool: string]: Record<string, string> | undefined;
 }
 
 /**
- * Unified configuration for ai-rules-sync.json
- * Used both in rules repos (sourceDir) and in projects (cursor/copilot dependencies)
- *
- * In rules repos:
- *   - rootPath: global path prefix
- *   - sourceDir: where source files are located
- *
- * In projects:
- *   - cursor/copilot: dependency records
+ * Unified configuration for ai-rules-sync.json.
+ * Used both in rules repos (sourceDir) and in projects (dependency records).
+ * Dynamic index signature supports any registered tool without code changes.
  */
 export interface ProjectConfig {
-    // Global path prefix for source directories, default: "" (root directory)
-    // Only used in rules repos
+    // Global path prefix for source directories (only used in rules repos)
     rootPath?: string;
     // Source directory configuration (only used in rules repos)
     sourceDir?: SourceDirConfig;
-    // Dependency records (used in projects)
-    cursor?: {
-        // key is the local alias (target name), value is repo url OR object with url and original rule name
-        rules?: Record<string, RuleEntry>;
-        commands?: Record<string, RuleEntry>;
-        skills?: Record<string, RuleEntry>;
-        agents?: Record<string, RuleEntry>;
-    };
-    copilot?: {
-        // key is the local alias (target name), value is repo url OR object with url and original rule name
-        instructions?: Record<string, RuleEntry>;
-        skills?: Record<string, RuleEntry>;
-        prompts?: Record<string, RuleEntry>;
-        agents?: Record<string, RuleEntry>;
-    };
-    claude?: {
-        // key is the local alias (target name), value is repo url OR object with url and original rule name
-        skills?: Record<string, RuleEntry>;
-        agents?: Record<string, RuleEntry>;
-        rules?: Record<string, RuleEntry>;
-        md?: Record<string, RuleEntry>;
-    };
-    trae?: {
-        rules?: Record<string, RuleEntry>;
-        skills?: Record<string, RuleEntry>;
-    };
-    opencode?: {
-        // key is the local alias (target name), value is repo url OR object with url and original rule name
-        agents?: Record<string, RuleEntry>;
-        skills?: Record<string, RuleEntry>;
-        commands?: Record<string, RuleEntry>;
-        tools?: Record<string, RuleEntry>;
-    };
-    codex?: {
-        rules?: Record<string, RuleEntry>;
-        skills?: Record<string, RuleEntry>;
-        md?: Record<string, RuleEntry>;
-    };
-    gemini?: {
-        commands?: Record<string, RuleEntry>;
-        skills?: Record<string, RuleEntry>;
-        agents?: Record<string, RuleEntry>;
-        md?: Record<string, RuleEntry>;
-    };
-    warp?: {
-        skills?: Record<string, RuleEntry>;
-    };
-    windsurf?: {
-        rules?: Record<string, RuleEntry>;
-        skills?: Record<string, RuleEntry>;
-    };
-    cline?: {
-        rules?: Record<string, RuleEntry>;
-        skills?: Record<string, RuleEntry>;
-    };
-    // Universal AGENTS.md support (tool-agnostic)
-    agentsMd?: Record<string, RuleEntry>;
+    // Dependency records — indexed by tool name, then subtype
+    [tool: string]: any;
 }
 
 /**
- * @deprecated Use ProjectConfig with sourceDir instead
- * Kept for backward compatibility during transition
+ * Repository source configuration.
+ * Uses dynamic index signature so new tools require zero changes here.
+ * The `any` index type allows accessing tool-specific sub-properties (e.g. repoConfig.windsurf?.rules)
+ * without requiring explicit per-tool type declarations.
  */
 export interface RepoSourceConfig {
     rootPath?: string;
-    cursor?: {
-        rules?: string;
-        skills?: string;
-        commands?: string;
-        agents?: string;
-    };
-    copilot?: {
-        instructions?: string;
-        skills?: string;
-        prompts?: string;
-        agents?: string;
-    };
-    claude?: {
-        skills?: string;
-        agents?: string;
-        rules?: string;
-        md?: string;
-    };
-    trae?: {
-        rules?: string;
-        skills?: string;
-    };
-    opencode?: {
-        agents?: string;
-        skills?: string;
-        commands?: string;
-        tools?: string;
-    };
-    codex?: {
-        rules?: string;
-        skills?: string;
-        md?: string;
-    };
-    gemini?: {
-        commands?: string;
-        skills?: string;
-        agents?: string;
-        md?: string;
-    };
-    warp?: {
-        skills?: string;
-    };
-    windsurf?: {
-        rules?: string;
-        skills?: string;
-    };
-    cline?: {
-        rules?: string;
-        skills?: string;
-    };
-    agentsMd?: {
-        file?: string;
-    };
+    [tool: string]: any;
 }
 
 export type ConfigSource = 'new' | 'legacy' | 'none';
@@ -355,60 +141,45 @@ function legacyToNew(legacy: { rules?: Record<string, RuleEntry> }): ProjectConf
     };
 }
 
+/**
+ * Merge two ProjectConfig objects dynamically.
+ * Registry-driven: works with any tool/subtype combination present in the configs
+ * without requiring a hardcoded tool list.
+ *
+ * Special cases:
+ *   - rootPath / sourceDir: take from main
+ *   - agentsMd: flat object (no subLevel nesting)
+ *   - all others: tool → subtype → Record<alias, entry>
+ */
 function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig {
-    return {
-        cursor: {
-            rules: { ...(main.cursor?.rules || {}), ...(local.cursor?.rules || {}) },
-            commands: { ...(main.cursor?.commands || {}), ...(local.cursor?.commands || {}) },
-            skills: { ...(main.cursor?.skills || {}), ...(local.cursor?.skills || {}) },
-            agents: { ...(main.cursor?.agents || {}), ...(local.cursor?.agents || {}) }
-        },
-        copilot: {
-            instructions: { ...(main.copilot?.instructions || {}), ...(local.copilot?.instructions || {}) },
-            skills: { ...(main.copilot?.skills || {}), ...(local.copilot?.skills || {}) },
-            prompts: { ...(main.copilot?.prompts || {}), ...(local.copilot?.prompts || {}) },
-            agents: { ...(main.copilot?.agents || {}), ...(local.copilot?.agents || {}) }
-        },
-        claude: {
-            skills: { ...(main.claude?.skills || {}), ...(local.claude?.skills || {}) },
-            agents: { ...(main.claude?.agents || {}), ...(local.claude?.agents || {}) },
-            rules: { ...(main.claude?.rules || {}), ...(local.claude?.rules || {}) },
-            md: { ...(main.claude?.md || {}), ...(local.claude?.md || {}) }
-        },
-        trae: {
-            rules: { ...(main.trae?.rules || {}), ...(local.trae?.rules || {}) },
-            skills: { ...(main.trae?.skills || {}), ...(local.trae?.skills || {}) }
-        },
-        opencode: {
-            agents: { ...(main.opencode?.agents || {}), ...(local.opencode?.agents || {}) },
-            skills: { ...(main.opencode?.skills || {}), ...(local.opencode?.skills || {}) },
-            commands: { ...(main.opencode?.commands || {}), ...(local.opencode?.commands || {}) },
-            tools: { ...(main.opencode?.tools || {}), ...(local.opencode?.tools || {}) }
-        },
-        codex: {
-            rules: { ...(main.codex?.rules || {}), ...(local.codex?.rules || {}) },
-            skills: { ...(main.codex?.skills || {}), ...(local.codex?.skills || {}) },
-            md: { ...(main.codex?.md || {}), ...(local.codex?.md || {}) }
-        },
-        gemini: {
-            commands: { ...(main.gemini?.commands || {}), ...(local.gemini?.commands || {}) },
-            skills: { ...(main.gemini?.skills || {}), ...(local.gemini?.skills || {}) },
-            agents: { ...(main.gemini?.agents || {}), ...(local.gemini?.agents || {}) },
-            md: { ...(main.gemini?.md || {}), ...(local.gemini?.md || {}) }
-        },
-        warp: {
-            skills: { ...(main.warp?.skills || {}), ...(local.warp?.skills || {}) }
-        },
-        windsurf: {
-            rules: { ...(main.windsurf?.rules || {}), ...(local.windsurf?.rules || {}) },
-            skills: { ...(main.windsurf?.skills || {}), ...(local.windsurf?.skills || {}) }
-        },
-        cline: {
-            rules: { ...(main.cline?.rules || {}), ...(local.cline?.rules || {}) },
-            skills: { ...(main.cline?.skills || {}), ...(local.cline?.skills || {}) }
-        },
-        agentsMd: { ...(main.agentsMd || {}), ...(local.agentsMd || {}) }
-    };
+    const result: Record<string, any> = {};
+
+    // Collect all top-level keys from both configs
+    const allKeys = new Set([...Object.keys(main), ...Object.keys(local)]);
+
+    for (const key of allKeys) {
+        if (key === 'rootPath' || key === 'sourceDir') {
+            // Scalar / nested config: prefer main
+            result[key] = main[key] ?? local[key];
+        } else if (key === 'agentsMd') {
+            // agentsMd is a flat record (no subtype level)
+            result[key] = { ...(main[key] || {}), ...(local[key] || {}) };
+        } else {
+            // Tool section with subtypes: merge each subtype independently
+            const mainTool = (main[key] && typeof main[key] === 'object') ? main[key] : {};
+            const localTool = (local[key] && typeof local[key] === 'object') ? local[key] : {};
+            const subtypes = new Set([...Object.keys(mainTool), ...Object.keys(localTool)]);
+            result[key] = {};
+            for (const subtype of subtypes) {
+                result[key][subtype] = {
+                    ...(mainTool[subtype] || {}),
+                    ...(localTool[subtype] || {}),
+                };
+            }
+        }
+    }
+
+    return result as ProjectConfig;
 }
 
 export async function getConfigSource(projectPath: string): Promise<ConfigSource> {
@@ -447,8 +218,8 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
 /**
  * Get the source directory for a specific tool type from repo config.
  * @param repoConfig - The repo source configuration
- * @param tool - Tool name: 'cursor', 'copilot', or 'claude'
- * @param subtype - Subtype: 'rules', 'plans', 'instructions', 'skills', 'agents', or 'plugins'
+ * @param tool - Tool name: 'cursor', 'copilot', 'claude', etc.
+ * @param subtype - Subtype: 'rules', 'plans', 'instructions', 'skills', 'agents', etc.
  * @param defaultDir - Default directory if not configured
  * @param globalOverride - Optional override from CLI or global config (highest priority)
  */
@@ -577,13 +348,6 @@ async function writeNewConfig(projectPath: string, isLocal: boolean, config: Pro
 /**
  * Generic function to add a dependency to project config
  * This function works with any adapter by using the configPath
- * @param projectPath - Path to the project
- * @param configPath - Config path like ['cursor', 'rules'] or ['copilot', 'instructions']
- * @param name - Original name of the dependency
- * @param repoUrl - Repository URL
- * @param alias - Optional alias for the dependency
- * @param isLocal - Whether to store in local config
- * @param targetDir - Optional custom target directory for this entry
  */
 export async function addDependencyGeneric(
     projectPath: string,
@@ -627,10 +391,6 @@ export async function addDependencyGeneric(
 
 /**
  * Generic function to remove a dependency from project config
- * This function works with any adapter by using the configPath
- * @param projectPath - Path to the project
- * @param configPath - Config path like ['cursor', 'rules'] or ['copilot', 'instructions']
- * @param alias - Alias of the dependency to remove
  */
 export async function removeDependencyGeneric(
     projectPath: string,

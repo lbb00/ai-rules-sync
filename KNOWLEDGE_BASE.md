@@ -18,6 +18,7 @@ A key feature is **User Mode** (`--user` / `-u`): use `$HOME` as project root to
 - **CLI Framework**: Commander.js.
 - **Config**: Stored in `~/.config/ai-rules-sync/config.json` (global) and project roots.
 - **Git Operations**: Uses `execa` to run git commands; stores repos in `~/.config/ai-rules-sync/repos/`.
+- **Symlink Layer**: All symlink creation/deletion goes through `linkany` (via `DotfileManager.doLink` / `doUnlink`), providing atomic operations. No bare `fs.ensureSymlink` calls in dotany.
 - **Plugin Architecture**: Modular adapter system for different AI tools.
 - **Modular CLI**: Declarative command registration using adapters.
 
@@ -25,6 +26,16 @@ A key feature is **User Mode** (`--user` / `-u`): use `$HOME` as project root to
 
 ```
 src/
+├── dotfile/                 # Generic dotfile abstraction library (tool-agnostic)
+│   ├── types.ts             # All interfaces: SourceResolver, ManifestStore, etc.
+│   ├── manager.ts           # DotfileManager — all symlink ops via linkany (atomic)
+│   ├── composer.ts          # DotfileComposer — multi-manager apply/status
+│   ├── sources/filesystem.ts # FileSystemSource (local dir, stow basis)
+│   ├── manifest/json.ts     # JsonManifest (generic JSON, optional namespace)
+│   └── index.ts             # dotfile.create() / dotfile.compose() entry point
+├── plugin/                  # ai-rules-sync plugin implementations
+│   ├── git-repo-source.ts   # GitRepoSource (RepoConfig | RepoResolverFn | null)
+│   └── ai-rules-sync-manifest.ts # AiRulesSyncManifest (over ai-rules-sync.json)
 ├── adapters/                # Plugin architecture for different AI tools
 │   ├── types.ts             # SyncAdapter interface
 │   ├── base.ts              # createBaseAdapter factory function

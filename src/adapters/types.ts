@@ -1,4 +1,6 @@
 import { RepoConfig } from '../config.js';
+import type { DotfileManager } from '../dotany/manager.js';
+import type { RepoResolverFn } from '../dotany/types.js';
 
 /**
  * SyncAdapter defines how a specific type of AI tool configuration
@@ -51,6 +53,13 @@ export interface SyncAdapter {
      * Default behavior: use alias if provided, otherwise use name.
      */
     resolveTargetName?(name: string, alias?: string, sourceSuffix?: string): string;
+
+    /**
+     * Create a DotfileManager bound to a specific project and repo.
+     * Provides the full dotfile API (add, remove, apply, diff, status, import, readManifest).
+     * Pass null as repo for remove-only operations (no source resolution needed).
+     */
+    forProject?(projectPath: string, repo: RepoConfig | RepoResolverFn | null, isLocal?: boolean): DotfileManager;
 
     /** Add a dependency to project config */
     addDependency(
