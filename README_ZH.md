@@ -164,8 +164,9 @@ git init
 ais init
 ais use .
 
-# 选项 B：使用现有仓库
+# 选项 B：使用现有仓库（URL 或本地路径）
 ais use https://github.com/your-org/rules-repo.git
+ais use ~/my-rules-repo
 
 # 2. 导入你的现有规则
 cd your-project
@@ -313,7 +314,12 @@ ais update --dry-run
 
 **选项 1：使用现有仓库**
 ```bash
+# 远程 URL（会克隆到 ~/.config/ai-rules-sync/repos/）
 ais use https://github.com/your-org/rules-repo.git
+
+# 本地路径（有 remote 的 git 仓库：会 symlink 到 repos/；规则引用 remote URL）
+ais use ~/my-rules-repo
+ais use ./path/to/repo
 ```
 
 **选项 2：创建新的本地仓库**
@@ -765,7 +771,7 @@ ais use personal-rules
 
 所有命令都支持：
 
-- `-t, --target <repo>`：指定仓库（名称或 URL）
+- `-t, --target <repo>`：指定仓库（名称、URL 或本地路径）
 - `-l, --local`：保存到 `ai-rules-sync.local.json`（私有）
 
 示例：
