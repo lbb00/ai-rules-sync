@@ -119,7 +119,7 @@ function formatCheckStatus(status: string): string {
 program
   .name('ais')
   .description('AI Rules Sync - Sync agent rules from git repository')
-  .version('0.4.0', '-v, --version', 'Display version information')
+  .version('0.7.0', '-v, --version', 'Display version information')
   .option('-t, --target <repoName>', 'Specify target rule repository (name or URL)');
 
 // ============ Use command ============

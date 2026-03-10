@@ -1,5 +1,15 @@
 # ai-rules-sync
 
+## 0.7.0
+
+### Minor Changes
+
+- - feat(cli): add check, update, init lifecycle commands
+  - feat: introduce dotany abstraction layer with linkany-backed symlinks
+  - feat(ais): use local path symlink
+  - fix(remove): harden symlink cleanup and upgrade linkany
+  - refactor!: remove legacy compatibility code paths
+
 ## 0.6.0
 
 ### Minor Changes
