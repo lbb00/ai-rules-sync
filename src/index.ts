@@ -589,7 +589,7 @@ program
         const adapter = getAdapter('copilot', 'instructions');
         await handleAdd(adapter, { projectPath, repo: currentRepo, isLocal: options.local || false }, name, alias, addOptions);
       } else if (mode === 'claude') {
-        throw new Error('For Claude components, please use "ais claude skills/agents add" explicitly.');
+        throw new Error('For Claude components, please use "ais claude skills/agents/commands add" explicitly.');
       } else if (mode === 'trae') {
         throw new Error('For Trae components, please use "ais trae rules/skills add" explicitly.');
       } else if (mode === 'opencode') {
@@ -834,13 +834,15 @@ program
   .command('import <name>')
   .description('Import an existing file/directory to rules repository (auto-detects tool)')
   .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
+  .option('-u, --user', 'Import from user config (~/) instead of project')
   .option('-m, --message <message>', 'Custom git commit message')
   .option('-f, --force', 'Overwrite if entry already exists in repository')
   .option('-p, --push', 'Push to remote repository after commit')
   .option('--dry-run', 'Preview changes without applying')
   .action(async (name, options) => {
     try {
-      const projectPath = process.cwd();
+      const isUser = options.user || false;
+      const projectPath = isUser ? os.homedir() : process.cwd();
       const opts = program.opts();
       const currentRepo = await getTargetRepo(opts);
 
@@ -861,7 +863,7 @@ program
       }
 
       console.log(chalk.gray(`Detected ${foundAdapter.tool} ${foundAdapter.subtype}: ${name}`));
-      await handleImport(foundAdapter, { projectPath, repo: currentRepo, isLocal: options.local || false }, name, options);
+      await handleImport(foundAdapter, { projectPath, repo: currentRepo, isLocal: options.local || false, user: isUser, skipIgnore: isUser }, name, options);
     } catch (error: any) {
       console.error(chalk.red('Error importing entry:'), error.message);
       process.exit(1);
@@ -995,13 +997,15 @@ cursor
   .command('import <name>')
   .description('Import Cursor rule/command/skill from project to repository (auto-detects subtype)')
   .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
+  .option('-u, --user', 'Import from user config (~/) instead of project')
   .option('-m, --message <message>', 'Custom git commit message')
   .option('-f, --force', 'Overwrite if entry already exists in repository')
   .option('-p, --push', 'Push to remote repository after commit')
   .option('--dry-run', 'Preview changes without applying')
   .action(async (name, options) => {
     try {
-      const projectPath = process.cwd();
+      const isUser = options.user || false;
+      const projectPath = isUser ? os.homedir() : process.cwd();
       const repo = await getTargetRepo(program.opts());
       const cursorAdapters = adapterRegistry.getForTool('cursor');
       let foundAdapter = null;
@@ -1019,7 +1023,7 @@ cursor
       }
 
       console.log(chalk.gray(`Detected ${foundAdapter.subtype}: ${name}`));
-      await handleImport(foundAdapter, { projectPath, repo, isLocal: options.local || false }, name, options);
+      await handleImport(foundAdapter, { projectPath, repo, isLocal: options.local || false, user: isUser, skipIgnore: isUser }, name, options);
     } catch (error: any) {
       console.error(chalk.red('Error importing Cursor entry:'), error.message);
       process.exit(1);
@@ -1187,6 +1191,10 @@ registerAdapterCommands({ adapter: getAdapter('claude', 'skills'), parentCommand
 // claude agents subgroup
 const claudeAgents = claude.command('agents').description('Manage Claude agents');
 registerAdapterCommands({ adapter: getAdapter('claude', 'agents'), parentCommand: claudeAgents, programOpts: () => program.opts() });
+
+// claude commands subgroup
+const claudeCommands = claude.command('commands').description('Manage Claude commands (.claude/commands/)');
+registerAdapterCommands({ adapter: getAdapter('claude', 'commands'), parentCommand: claudeCommands, programOpts: () => program.opts() });
 
 // claude md subgroup (for CLAUDE.md files)
 const claudeMd = claude.command('md').description('Manage Claude CLAUDE.md files (.claude/CLAUDE.md)');
@@ -1380,13 +1388,15 @@ opencode
   .command('import <name>')
   .description('Import OpenCode agent/skill/command/tool from project to repository (auto-detects subtype)')
   .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
+  .option('-u, --user', 'Import from user config (~/) instead of project')
   .option('-m, --message <message>', 'Custom git commit message')
   .option('-f, --force', 'Overwrite if entry already exists in repository')
   .option('-p, --push', 'Push to remote repository after commit')
   .option('--dry-run', 'Preview changes without applying')
   .action(async (name, options) => {
     try {
-      const projectPath = process.cwd();
+      const isUser = options.user || false;
+      const projectPath = isUser ? os.homedir() : process.cwd();
       const repo = await getTargetRepo(program.opts());
       const opencodeAdapters = adapterRegistry.getForTool('opencode');
       let foundAdapter = null;
@@ -1404,7 +1414,7 @@ opencode
       }
 
       console.log(chalk.gray(`Detected ${foundAdapter.subtype}: ${name}`));
-      await handleImport(foundAdapter, { projectPath, repo, isLocal: options.local || false }, name, options);
+      await handleImport(foundAdapter, { projectPath, repo, isLocal: options.local || false, user: isUser, skipIgnore: isUser }, name, options);
     } catch (error: any) {
       console.error(chalk.red('Error importing OpenCode entry:'), error.message);
       process.exit(1);
@@ -1513,13 +1523,15 @@ codex
   .command('import <name>')
   .description('Import Codex rule/skill from project to repository (auto-detects subtype)')
   .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
+  .option('-u, --user', 'Import from user config (~/) instead of project')
   .option('-m, --message <message>', 'Custom git commit message')
   .option('-f, --force', 'Overwrite if entry already exists in repository')
   .option('-p, --push', 'Push to remote repository after commit')
   .option('--dry-run', 'Preview changes without applying')
   .action(async (name, options) => {
     try {
-      const projectPath = process.cwd();
+      const isUser = options.user || false;
+      const projectPath = isUser ? os.homedir() : process.cwd();
       const repo = await getTargetRepo(program.opts());
       const codexAdapters = adapterRegistry.getForTool('codex');
       let foundAdapter = null;
@@ -1537,7 +1549,7 @@ codex
       }
 
       console.log(chalk.gray(`Detected ${foundAdapter.subtype}: ${name}`));
-      await handleImport(foundAdapter, { projectPath, repo, isLocal: options.local || false }, name, options);
+      await handleImport(foundAdapter, { projectPath, repo, isLocal: options.local || false, user: isUser, skipIgnore: isUser }, name, options);
     } catch (error: any) {
       console.error(chalk.red('Error importing Codex entry:'), error.message);
       process.exit(1);
@@ -1641,13 +1653,15 @@ gemini
   .command('import <name>')
   .description('Import Gemini command/skill/agent from project to repository (auto-detects subtype)')
   .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
+  .option('-u, --user', 'Import from user config (~/) instead of project')
   .option('-m, --message <message>', 'Custom git commit message')
   .option('-f, --force', 'Overwrite if entry already exists in repository')
   .option('-p, --push', 'Push to remote repository after commit')
   .option('--dry-run', 'Preview changes without applying')
   .action(async (name, options) => {
     try {
-      const projectPath = process.cwd();
+      const isUser = options.user || false;
+      const projectPath = isUser ? os.homedir() : process.cwd();
       const repo = await getTargetRepo(program.opts());
       const geminiAdapters = adapterRegistry.getForTool('gemini');
       let foundAdapter = null;
@@ -1665,7 +1679,7 @@ gemini
       }
 
       console.log(chalk.gray(`Detected ${foundAdapter.subtype}: ${name}`));
-      await handleImport(foundAdapter, { projectPath, repo, isLocal: options.local || false }, name, options);
+      await handleImport(foundAdapter, { projectPath, repo, isLocal: options.local || false, user: isUser, skipIgnore: isUser }, name, options);
     } catch (error: any) {
       console.error(chalk.red('Error importing Gemini entry:'), error.message);
       process.exit(1);
@@ -1706,14 +1720,17 @@ warp
   .command('import <name>')
   .description('Import Warp skill from project to repository')
   .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
+  .option('-u, --user', 'Import from user config (~/) instead of project')
   .option('-m, --message <message>', 'Custom git commit message')
   .option('-f, --force', 'Overwrite if entry already exists in repository')
   .option('-p, --push', 'Push to remote repository after commit')
   .option('--dry-run', 'Preview changes without applying')
   .action(async (name, options) => {
     try {
+      const isUser = options.user || false;
+      const projectPath = isUser ? os.homedir() : process.cwd();
       const repo = await getTargetRepo(program.opts());
-      await handleImport(getAdapter('warp', 'skills'), { projectPath: process.cwd(), repo, isLocal: options.local || false }, name, options);
+      await handleImport(getAdapter('warp', 'skills'), { projectPath, repo, isLocal: options.local || false, user: isUser, skipIgnore: isUser }, name, options);
     } catch (error: any) {
       console.error(chalk.red('Error importing Warp skill:'), error.message);
       process.exit(1);
@@ -1875,13 +1892,15 @@ function registerRulesAndSkillsToolGroup(config: RulesAndSkillsToolGroupOptions)
     .command('import <name>')
     .description(`Import ${displayName} rule/skill from project to repository (auto-detects subtype)`)
     .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
+    .option('-u, --user', 'Import from user config (~/) instead of project')
     .option('-m, --message <message>', 'Custom git commit message')
     .option('-f, --force', 'Overwrite if entry already exists in repository')
     .option('-p, --push', 'Push to remote repository after commit')
     .option('--dry-run', 'Preview changes without applying')
     .action(async (name, options) => {
       try {
-        const projectPath = process.cwd();
+        const isUser = options.user || false;
+        const projectPath = isUser ? os.homedir() : process.cwd();
         const repo = await getTargetRepo(program.opts());
         const foundAdapter = await findImportAdapterForTool(tool, projectPath, name);
         if (!foundAdapter) {
@@ -1889,7 +1908,7 @@ function registerRulesAndSkillsToolGroup(config: RulesAndSkillsToolGroupOptions)
         }
 
         console.log(chalk.gray(`Detected ${foundAdapter.subtype}: ${name}`));
-        await handleImport(foundAdapter, { projectPath, repo, isLocal: options.local || false }, name, options);
+        await handleImport(foundAdapter, { projectPath, repo, isLocal: options.local || false, user: isUser, skipIgnore: isUser }, name, options);
       } catch (error: any) {
         console.error(chalk.red(`Error importing ${displayName} entry:`), error.message);
         process.exit(1);
@@ -1937,7 +1956,7 @@ program
 // ============ Internal _complete command ============
 program
   .command('_complete')
-  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, cursor-agents, copilot, claude-skills, claude-agents, claude-rules, trae-rules, trae-skills, opencode-agents, opencode-skills, opencode-commands, opencode-tools, codex-rules, codex-skills, codex-md, gemini-commands, gemini-skills, gemini-agents, gemini-md, warp-skills, windsurf-rules, windsurf-skills, cline-rules, cline-skills, agents-md')
+  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, cursor-agents, copilot, claude-skills, claude-agents, claude-commands, claude-rules, trae-rules, trae-skills, opencode-agents, opencode-skills, opencode-commands, opencode-tools, codex-rules, codex-skills, codex-md, gemini-commands, gemini-skills, gemini-agents, gemini-md, warp-skills, windsurf-rules, windsurf-skills, cline-rules, cline-skills, agents-md')
   .description('Internal command for shell completion')
   .action(async (type: string) => {
     try {
@@ -1977,6 +1996,9 @@ program
           break;
         case 'claude-agents':
           sourceDir = getSourceDir(repoConfig, 'claude', 'agents', '.claude/agents');
+          break;
+        case 'claude-commands':
+          sourceDir = getSourceDir(repoConfig, 'claude', 'commands', '.claude/commands');
           break;
         case 'claude-rules':
           sourceDir = getSourceDir(repoConfig, 'claude', 'rules', '.claude/rules');

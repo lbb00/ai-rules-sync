@@ -412,7 +412,7 @@ export async function previewImport(
     sourceIsSymlink,
     destinationPath,
     destinationExists,
-    configFileName: ctx.isLocal ? 'ai-rules-sync.local.json' : 'ai-rules-sync.json',
+    configFileName: ctx.user ? 'user.json' : ctx.isLocal ? 'ai-rules-sync.local.json' : 'ai-rules-sync.json',
     commitMessage: options.message || `Import ${adapter.tool} ${adapter.subtype}: ${name}`
   };
 }
@@ -465,33 +465,45 @@ export async function handleImport(
 
   const result = await importEntry(adapter, importOpts);
 
-  // Ignore file management for the imported entry
-  const relEntry = `${adapter.targetDir}/${result.targetName}`;
-  if (ctx.isLocal) {
-    const gitInfoExclude = path.join(ctx.projectPath, '.git', 'info', 'exclude');
-    if (await fs.pathExists(path.dirname(gitInfoExclude))) {
-      await fs.ensureFile(gitInfoExclude);
-      if (await addIgnoreEntry(gitInfoExclude, relEntry, '# AI Rules Sync')) {
-        console.log(chalk.green(`Added "${relEntry}" to .git/info/exclude.`));
+  if (ctx.user) {
+    // User mode: register in user config, skip gitignore management
+    await addUserDependency(
+      adapter.configPath,
+      name,
+      ctx.repo.url,
+      undefined,
+      undefined
+    );
+    console.log(chalk.green(`Updated user config dependency.`));
+  } else {
+    // Ignore file management for the imported entry
+    const relEntry = `${adapter.targetDir}/${result.targetName}`;
+    if (ctx.isLocal) {
+      const gitInfoExclude = path.join(ctx.projectPath, '.git', 'info', 'exclude');
+      if (await fs.pathExists(path.dirname(gitInfoExclude))) {
+        await fs.ensureFile(gitInfoExclude);
+        if (await addIgnoreEntry(gitInfoExclude, relEntry, '# AI Rules Sync')) {
+          console.log(chalk.green(`Added "${relEntry}" to .git/info/exclude.`));
+        }
+      }
+    } else {
+      const gitignorePath = path.join(ctx.projectPath, '.gitignore');
+      if (await addIgnoreEntry(gitignorePath, relEntry, '# AI Rules Sync')) {
+        console.log(chalk.green(`Added "${relEntry}" to .gitignore.`));
       }
     }
-  } else {
-    const gitignorePath = path.join(ctx.projectPath, '.gitignore');
-    if (await addIgnoreEntry(gitignorePath, relEntry, '# AI Rules Sync')) {
-      console.log(chalk.green(`Added "${relEntry}" to .gitignore.`));
-    }
-  }
 
-  // Add to config
-  await adapter.addDependency(ctx.projectPath, name, ctx.repo.url, undefined, ctx.isLocal);
-  const configFileName = ctx.isLocal ? 'ai-rules-sync.local.json' : 'ai-rules-sync.json';
-  console.log(chalk.green(`Updated ${configFileName} dependency.`));
+    // Add to config
+    await adapter.addDependency(ctx.projectPath, name, ctx.repo.url, undefined, ctx.isLocal);
+    const configFileName = ctx.isLocal ? 'ai-rules-sync.local.json' : 'ai-rules-sync.json';
+    console.log(chalk.green(`Updated ${configFileName} dependency.`));
 
-  if (ctx.isLocal) {
-    const gitignorePath = path.join(ctx.projectPath, '.gitignore');
-    const added = await addIgnoreEntry(gitignorePath, 'ai-rules-sync.local.json', '# Local AI Rules Sync Config');
-    if (added) {
-      console.log(chalk.green(`Added "ai-rules-sync.local.json" to .gitignore.`));
+    if (ctx.isLocal) {
+      const gitignorePath = path.join(ctx.projectPath, '.gitignore');
+      const added = await addIgnoreEntry(gitignorePath, 'ai-rules-sync.local.json', '# Local AI Rules Sync Config');
+      if (added) {
+        console.log(chalk.green(`Added "ai-rules-sync.local.json" to .gitignore.`));
+      }
     }
   }
 

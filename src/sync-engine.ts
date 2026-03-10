@@ -294,3 +294,59 @@ export async function importEntry(
 
     return { imported: true, sourceName, targetName };
 }
+
+/**
+ * Result of importing a single entry without committing
+ */
+export interface ImportedEntryInfo {
+    name: string;
+    sourceName: string;
+    targetName: string;
+    repoRelativePath: string;
+}
+
+/**
+ * Import an entry from project to rules repository without git commit.
+ * Used by import-all to batch multiple imports into a single commit.
+ * Returns metadata needed for the batch git add + commit.
+ */
+export async function importEntryNoCommit(
+    adapter: SyncAdapter,
+    options: Omit<ImportOptions, 'commitMessage' | 'push'>
+): Promise<ImportedEntryInfo> {
+    const { projectPath, name, repo, force = false } = options;
+
+    const absoluteProjectPath = path.resolve(projectPath);
+
+    // Determine target path in project (mirrors importEntry)
+    const projectConfig = await getCombinedProjectConfig(projectPath);
+    const targetDirPath = getTargetDir(
+        projectConfig,
+        adapter.tool,
+        adapter.subtype,
+        name,
+        adapter.targetDir
+    );
+    const targetPath = path.join(absoluteProjectPath, targetDirPath, name);
+
+    // Determine destination path in repo
+    const repoDir = repo.path;
+    const repoConfig = await getRepoSourceConfig(repoDir);
+    const sourceDir = getSourceDir(repoConfig, adapter.tool, adapter.subtype, adapter.defaultSourceDir);
+    const destPath = path.join(repoDir, sourceDir, name);
+    const repoRelativePath = path.relative(repoDir, destPath);
+
+    // Delegate fs operations (copy, remove, symlink) to manager.import()
+    const manager = adapter.forProject(projectPath, repo, options.isLocal);
+    const linkResult = await manager.import(targetPath, name, {
+        force,
+        repoUrl: repo.url,
+    });
+
+    return {
+        name,
+        sourceName: linkResult.sourceName,
+        targetName: linkResult.targetName,
+        repoRelativePath,
+    };
+}

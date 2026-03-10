@@ -7,6 +7,7 @@ import { copilotPromptsAdapter } from './copilot-prompts.js';
 import { copilotAgentsAdapter } from './copilot-agents.js';
 import { claudeSkillsAdapter } from './claude-skills.js';
 import { claudeAgentsAdapter } from './claude-agents.js';
+import { claudeCommandsAdapter } from './claude-commands.js';
 import { claudeRulesAdapter } from './claude-rules.js';
 import { claudeMdAdapter } from './claude-md.js';
 import { cursorSkillsAdapter } from './cursor-skills.js';
@@ -56,6 +57,7 @@ class DefaultAdapterRegistry implements AdapterRegistry {
         this.register(copilotAgentsAdapter);
         this.register(claudeSkillsAdapter);
         this.register(claudeAgentsAdapter);
+        this.register(claudeCommandsAdapter);
         this.register(claudeRulesAdapter);
         this.register(claudeMdAdapter);
         this.register(traeRulesAdapter);

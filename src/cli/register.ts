@@ -11,6 +11,7 @@ import { handleAdd, handleRemove, handleImport, ImportCommandOptions } from '../
 import { installEntriesForAdapter, installUserEntriesForAdapter } from '../commands/install.js';
 import { getTargetRepo } from '../commands/helpers.js';
 import { handleAddAll } from '../commands/add-all.js';
+import { handleImportAll } from '../commands/import-all.js';
 import { adapterRegistry } from '../adapters/index.js';
 import { parseSourceDirParams } from './source-dir-parser.js';
 
@@ -173,20 +174,83 @@ export function registerAdapterCommands(options: RegisterCommandsOptions): void 
     .command('import <name>')
     .description(`Import ${adapter.tool} ${entityName} from project to repository`)
     .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
+    .option('-u, --user', 'Import from user config (~/.config) instead of project')
     .option('-m, --message <message>', 'Custom git commit message')
     .option('-f, --force', 'Overwrite if entry already exists in repository')
     .option('-p, --push', 'Push to remote repository after commit')
     .option('--dry-run', 'Preview changes without applying')
-    .action(async (name: string, cmdOptions: ImportCommandOptions & { local?: boolean; dryRun?: boolean }) => {
+    .action(async (name: string, cmdOptions: ImportCommandOptions & { local?: boolean; user?: boolean; dryRun?: boolean }) => {
       try {
         const repo = await getTargetRepo(programOpts());
+        const isUser = cmdOptions.user || false;
+        const projectPath = isUser ? os.homedir() : process.cwd();
         await handleImport(adapter, {
-          projectPath: process.cwd(),
+          projectPath,
           repo,
-          isLocal: cmdOptions.local || false
+          isLocal: cmdOptions.local || false,
+          user: isUser,
+          skipIgnore: isUser
         }, name, cmdOptions);
       } catch (error: any) {
         console.error(chalk.red(`Error importing ${adapter.tool} ${entityName}:`), error.message);
+        process.exit(1);
+      }
+    });
+
+  // Import-all command
+  parentCommand
+    .command('import-all')
+    .description(`Import all ${adapter.tool} ${adapter.subtype} from project to repository`)
+    .option('--dry-run', 'Preview without making changes')
+    .option('-f, --force', 'Overwrite existing entries in repo')
+    .option('-i, --interactive', 'Prompt for each entry')
+    .option('-u, --user', 'Import from user config (~/.claude/) instead of project')
+    .option('-p, --push', 'Push to remote repository after commit')
+    .option('-m, --message <message>', 'Custom git commit message')
+    .option('--quiet', 'Minimal output')
+    .option('-l, --local', 'Add to ai-rules-sync.local.json')
+    .action(async (cmdOptions: { dryRun?: boolean; force?: boolean; interactive?: boolean; user?: boolean; push?: boolean; message?: string; quiet?: boolean; local?: boolean }) => {
+      try {
+        const repo = await getTargetRepo(programOpts());
+        const isUser = cmdOptions.user || false;
+        const projectPath = isUser ? os.homedir() : process.cwd();
+
+        const result = await handleImportAll(
+          projectPath,
+          repo,
+          adapterRegistry,
+          {
+            adapters: [adapter.name],
+            dryRun: cmdOptions.dryRun,
+            force: cmdOptions.force,
+            interactive: cmdOptions.interactive,
+            user: isUser,
+            push: cmdOptions.push,
+            message: cmdOptions.message,
+            quiet: cmdOptions.quiet,
+            isLocal: cmdOptions.local,
+          }
+        );
+
+        if (!cmdOptions.quiet) {
+          console.log(chalk.bold('\nSummary:'));
+          console.log(chalk.green(`  Imported: ${result.imported}`));
+          if (result.skipped > 0) {
+            console.log(chalk.yellow(`  Skipped: ${result.skipped}`));
+          }
+          if (result.errors.length > 0) {
+            console.log(chalk.red(`  Errors: ${result.errors.length}`));
+            result.errors.forEach(e => {
+              console.log(chalk.red(`    - ${e.entry}: ${e.error}`));
+            });
+          }
+        }
+
+        if (result.errors.length > 0) {
+          process.exit(1);
+        }
+      } catch (error: any) {
+        console.error(chalk.red(`Error in ${adapter.tool} ${adapter.subtype} import-all:`), error.message);
         process.exit(1);
       }
     });
