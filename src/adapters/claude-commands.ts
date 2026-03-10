@@ -10,8 +10,8 @@ export const claudeCommandsAdapter: SyncAdapter = createBaseAdapter({
   configPath: ['claude', 'commands'],
   defaultSourceDir: '.claude/commands',
   targetDir: '.claude/commands',
-  mode: 'file',
-  fileSuffixes: [SUFFIX],
+  mode: 'hybrid',
+  hybridFileSuffixes: [SUFFIX],
   resolveSource: createSingleSuffixResolver(SUFFIX, 'Command'),
   resolveTargetName: createSuffixAwareTargetResolver([SUFFIX]),
 });
