@@ -159,11 +159,14 @@ ais cursor add testing
 ```bash
 # 1. Create a rules repository (or use existing one)
 # Option A: Create new repository
-git init ~/my-rules-repo
-ais use ~/my-rules-repo
+mkdir ~/my-rules-repo && cd ~/my-rules-repo
+git init
+ais init
+ais use .
 
-# Option B: Use existing repository
+# Option B: Use existing repository (URL or local path)
 ais use https://github.com/your-org/rules-repo.git
+ais use ~/my-rules-repo
 
 # 2. Import your existing rule
 cd your-project
@@ -211,7 +214,7 @@ my-rules-repo/
 
 **Repository Locations:**
 - **Global**: `~/.config/ai-rules-sync/repos/` (managed by AIS)
-- **Local**: Any local path (for development)
+- **Local**: `ais use ~/path` with a git repo creates a symlink in `repos/`; rules reference the remote URL for portable config
 
 **Managing Repositories:**
 ```bash
@@ -311,7 +314,12 @@ ais update --dry-run
 
 **Option 1: Use an existing repository**
 ```bash
+# Remote URL (cloned to ~/.config/ai-rules-sync/repos/)
 ais use https://github.com/your-org/rules-repo.git
+
+# Local path (git repo with remote: symlinked to repos/; rules reference remote URL)
+ais use ~/my-rules-repo
+ais use ./path/to/repo
 ```
 
 **Option 2: Create a new local repository**
@@ -321,7 +329,7 @@ mkdir ~/my-rules-repo
 cd ~/my-rules-repo
 git init
 
-# Scaffold default ai-rules-sync.json + source directories
+# Scaffold ai-rules-sync.json and create default source directories (.cursor/rules/, etc.)
 ais init
 
 # Set as current repository
@@ -445,11 +453,14 @@ ais update --dry-run
 # Pull updates and reinstall entries from config
 ais update
 
-# Initialize a rules repository template in current directory
+# Initialize a rules repository template (creates ai-rules-sync.json + source dirs)
 ais init
 
-# Initialize template in a subdirectory
+# Initialize in a subdirectory
 ais init my-rules-repo
+
+# Options: --force (overwrite existing), --no-dirs (config only), --json (machine output)
+ais init --help
 ```
 
 ---
@@ -760,7 +771,7 @@ ais use personal-rules
 
 All commands support:
 
-- `-t, --target <repo>`: Specify repository (name or URL)
+- `-t, --target <repo>`: Specify repository (name, URL, or local path)
 - `-l, --local`: Save to `ai-rules-sync.local.json` (private)
 
 Examples:

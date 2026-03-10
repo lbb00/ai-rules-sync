@@ -1,4 +1,29 @@
+import path from 'path';
+import os from 'os';
 import fs from 'fs-extra';
+
+/**
+ * Check if a string looks like a local path (not a git URL).
+ */
+export function isLocalPath(input: string): boolean {
+  if (!input || typeof input !== 'string') return false;
+  if (input.includes('://') || input.includes('git@')) return false;
+  if (input.endsWith('.git') && !path.isAbsolute(input) && !input.startsWith('~')) return false;
+  return path.isAbsolute(input) || input.startsWith('~') || input.startsWith('.');
+}
+
+/**
+ * Resolve a local path (expand ~, resolve . and ..) and verify it exists as a directory.
+ * @returns Resolved absolute path, or null if invalid
+ */
+export async function resolveLocalPath(input: string, cwd?: string): Promise<string | null> {
+  const expanded = input.startsWith('~') ? input.replace(/^~/, os.homedir()) : input;
+  const resolved = path.isAbsolute(expanded) ? path.normalize(expanded) : path.resolve(cwd || process.cwd(), expanded);
+  const exists = await fs.pathExists(resolved);
+  if (!exists) return null;
+  const stat = await fs.stat(resolved);
+  return stat.isDirectory() ? resolved : null;
+}
 
 /**
  * Adds an entry to an ignore file (like .gitignore) if it doesn't already exist.
