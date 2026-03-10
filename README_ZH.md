@@ -159,8 +159,10 @@ ais cursor add testing
 ```bash
 # 1. 创建规则仓库（或使用现有仓库）
 # 选项 A：创建新仓库
-git init ~/my-rules-repo
-ais use ~/my-rules-repo
+mkdir ~/my-rules-repo && cd ~/my-rules-repo
+git init
+ais init
+ais use .
 
 # 选项 B：使用现有仓库
 ais use https://github.com/your-org/rules-repo.git
@@ -321,7 +323,7 @@ mkdir ~/my-rules-repo
 cd ~/my-rules-repo
 git init
 
-# 生成默认 ai-rules-sync.json 和源目录结构
+# 生成 ai-rules-sync.json 并创建默认源目录（.cursor/rules/ 等）
 ais init
 
 # 设置为当前仓库
@@ -445,11 +447,14 @@ ais update --dry-run
 # 拉取仓库更新并根据配置重装链接
 ais update
 
-# 在当前目录初始化规则仓库模板
+# 初始化规则仓库模板（创建 ai-rules-sync.json 和源目录）
 ais init
 
-# 在子目录初始化模板
+# 在子目录初始化
 ais init my-rules-repo
+
+# 选项：--force（覆盖已有）、--no-dirs（仅配置）、--json（机器输出）
+ais init --help
 ```
 
 ---

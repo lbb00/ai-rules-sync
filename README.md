@@ -159,8 +159,10 @@ ais cursor add testing
 ```bash
 # 1. Create a rules repository (or use existing one)
 # Option A: Create new repository
-git init ~/my-rules-repo
-ais use ~/my-rules-repo
+mkdir ~/my-rules-repo && cd ~/my-rules-repo
+git init
+ais init
+ais use .
 
 # Option B: Use existing repository
 ais use https://github.com/your-org/rules-repo.git
@@ -321,7 +323,7 @@ mkdir ~/my-rules-repo
 cd ~/my-rules-repo
 git init
 
-# Scaffold default ai-rules-sync.json + source directories
+# Scaffold ai-rules-sync.json and create default source directories (.cursor/rules/, etc.)
 ais init
 
 # Set as current repository
@@ -445,11 +447,14 @@ ais update --dry-run
 # Pull updates and reinstall entries from config
 ais update
 
-# Initialize a rules repository template in current directory
+# Initialize a rules repository template (creates ai-rules-sync.json + source dirs)
 ais init
 
-# Initialize template in a subdirectory
+# Initialize in a subdirectory
 ais init my-rules-repo
+
+# Options: --force (overwrite existing), --no-dirs (config only), --json (machine output)
+ais init --help
 ```
 
 ---
