@@ -1,5 +1,14 @@
 # ai-rules-sync
 
+## 0.7.0
+
+### Minor Changes
+
+- feat: import-all command for batch importing project entries
+  feat: import --user flag for custom git commit author
+  fix: hybrid mode for claude-agents, claude-rules, and claude-commands adapters
+  fix: graceful handling of no-op force imports
+
 ## 0.6.0
 
 ### Minor Changes
