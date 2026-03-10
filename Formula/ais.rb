@@ -1,8 +1,8 @@
 class Ais < Formula
   desc "Synchronize AI agent rules across projects and teams"
   homepage "https://github.com/lbb00/ai-rules-sync"
-  url "https://registry.npmjs.org/ai-rules-sync/-/ai-rules-sync-0.5.0.tgz"
-  sha256 "dacf888ade91ae0141473aba22b76143e8f33dae43832348fc1df5211310be52"
+  url "https://registry.npmjs.org/ai-rules-sync/-/ai-rules-sync-0.7.0.tgz"
+  sha256 "564f85223e4ed6b373c7662ca8c6a5a2ba45a3271bbec410f6a8c5990371189a"
   license "Unlicense"
 
   depends_on "node"
