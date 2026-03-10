@@ -376,26 +376,32 @@ export async function importDiscoveredEntries(
         const relativePaths = importedInfos.map(info => info.repoRelativePath);
         await execa('git', ['add', ...relativePaths], { cwd: repoDir });
 
-        // Determine commit message
-        let commitMessage: string;
-        if (options.message) {
-            commitMessage = options.message;
-        } else {
-            // Use adapter info from the entries that were successfully imported
-            const importedEntries = entries.filter(e =>
-                importedInfos.some(info => info.name === e.sourceName)
-            );
-            const uniqueAdapters = [...new Set(importedEntries.map(e => `${e.adapter.tool} ${e.adapter.subtype}`))];
-            const label = uniqueAdapters.length === 1
-                ? uniqueAdapters[0]
-                : 'entries';
-            commitMessage = `Import ${importedInfos.length} ${label}`;
-        }
+        // Check if there are staged changes to commit
+        const hasStagedChanges = (await execa('git', ['diff', '--cached', '--stat'], { cwd: repoDir })).stdout.trim().length > 0;
 
-        await execa('git', ['commit', '-m', commitMessage], { cwd: repoDir, stdio: 'inherit' });
+        if (hasStagedChanges) {
+            // Determine commit message
+            let commitMessage: string;
+            if (options.message) {
+                commitMessage = options.message;
+            } else {
+                const importedEntries = entries.filter(e =>
+                    importedInfos.some(info => info.name === e.sourceName)
+                );
+                const uniqueAdapters = [...new Set(importedEntries.map(e => `${e.adapter.tool} ${e.adapter.subtype}`))];
+                const label = uniqueAdapters.length === 1
+                    ? uniqueAdapters[0]
+                    : 'entries';
+                commitMessage = `Import ${importedInfos.length} ${label}`;
+            }
 
-        if (!options.quiet) {
-            console.log(chalk.green(`Committed ${importedInfos.length} entries to rules repository.`));
+            await execa('git', ['commit', '-m', commitMessage], { cwd: repoDir, stdio: 'inherit' });
+
+            if (!options.quiet) {
+                console.log(chalk.green(`Committed ${importedInfos.length} entries to rules repository.`));
+            }
+        } else if (!options.quiet) {
+            console.log(chalk.gray(`Repository already up to date (no content changes).`));
         }
 
         if (options.push) {
