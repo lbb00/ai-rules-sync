@@ -10,8 +10,8 @@ export const claudeAgentsAdapter: SyncAdapter = createBaseAdapter({
   configPath: ['claude', 'agents'],
   defaultSourceDir: '.claude/agents',
   targetDir: '.claude/agents',
-  mode: 'file',
-  fileSuffixes: [SUFFIX],
+  mode: 'hybrid',
+  hybridFileSuffixes: [SUFFIX],
   resolveSource: createSingleSuffixResolver(SUFFIX, 'Agent'),
   resolveTargetName: createSuffixAwareTargetResolver([SUFFIX]),
 });

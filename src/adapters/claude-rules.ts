@@ -14,8 +14,8 @@ export const claudeRulesAdapter: SyncAdapter = createBaseAdapter({
   configPath: ['claude', 'rules'],
   defaultSourceDir: '.claude/rules',
   targetDir: '.claude/rules',
-  mode: 'file',
-  fileSuffixes: [SUFFIX],
+  mode: 'hybrid',
+  hybridFileSuffixes: [SUFFIX],
 
   resolveSource: createSingleSuffixResolver(SUFFIX, 'Rule'),
   resolveTargetName: createSuffixAwareTargetResolver([SUFFIX])
