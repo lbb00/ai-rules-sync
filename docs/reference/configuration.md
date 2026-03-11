@@ -108,6 +108,16 @@ Use one file for both:
 }
 ```
 
+### Directory Mode
+
+Use one directory for multiple tools with `sourceDir` and `targetName`. For example, if you have `common/shared-rules` and want it to sync as `.cursor/rules/cursor-rules`:
+
+```json
+"cursor": {
+  "rules": { "dir": "common", "sourceDir": "shared-rules", "targetName": "cursor-rules" }
+}
+```
+
 ## user.json
 
 User-level configuration (same structure as `ai-rules-sync.json`):

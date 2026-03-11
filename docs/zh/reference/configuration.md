@@ -108,6 +108,16 @@ ais cursor add company-secrets --local
 }
 ```
 
+### 目录模式
+
+使用 `sourceDir` 和 `targetName` 将一个目录同步到多个工具。例如，将 `common/shared-rules` 同步为 `.cursor/rules/cursor-rules`：
+
+```json
+"cursor": {
+  "rules": { "dir": "common", "sourceDir": "shared-rules", "targetName": "cursor-rules" }
+}
+```
+
 ## user.json
 
 用户级配置（与 `ai-rules-sync.json` 结构相同）：
