@@ -694,7 +694,8 @@ ais config repo list
 
 **sourceDir value formats:**
 - **String** (legacy): `"claude": { "md": ".claude" }` — source directory path
-- **Object**: `"claude": { "md": { "dir": "common", "sourceFile": "AGENTS.md", "targetFile": "CLAUDE.md" } }` — use a different source file and target filename (e.g. map `common/AGENTS.md` → `.claude/CLAUDE.md`)
+- **Object (file mode)**: `"claude": { "md": { "dir": "common", "sourceFile": "AGENTS.md", "targetFile": "CLAUDE.md" } }` — use a different source file and target filename (e.g. map `common/AGENTS.md` → `.claude/CLAUDE.md`)
+- **Object (directory mode)**: `"cursor": { "rules": { "dir": "common", "sourceDir": "shared-rules", "targetName": "cursor-rules" } }` — use a different source subdirectory and target symlink name (e.g. map `common/shared-rules` → `.cursor/rules/cursor-rules`)
 
 **Priority Resolution in `getSourceDir()`:**
 
@@ -1005,7 +1006,7 @@ ais user install
 - Rules repo had `common/AGENTS.md` that should sync to project root as `AGENTS.md` (via agentsMd) and to `.claude/CLAUDE.md` (via claude-md)
 - Previously required duplicate files or manual symlinks
 
-**New sourceDir Object Format:**
+**New sourceDir Object Format (file mode):**
 ```json
 "claude": {
   "md": { "dir": "common", "sourceFile": "AGENTS.md", "targetFile": "CLAUDE.md" }
@@ -1015,12 +1016,23 @@ ais user install
 - `sourceFile`: Filename to use as source (e.g. `AGENTS.md` instead of `CLAUDE.md`)
 - `targetFile`: Symlink filename in target (e.g. `CLAUDE.md`)
 
+**Extended for directory/hybrid mode (2026-03):**
+```json
+"cursor": {
+  "rules": { "dir": "common", "sourceDir": "shared-rules", "targetName": "cursor-rules" }
+}
+```
+- `sourceDir`: Source subdirectory to use (e.g. `common/shared-rules` instead of `common/<name>`)
+- `targetName`: Symlink directory name in target (e.g. `cursor-rules`)
+
 **Implementation:**
-- `src/project-config.ts` - Added `SourceDirValue` type, `getSourceFileOverride()`, `getTargetFileOverride()`, extended `buildRepoSourceFromNestedStrings` and `getSourceDir()` for object format
+- `src/project-config.ts` - Added `SourceDirValue` type, `getSourceFileOverride()`, `getTargetFileOverride()`, `getSourceDirOverride()`, `getTargetNameOverride()`, extended `buildRepoSourceFromNestedStrings` and `getSourceDir()` for object format
 - `src/adapters/claude-md.ts` - Custom `resolveSource` that uses `sourceFileOverride` when set
-- `src/adapters/types.ts` - Extended `resolveSource` signature with optional `options.sourceFileOverride`
+- `src/adapters/base.ts` - `createMultiSuffixResolver` accepts `sourceDirOverride` for hybrid/directory mode
+- `src/adapters/types.ts` - Extended `resolveSource` signature with optional `options.sourceFileOverride` and `options.sourceDirOverride`
 - `src/dotany/types.ts` - Added `targetName` to `ResolvedSource` for target override
-- `src/plugin/git-repo-source.ts` - Pass overrides to resolveSource, return `targetName` when set
+- `src/plugin/git-repo-source.ts` - Pass overrides to resolveSource, support sourceDirOverride/targetNameOverride for directory-only adapters
+- `src/sync-engine.ts` - Pass overrides to adapter.resolveSource, use targetFileOverride/targetNameOverride for target name
 - `src/dotany/manager.ts` - Use `resolved.targetName` when present
 
 ### Command UX Enhancements (2026-03)

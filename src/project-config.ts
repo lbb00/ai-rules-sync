@@ -5,8 +5,18 @@ import { getUserConfigPath, getUserProjectConfig, saveUserProjectConfig } from '
 const CONFIG_FILENAME = 'ai-rules-sync.json';
 const LOCAL_CONFIG_FILENAME = 'ai-rules-sync.local.json';
 
-/** Source dir value: string (legacy) or object with dir and optional sourceFile/targetFile overrides */
-export type SourceDirValue = string | { dir: string; sourceFile?: string; targetFile?: string };
+/**
+ * Source dir value: string (legacy) or object with dir and optional overrides.
+ * - File mode: sourceFile (source filename), targetFile (target symlink filename)
+ * - Directory mode: sourceDir (source subdir name), targetName (target symlink dir name)
+ */
+export type SourceDirValue = string | {
+    dir: string;
+    sourceFile?: string;
+    targetFile?: string;
+    sourceDir?: string;
+    targetName?: string;
+};
 
 function readNestedStringValue(source: unknown, tool: string, subtype: string): string | undefined {
     if (!source || typeof source !== 'object') {
@@ -113,12 +123,19 @@ export type RuleEntry = string | {
 
 /**
  * Source directory configuration (for rules repositories).
- * Defines where source files are located in a rules repo.
- * Value can be string (dir path) or object with dir + optional sourceFile/targetFile overrides.
- * Example: { dir: "common", sourceFile: "AGENTS.md", targetFile: "CLAUDE.md" } lets claude-md use common/AGENTS.md as CLAUDE.md source.
+ * Defines where source files/dirs are located in a rules repo.
+ * Value can be string (dir path) or object with dir + optional overrides:
+ * - File mode: sourceFile, targetFile (e.g. common/AGENTS.md -> CLAUDE.md)
+ * - Directory mode: sourceDir, targetName (e.g. common/shared-rules -> cursor-rules)
  */
 export interface SourceDirConfig {
-    [tool: string]: Record<string, string | { dir: string; sourceFile?: string; targetFile?: string }> | undefined;
+    [tool: string]: Record<string, string | {
+        dir: string;
+        sourceFile?: string;
+        targetFile?: string;
+        sourceDir?: string;
+        targetName?: string;
+    }> | undefined;
 }
 
 /**
@@ -288,6 +305,33 @@ export function getSourceFileOverride(repoConfig: RepoSourceConfig, tool: string
  */
 export function getTargetFileOverride(repoConfig: RepoSourceConfig, tool: string, subtype: string): string | undefined {
     return readNestedTargetFileValue(repoConfig, tool, subtype);
+}
+
+/**
+ * Get optional source directory override for a tool/subtype (directory mode).
+ * When sourceDir uses object format { dir, sourceDir }, returns sourceDir.
+ * Used when a different source subdirectory is needed (e.g. common/shared-rules).
+ */
+export function getSourceDirOverride(repoConfig: RepoSourceConfig, tool: string, subtype: string): string | undefined {
+    const rawValue = readNestedSourceDirValue(repoConfig, tool, subtype);
+    if (rawValue && typeof rawValue === 'object' && rawValue.sourceDir) {
+        return rawValue.sourceDir;
+    }
+    return undefined;
+}
+
+/**
+ * Get optional target name override for a tool/subtype (directory mode).
+ * When sourceDir uses object format { dir, sourceDir, targetName }, returns targetName.
+ * Used when symlink directory should have a different name (e.g. shared-rules -> cursor-rules).
+ * For file mode, use getTargetFileOverride instead.
+ */
+export function getTargetNameOverride(repoConfig: RepoSourceConfig, tool: string, subtype: string): string | undefined {
+    const rawValue = readNestedSourceDirValue(repoConfig, tool, subtype);
+    if (rawValue && typeof rawValue === 'object' && rawValue.targetName) {
+        return rawValue.targetName;
+    }
+    return undefined;
 }
 
 /**

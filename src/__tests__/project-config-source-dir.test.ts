@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
-import { getRepoSourceConfig, getSourceDir, getSourceFileOverride, getTargetFileOverride } from '../project-config.js';
+import { getRepoSourceConfig, getSourceDir, getSourceFileOverride, getSourceDirOverride, getTargetFileOverride, getTargetNameOverride } from '../project-config.js';
 import type { ProjectConfig, RepoSourceConfig, SourceDirConfig } from '../project-config.js';
 
 describe('project-config source directory resolution', () => {
@@ -114,5 +114,41 @@ describe('project-config source directory resolution', () => {
 
     expect(getSourceFileOverride(repoConfig, 'claude', 'md')).toBeUndefined();
     expect(getTargetFileOverride(repoConfig, 'claude', 'md')).toBeUndefined();
+  });
+
+  it('should parse sourceDir object format with dir, sourceDir, targetName (directory mode)', async () => {
+    const config: ProjectConfig = {
+      rootPath: 'rules-root',
+      sourceDir: {
+        cursor: {
+          rules: { dir: 'common', sourceDir: 'shared-rules', targetName: 'cursor-rules' }
+        }
+      }
+    };
+
+    await fs.writeJson(path.join(tempDir, 'ai-rules-sync.json'), config, { spaces: 2 });
+
+    const repoConfig = await getRepoSourceConfig(tempDir);
+    expect(repoConfig.cursor?.rules).toEqual({ dir: 'common', sourceDir: 'shared-rules', targetName: 'cursor-rules' });
+
+    const sourceDir = getSourceDir(repoConfig, 'cursor', 'rules', '.cursor/rules');
+    expect(sourceDir).toBe(path.join('rules-root', 'common'));
+
+    expect(getSourceDirOverride(repoConfig, 'cursor', 'rules')).toBe('shared-rules');
+    expect(getTargetNameOverride(repoConfig, 'cursor', 'rules')).toBe('cursor-rules');
+  });
+
+  it('should return undefined for sourceDir/targetName overrides when not set', async () => {
+    const config: ProjectConfig = {
+      sourceDir: {
+        cursor: { rules: { dir: 'common' } }
+      }
+    };
+
+    await fs.writeJson(path.join(tempDir, 'ai-rules-sync.json'), config, { spaces: 2 });
+    const repoConfig = await getRepoSourceConfig(tempDir);
+
+    expect(getSourceDirOverride(repoConfig, 'cursor', 'rules')).toBeUndefined();
+    expect(getTargetNameOverride(repoConfig, 'cursor', 'rules')).toBeUndefined();
   });
 });

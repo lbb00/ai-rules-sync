@@ -1039,6 +1039,14 @@ ais user install
 }
 ```
 
+**同一目录供多工具使用（目录模式）：** 若你有 `common/shared-rules`，希望它同步为 `.cursor/rules/cursor-rules`，可使用 `sourceDir` 与 `targetName`：
+
+```json
+"cursor": {
+  "rules": { "dir": "common", "sourceDir": "shared-rules", "targetName": "cursor-rules" }
+}
+```
+
 ### Git 命令
 
 **直接从 CLI 管理仓库：**
