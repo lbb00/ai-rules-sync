@@ -208,6 +208,26 @@ describe('Sync Engine - new sourceDir format', () => {
 
         expect(fs.ensureSymlink).toHaveBeenCalledWith(expectedSourcePath, expectedTargetPath);
     });
+
+    it('should use sourceDirOverride and targetNameOverride for directory mode', async () => {
+        vi.mocked(projectConfigModule.getRepoSourceConfig).mockResolvedValue({
+            cursor: { rules: { dir: 'common', sourceDir: 'shared-rules', targetName: 'cursor-rules' } }
+        });
+        vi.mocked(projectConfigModule.getSourceDir).mockReturnValue('common');
+        vi.mocked(projectConfigModule.getSourceDirOverride).mockReturnValue('shared-rules');
+        vi.mocked(projectConfigModule.getTargetNameOverride).mockReturnValue('cursor-rules');
+
+        await linkEntry(getAdapter('cursor', 'rules'), {
+            projectPath: mockProjectPath,
+            name: 'cursor-rules',
+            repo: mockRepo
+        });
+
+        const expectedSourcePath = path.join(mockRepo.path, 'common', 'shared-rules');
+        const expectedTargetPath = path.join(path.resolve(mockProjectPath), '.cursor', 'rules', 'cursor-rules');
+
+        expect(fs.ensureSymlink).toHaveBeenCalledWith(expectedSourcePath, expectedTargetPath);
+    });
 });
 
 describe('Sync Engine - userTargetDir (global/user mode)', () => {

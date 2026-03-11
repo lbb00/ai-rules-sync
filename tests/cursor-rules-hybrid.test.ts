@@ -157,6 +157,28 @@ describe('Cursor Rules Hybrid Mode', () => {
             await expect(resolver(mockRepoPath, sourceDir, 'nonexistent'))
                 .rejects.toThrow('Rule "nonexistent" not found in repository.');
         });
+
+        it('should use sourceDirOverride when provided (directory mode)', async () => {
+            const dirPath = path.join(mockRepoPath, sourceDir, 'shared-rules');
+
+            vi.mocked(fs.pathExists).mockImplementation(async (p) => {
+                return p === dirPath;
+            });
+            vi.mocked(fs.stat).mockImplementation(async (p) => {
+                if (p === dirPath) {
+                    return { isDirectory: () => true } as any;
+                }
+                throw new Error('Not found');
+            });
+
+            const result = await resolver(mockRepoPath, sourceDir, 'cursor-rules', {
+                sourceDirOverride: 'shared-rules'
+            });
+
+            expect(result.sourceName).toBe('shared-rules');
+            expect(result.sourcePath).toBe(dirPath);
+            expect(result.suffix).toBeUndefined();
+        });
     });
 
     describe('resolveTargetName - createSuffixAwareTargetResolver', () => {

@@ -1039,6 +1039,14 @@ Create `ai-rules-sync.json` in your rules repository:
 }
 ```
 
+**Use one directory for multiple tools (directory mode):** If you have `common/shared-rules` and want it to sync as `.cursor/rules/cursor-rules`, use `sourceDir` and `targetName`:
+
+```json
+"cursor": {
+  "rules": { "dir": "common", "sourceDir": "shared-rules", "targetName": "cursor-rules" }
+}
+```
+
 ### Git Commands
 
 **Manage repository directly from CLI:**
