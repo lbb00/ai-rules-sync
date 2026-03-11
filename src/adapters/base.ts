@@ -24,7 +24,7 @@ export interface AdapterConfig {
     mode: 'directory' | 'file' | 'hybrid';
     fileSuffixes?: string[];
     hybridFileSuffixes?: string[];
-    resolveSource?: (repoDir: string, rootPath: string, name: string) => Promise<any>;
+    resolveSource?: (repoDir: string, rootPath: string, name: string, options?: { sourceFileOverride?: string }) => Promise<any>;
     resolveTargetName?: (name: string, alias?: string, sourceSuffix?: string) => string;
 }
 

@@ -41,11 +41,13 @@ export interface SyncAdapter {
      * Optional hook to resolve the actual source path.
      * Default behavior: join(repoDir, rootPath, name)
      * For file mode with suffixes, this handles suffix resolution.
+     * @param options.sourceFileOverride - When set (from rules repo sourceDir), use this file instead of name
      */
     resolveSource?(
         repoDir: string,
         rootPath: string,
-        name: string
+        name: string,
+        options?: { sourceFileOverride?: string }
     ): Promise<ResolvedSource>;
 
     /**
