@@ -9,6 +9,9 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
     "docs:sync-tools": "node scripts/sync-supported-tools.mjs",
     "release:version": "changeset version",
     "release:publish": "changeset publish"
@@ -41,6 +44,7 @@
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^25.0.3",
     "typescript": "^5.9.3",
+    "vitepress": "^1.6.4",
     "vitest": "^4.0.16"
   },
   "packageManager": "pnpm@9.15.3+sha512.1f79bc245a66eb0b07c5d4d83131240774642caaa86ef7d0434ab47c0d16f66b04e21e0c086eb61e62c77efc4d7f7ec071afad3796af64892fae66509173893a"
