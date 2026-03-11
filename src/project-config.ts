@@ -5,6 +5,9 @@ import { getUserConfigPath, getUserProjectConfig, saveUserProjectConfig } from '
 const CONFIG_FILENAME = 'ai-rules-sync.json';
 const LOCAL_CONFIG_FILENAME = 'ai-rules-sync.local.json';
 
+/** Source dir value: string (legacy) or object with dir and optional sourceFile/targetFile overrides */
+export type SourceDirValue = string | { dir: string; sourceFile?: string; targetFile?: string };
+
 function readNestedStringValue(source: unknown, tool: string, subtype: string): string | undefined {
     if (!source || typeof source !== 'object') {
         return undefined;
@@ -17,6 +20,43 @@ function readNestedStringValue(source: unknown, tool: string, subtype: string): 
 
     const value = (toolConfig as Record<string, unknown>)[subtype];
     return typeof value === 'string' ? value : undefined;
+}
+
+function readNestedSourceDirValue(source: unknown, tool: string, subtype: string): SourceDirValue | undefined {
+    if (!source || typeof source !== 'object') {
+        return undefined;
+    }
+
+    const toolConfig = (source as Record<string, unknown>)[tool];
+    if (!toolConfig || typeof toolConfig !== 'object') {
+        return undefined;
+    }
+
+    const value = (toolConfig as Record<string, unknown>)[subtype];
+    if (typeof value === 'string') return value;
+    if (value && typeof value === 'object' && typeof (value as Record<string, unknown>).dir === 'string') {
+        return value as SourceDirValue;
+    }
+    return undefined;
+}
+
+function readNestedTargetFileValue(source: unknown, tool: string, subtype: string): string | undefined {
+    const rawValue = readNestedSourceDirValue(source, tool, subtype);
+    if (rawValue && typeof rawValue === 'object' && rawValue.targetFile) {
+        return rawValue.targetFile;
+    }
+    return undefined;
+}
+
+function writeNestedValue(target: RepoSourceConfig, tool: string, subtype: string, value: SourceDirValue): void {
+    const mutable = target as Record<string, unknown>;
+    const existingToolConfig = mutable[tool];
+    const toolConfig =
+        existingToolConfig && typeof existingToolConfig === 'object'
+            ? (existingToolConfig as Record<string, unknown>)
+            : {};
+    toolConfig[subtype] = value;
+    mutable[tool] = toolConfig;
 }
 
 function writeNestedStringValue(target: RepoSourceConfig, tool: string, subtype: string, value: string): void {
@@ -51,7 +91,10 @@ function buildRepoSourceFromNestedStrings(source: unknown, rootPath?: string): {
         for (const [subtype, value] of Object.entries(toolConfig as Record<string, unknown>)) {
             if (typeof value === 'string') {
                 hasAny = true;
-                writeNestedStringValue(config, tool, subtype, value);
+                writeNestedValue(config, tool, subtype, value);
+            } else if (value && typeof value === 'object' && typeof (value as Record<string, unknown>).dir === 'string') {
+                hasAny = true;
+                writeNestedValue(config, tool, subtype, value as SourceDirValue);
             }
         }
     }
@@ -71,10 +114,11 @@ export type RuleEntry = string | {
 /**
  * Source directory configuration (for rules repositories).
  * Defines where source files are located in a rules repo.
- * Uses dynamic index signature to support any tool/subtype combination.
+ * Value can be string (dir path) or object with dir + optional sourceFile/targetFile overrides.
+ * Example: { dir: "common", sourceFile: "AGENTS.md", targetFile: "CLAUDE.md" } lets claude-md use common/AGENTS.md as CLAUDE.md source.
  */
 export interface SourceDirConfig {
-    [tool: string]: Record<string, string> | undefined;
+    [tool: string]: Record<string, string | { dir: string; sourceFile?: string; targetFile?: string }> | undefined;
 }
 
 /**
@@ -216,11 +260,34 @@ export function getSourceDir(
     }
 
     // 2. Check repoConfig (from repo's ai-rules-sync.json)
-    const toolDir = readNestedStringValue(repoConfig, tool, subtype);
+    const rawValue = readNestedSourceDirValue(repoConfig, tool, subtype);
+    const toolDir = typeof rawValue === 'string' ? rawValue : rawValue?.dir;
 
     // 3. Apply rootPath and default
     const dir = toolDir ?? defaultDir;
     return rootPath ? path.join(rootPath, dir) : dir;
+}
+
+/**
+ * Get optional source file override for a tool/subtype.
+ * When sourceDir uses object format { dir, sourceFile }, returns sourceFile.
+ * Used when a different source filename is needed (e.g. common/AGENTS.md as CLAUDE.md source).
+ */
+export function getSourceFileOverride(repoConfig: RepoSourceConfig, tool: string, subtype: string): string | undefined {
+    const rawValue = readNestedSourceDirValue(repoConfig, tool, subtype);
+    if (rawValue && typeof rawValue === 'object' && rawValue.sourceFile) {
+        return rawValue.sourceFile;
+    }
+    return undefined;
+}
+
+/**
+ * Get optional target file override for a tool/subtype.
+ * When sourceDir uses object format { dir, sourceFile, targetFile }, returns targetFile.
+ * Used when symlink should have a different name (e.g. AGENTS.md -> CLAUDE.md).
+ */
+export function getTargetFileOverride(repoConfig: RepoSourceConfig, tool: string, subtype: string): string | undefined {
+    return readNestedTargetFileValue(repoConfig, tool, subtype);
 }
 
 /**

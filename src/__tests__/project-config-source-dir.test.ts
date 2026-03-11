@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
-import { getRepoSourceConfig, getSourceDir } from '../project-config.js';
+import { getRepoSourceConfig, getSourceDir, getSourceFileOverride, getTargetFileOverride } from '../project-config.js';
 import type { ProjectConfig, RepoSourceConfig, SourceDirConfig } from '../project-config.js';
 
 describe('project-config source directory resolution', () => {
@@ -78,5 +78,41 @@ describe('project-config source directory resolution', () => {
 
     const repoConfig = await getRepoSourceConfig(tempDir);
     expect(repoConfig).toEqual({ rootPath: 'project-root' });
+  });
+
+  it('should parse sourceDir object format with dir, sourceFile, targetFile', async () => {
+    const config: ProjectConfig = {
+      rootPath: 'rules-root',
+      sourceDir: {
+        claude: {
+          md: { dir: 'common', sourceFile: 'AGENTS.md', targetFile: 'CLAUDE.md' }
+        }
+      }
+    };
+
+    await fs.writeJson(path.join(tempDir, 'ai-rules-sync.json'), config, { spaces: 2 });
+
+    const repoConfig = await getRepoSourceConfig(tempDir);
+    expect(repoConfig.claude?.md).toEqual({ dir: 'common', sourceFile: 'AGENTS.md', targetFile: 'CLAUDE.md' });
+
+    const sourceDir = getSourceDir(repoConfig, 'claude', 'md', '.claude');
+    expect(sourceDir).toBe(path.join('rules-root', 'common'));
+
+    expect(getSourceFileOverride(repoConfig, 'claude', 'md')).toBe('AGENTS.md');
+    expect(getTargetFileOverride(repoConfig, 'claude', 'md')).toBe('CLAUDE.md');
+  });
+
+  it('should return undefined for overrides when sourceDir is string', async () => {
+    const config: ProjectConfig = {
+      sourceDir: {
+        claude: { md: '.claude' }
+      }
+    };
+
+    await fs.writeJson(path.join(tempDir, 'ai-rules-sync.json'), config, { spaces: 2 });
+    const repoConfig = await getRepoSourceConfig(tempDir);
+
+    expect(getSourceFileOverride(repoConfig, 'claude', 'md')).toBeUndefined();
+    expect(getTargetFileOverride(repoConfig, 'claude', 'md')).toBeUndefined();
   });
 });

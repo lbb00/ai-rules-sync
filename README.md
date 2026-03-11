@@ -1031,6 +1031,14 @@ Create `ai-rules-sync.json` in your rules repository:
 }
 ```
 
+**Use one file for both AGENTS.md and CLAUDE.md:** If you have `common/AGENTS.md` and want it to sync as both project-root `AGENTS.md` (via `agents-md`) and `.claude/CLAUDE.md` (via `claude md`), use the object format for `claude.md`:
+
+```json
+"claude": {
+  "md": { "dir": "common", "sourceFile": "AGENTS.md", "targetFile": "CLAUDE.md" }
+}
+```
+
 ### Git Commands
 
 **Manage repository directly from CLI:**

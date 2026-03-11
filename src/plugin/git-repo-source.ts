@@ -1,6 +1,6 @@
 import { SourceResolver, ResolvedSource, ResolveConfig, ManifestEntry, RepoResolverFn } from '../dotany/types.js';
 import { GitSource } from '../dotany/sources/git.js';
-import { getRepoSourceConfig, getSourceDir } from '../project-config.js';
+import { getRepoSourceConfig, getSourceDir, getSourceFileOverride, getTargetFileOverride } from '../project-config.js';
 import { RepoConfig } from '../config.js';
 
 /**
@@ -10,7 +10,7 @@ export interface GitRepoSourceConfig {
     tool: string;
     subtype: string;
     defaultSourceDir: string;
-    resolveSource?: (repoDir: string, rootPath: string, name: string) => Promise<{
+    resolveSource?: (repoDir: string, rootPath: string, name: string, options?: { sourceFileOverride?: string }) => Promise<{
         sourceName: string;
         sourcePath: string;
         suffix?: string;
@@ -69,15 +69,21 @@ export class GitRepoSource implements SourceResolver {
     private async resolveFromRepo(repo: RepoConfig, name: string): Promise<ResolvedSource> {
         const repoConfig = await getRepoSourceConfig(repo.path);
         const sourceDir = getSourceDir(repoConfig, this.config.tool, this.config.subtype, this.config.defaultSourceDir);
+        const sourceFileOverride = getSourceFileOverride(repoConfig, this.config.tool, this.config.subtype);
+        const targetFileOverride = getTargetFileOverride(repoConfig, this.config.tool, this.config.subtype);
 
         if (this.config.resolveSource) {
             // ai-rules-sync specific: suffix-aware resolution (hybrid/file mode)
-            const resolved = await this.config.resolveSource(repo.path, sourceDir, name);
-            return {
+            const resolved = await this.config.resolveSource(repo.path, sourceDir, name, { sourceFileOverride });
+            const result: ResolvedSource = {
                 name: resolved.sourceName,
                 path: resolved.sourcePath,
                 suffix: resolved.suffix,
             };
+            if (targetFileOverride) {
+                result.targetName = targetFileOverride;
+            }
+            return result;
         }
 
         // Generic path: delegate to GitSource

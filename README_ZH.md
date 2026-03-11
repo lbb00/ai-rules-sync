@@ -1031,6 +1031,14 @@ ais user install
 }
 ```
 
+**同一文件同时作为 AGENTS.md 与 CLAUDE.md：** 若你有 `common/AGENTS.md`，希望它既同步到项目根 `AGENTS.md`（通过 `agents-md`）又同步到 `.claude/CLAUDE.md`（通过 `claude md`），可为 `claude.md` 使用对象格式：
+
+```json
+"claude": {
+  "md": { "dir": "common", "sourceFile": "AGENTS.md", "targetFile": "CLAUDE.md" }
+}
+```
+
 ### Git 命令
 
 **直接从 CLI 管理仓库：**
