@@ -1,5 +1,13 @@
 # ai-rules-sync
 
+## 0.8.1
+
+### Patch Changes
+
+- - feat(config): add sourceDir object format for one-source-multi-target sync (#35)
+  - feat(config): extend sourceDir for directory/hybrid mode with sourceDir and targetName (#36)
+  - docs: update and simplify documentation (#37)
+
 ## 0.8.0
 
 ### Minor Changes
