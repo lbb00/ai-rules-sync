@@ -1,28 +1,7 @@
-# AI Rules Sync
+# Supported Tools
 
-[![Npm](https://badgen.net/npm/v/ai-rules-sync)](https://www.npmjs.com/package/ai-rules-sync)
-[![License](https://img.shields.io/github/license/lbb00/ai-rules-sync.svg)](https://github.com/lbb00/ai-rules-sync/blob/master/LICENSE)
-[![Npm download](https://img.shields.io/npm/dw/ai-rules-sync.svg)](https://www.npmjs.com/package/ai-rules-sync)
+## Overview
 
-[English](./README.md) | [中文](./README_ZH.md) | [📖 Documentation](https://lbb00.github.io/ai-rules-sync/)
-
-**AI Rules Sync (AIS)** — Synchronize, manage, and share your AI agent rules across projects and teams.
-
-Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links.
-
-## Why AIS?
-
-- **🔄 Sync Once, Update Everywhere** — Single source of truth, edit once, update all projects
-- **🧩 Multi-Repository** — Mix rules from company standards, community collections, and personal preferences
-- **🤝 Team Sharing** — Share coding standards via Git, onboard new members with `ais install`
-- **🔒 Privacy First** — Keep sensitive rules local with `ai-rules-sync.local.json`
-- **🛠️ Multi-Tool Support** — One workflow for Cursor, Copilot, Claude Code, and 8+ more tools
-
-## Supported Tools
-
-_This table is generated from `docs/supported-tools.json` via `npm run docs:sync-tools`._
-
-<!-- SUPPORTED_TOOLS_TABLE:START -->
 | Tool | Type | Mode | Default Source Directory | File Suffixes | Documentation |
 |------|------|------|--------------------------|---------------|---------------|
 | Cursor | Rules | hybrid | `.cursor/rules/` | `.mdc`, `.md` | [Docs](https://cursor.com/docs/context/rules) |
@@ -50,96 +29,16 @@ _This table is generated from `docs/supported-tools.json` via `npm run docs:sync
 | Gemini CLI | Skills | directory | `.gemini/skills/` | - | [Docs](https://geminicli.com/docs/cli/skills/) |
 | Gemini CLI | Agents | file | `.gemini/agents/` | `.md` | [Docs](https://geminicli.com/docs/core/subagents/) |
 | Gemini CLI | GEMINI.md | file | `.gemini/` | `.md` | [Website](https://geminicli.com/) |
-| Warp | Rules | file | `.` (root) | `.md` | [Docs](https://docs.warp.dev/agent-platform/capabilities/rules) — same as AGENTS.md, use `ais agents-md` |
+| Warp | Rules | file | `.` (root) | `.md` | [Docs](https://docs.warp.dev/agent-platform/capabilities/rules) |
 | Warp | Skills | directory | `.agents/skills/` | - | [Docs](https://docs.warp.dev/agent-platform/capabilities/skills) |
 | Windsurf | Rules | file | `.windsurf/rules/` | `.md` | [Docs](https://docs.windsurf.com/windsurf/cascade/memories) |
 | Windsurf | Skills | directory | `.windsurf/skills/` | - | [Docs](https://docs.windsurf.com/windsurf/cascade/skills) |
 | Cline | Rules | file | `.clinerules/` | `.md`, `.txt` | [Docs](https://docs.cline.bot/customization/cline-rules) |
 | Cline | Skills | directory | `.cline/skills/` | - | [Docs](https://docs.cline.bot/customization/skills) |
 | **Universal** | **AGENTS.md** | file | `.` (root) | `.md` | [Standard](https://agents.md/) |
-<!-- SUPPORTED_TOOLS_TABLE:END -->
 
-## Installation
+## Modes
 
-### Via npm (Recommended)
-
-```bash
-npm install -g ai-rules-sync
-```
-
-### Via Homebrew (macOS)
-
-```bash
-brew tap lbb00/ai-rules-sync https://github.com/lbb00/ai-rules-sync
-brew install ais
-```
-
-**Verify:**
-```bash
-ais --version
-```
-
-## Quick Start
-
-### Use rules from a repository
-
-```bash
-cd your-project
-
-# Add a rule (specify repository URL the first time)
-ais cursor add react -t https://github.com/your-org/rules-repo.git
-
-# After first use, omit -t
-ais cursor add vue
-ais copilot instructions add coding-standards
-ais claude skills add code-review
-```
-
-### Share your existing rules
-
-```bash
-# Import a rule from your project into the repository
-ais cursor rules import my-custom-rule
-
-# Optionally push to remote
-ais cursor rules import my-rule --push
-```
-
-### Restore rules (team onboarding / CI)
-
-```bash
-# Restore all rules from ai-rules-sync.json
-ais install
-```
-
-### User-level sync (personal AI configs)
-
-```bash
-# Sync personal configs to $HOME
-ais claude md add CLAUDE --user
-ais gemini md add GEMINI --user
-
-# Restore on a new machine
-ais user install
-```
-
-## Learn More
-
-📖 **Full documentation:** [https://lbb00.github.io/ai-rules-sync/](https://lbb00.github.io/ai-rules-sync/)
-
-- [Getting Started](https://lbb00.github.io/ai-rules-sync/guide/getting-started)
-- [Project-Level Sync](https://lbb00.github.io/ai-rules-sync/guide/project-level)
-- [User Global-Level Sync](https://lbb00.github.io/ai-rules-sync/guide/user-level)
-- [Multiple Repositories](https://lbb00.github.io/ai-rules-sync/guide/multiple-repos)
-- [CLI Reference](https://lbb00.github.io/ai-rules-sync/reference/cli)
-- [Configuration Reference](https://lbb00.github.io/ai-rules-sync/reference/configuration)
-
-## Links
-
-- **Documentation**: [https://lbb00.github.io/ai-rules-sync/](https://lbb00.github.io/ai-rules-sync/)
-- **Issues**: [https://github.com/lbb00/ai-rules-sync/issues](https://github.com/lbb00/ai-rules-sync/issues)
-- **NPM**: [https://www.npmjs.com/package/ai-rules-sync](https://www.npmjs.com/package/ai-rules-sync)
-
-## License
-
-[Unlicense](./LICENSE) - Free to use, modify, and distribute.
+- **directory** — Links entire directories (skills, agents)
+- **file** — Links individual files with automatic suffix resolution
+- **hybrid** — Links both files and directories (e.g., Cursor rules)
