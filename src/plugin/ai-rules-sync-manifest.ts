@@ -9,7 +9,7 @@ import type { RuleEntry } from '../project-config.js';
 export class AiRulesSyncManifest implements ManifestStore {
     constructor(
         private projectPath: string,
-        private configPath: [string, string],
+        private configPath: string[],
         private isLocal: boolean = false
     ) {}
 
@@ -17,10 +17,8 @@ export class AiRulesSyncManifest implements ManifestStore {
         const config = await getCombinedProjectConfig(this.projectPath);
         const [topLevel, subLevel] = this.configPath;
 
-        // agentsMd is flat (no subLevel nesting)
-        const section: Record<string, RuleEntry> | undefined = topLevel === 'agentsMd'
-            ? (config as any)[topLevel]
-            : (config as any)[topLevel]?.[subLevel];
+        const section: Record<string, RuleEntry> | undefined =
+            (config as any)[topLevel]?.[subLevel];
 
         if (!section) return {};
 

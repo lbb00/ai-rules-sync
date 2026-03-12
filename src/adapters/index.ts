@@ -165,11 +165,6 @@ function getAliasSectionConfig(cfg: ProjectConfig, adapter: SyncAdapter): Record
         return undefined;
     }
 
-    // AGENTS.md dependencies use a flat `agentsMd` object.
-    if (topLevel === 'agentsMd') {
-        return top as Record<string, unknown>;
-    }
-
     const nested = (top as Record<string, unknown>)[subLevel];
     if (!nested || typeof nested !== 'object') {
         return undefined;
@@ -180,8 +175,5 @@ function getAliasSectionConfig(cfg: ProjectConfig, adapter: SyncAdapter): Record
 
 function getSectionName(adapter: SyncAdapter): string {
     const [topLevel, subLevel] = adapter.configPath;
-    if (topLevel === 'agentsMd') {
-        return 'agentsMd';
-    }
     return `${topLevel}.${subLevel}`;
 }

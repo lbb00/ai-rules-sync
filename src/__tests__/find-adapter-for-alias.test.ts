@@ -31,16 +31,18 @@ describe('findAdapterForAlias', () => {
     expect(found?.section).toBe('cline.rules');
   });
 
-  it('should resolve flat agentsMd alias', () => {
+  it('should resolve agentsMd alias', () => {
     const config: ProjectConfig = {
       agentsMd: {
-        AGENTS: 'https://example.com/repo.git'
+        file: {
+          AGENTS: 'https://example.com/repo.git'
+        }
       }
     };
 
     const found = findAdapterForAlias(config, 'AGENTS');
     expect(found?.adapter.name).toBe('agents-md-file');
-    expect(found?.section).toBe('agentsMd');
+    expect(found?.section).toBe('agentsMd.file');
   });
 
   it('should return null when alias does not exist', () => {

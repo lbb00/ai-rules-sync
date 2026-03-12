@@ -17,7 +17,7 @@ export interface AdapterConfig {
     name: string;
     tool: string;
     subtype: string;
-    configPath: [string, string];
+    configPath: string[];
     defaultSourceDir: string;
     targetDir: string;
     userTargetDir?: string;

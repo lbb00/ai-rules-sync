@@ -8,7 +8,7 @@ interface StandardAdapterExpectation {
   defaultSourceDir: string;
   targetDir: string;
   mode: 'directory' | 'file' | 'hybrid';
-  configPath: [string, string];
+  configPath: string[];
   fileSuffixes?: string[];
 }
 

@@ -161,13 +161,9 @@ export async function inferDefaultMode(projectPath: string): Promise<DefaultMode
 
   for (const adapter of adapterRegistry.all()) {
     const [topLevel, subLevel] = adapter.configPath;
-    // agentsMd is flat (no subLevel nesting)
-    const count = topLevel === 'agentsMd'
-      ? Object.keys((cfg as any).agentsMd || {}).length
-      : Object.keys((cfg as any)[topLevel]?.[subLevel] || {}).length;
+    const count = Object.keys((cfg as any)[topLevel]?.[subLevel] || {}).length;
 
-    // Map adapter tool name to CLI mode name (agentsMd → agents-md)
-    const modeName = topLevel === 'agentsMd' ? 'agents-md' : topLevel;
+    const modeName = topLevel;
     toolCounts[modeName] = (toolCounts[modeName] || 0) + count;
   }
 
@@ -187,7 +183,7 @@ export async function inferDefaultMode(projectPath: string): Promise<DefaultMode
 export function requireExplicitMode(mode: DefaultMode): never {
   // Build tool list from registry, deduplicated and mapped to CLI names
   const tools = [...new Set(
-    adapterRegistry.all().map(a => a.tool === 'agentsMd' ? 'agents-md' : a.tool)
+    adapterRegistry.all().map(a => a.tool)
   )];
   const toolCommands = tools.map(t => `"ais ${t} ..."`).join(', ');
   const explicitTools = toolCommands || '"ais <tool> ..."';

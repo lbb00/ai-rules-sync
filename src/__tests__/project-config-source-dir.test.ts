@@ -53,10 +53,10 @@ describe('project-config source directory resolution', () => {
 
     const repoConfig = await getRepoSourceConfig(tempDir);
     expect(repoConfig.rootPath).toBe('rules-root');
-    expect(repoConfig.windsurf?.rules).toBe('.windsurf/rules');
-    expect(repoConfig.windsurf?.skills).toBe('.windsurf/skills');
-    expect(repoConfig.cline?.rules).toBe('.clinerules');
-    expect(repoConfig.cline?.skills).toBe('.cline/skills');
+    expect((repoConfig.windsurf as Record<string, unknown>)?.rules).toBe('.windsurf/rules');
+    expect((repoConfig.windsurf as Record<string, unknown>)?.skills).toBe('.windsurf/skills');
+    expect((repoConfig.cline as Record<string, unknown>)?.rules).toBe('.clinerules');
+    expect((repoConfig.cline as Record<string, unknown>)?.skills).toBe('.cline/skills');
   });
 
   it('should return only rootPath when config only contains dependency objects', async () => {
@@ -85,7 +85,7 @@ describe('project-config source directory resolution', () => {
       rootPath: 'rules-root',
       sourceDir: {
         claude: {
-          md: { dir: 'common', sourceFile: 'AGENTS.md', targetFile: 'CLAUDE.md' }
+          md: { mode: 'file', dir: 'common', sourceFile: 'AGENTS.md', targetFile: 'CLAUDE.md' }
         }
       }
     };
@@ -93,7 +93,7 @@ describe('project-config source directory resolution', () => {
     await fs.writeJson(path.join(tempDir, 'ai-rules-sync.json'), config, { spaces: 2 });
 
     const repoConfig = await getRepoSourceConfig(tempDir);
-    expect(repoConfig.claude?.md).toEqual({ dir: 'common', sourceFile: 'AGENTS.md', targetFile: 'CLAUDE.md' });
+    expect((repoConfig.claude as Record<string, unknown>)?.md).toEqual({ mode: 'file', dir: 'common', sourceFile: 'AGENTS.md', targetFile: 'CLAUDE.md' });
 
     const sourceDir = getSourceDir(repoConfig, 'claude', 'md', '.claude');
     expect(sourceDir).toBe(path.join('rules-root', 'common'));
@@ -121,7 +121,7 @@ describe('project-config source directory resolution', () => {
       rootPath: 'rules-root',
       sourceDir: {
         cursor: {
-          rules: { dir: 'common', sourceDir: 'shared-rules', targetName: 'cursor-rules' }
+          rules: { mode: 'directory', dir: 'common', sourceDir: 'shared-rules', targetName: 'cursor-rules' }
         }
       }
     };
@@ -129,7 +129,7 @@ describe('project-config source directory resolution', () => {
     await fs.writeJson(path.join(tempDir, 'ai-rules-sync.json'), config, { spaces: 2 });
 
     const repoConfig = await getRepoSourceConfig(tempDir);
-    expect(repoConfig.cursor?.rules).toEqual({ dir: 'common', sourceDir: 'shared-rules', targetName: 'cursor-rules' });
+    expect((repoConfig.cursor as Record<string, unknown>)?.rules).toEqual({ mode: 'directory', dir: 'common', sourceDir: 'shared-rules', targetName: 'cursor-rules' });
 
     const sourceDir = getSourceDir(repoConfig, 'cursor', 'rules', '.cursor/rules');
     expect(sourceDir).toBe(path.join('rules-root', 'common'));
@@ -139,11 +139,12 @@ describe('project-config source directory resolution', () => {
   });
 
   it('should return undefined for sourceDir/targetName overrides when not set', async () => {
-    const config: ProjectConfig = {
+    // Legacy format without mode field - tests backward compatibility
+    const config = {
       sourceDir: {
         cursor: { rules: { dir: 'common' } }
       }
-    };
+    } as unknown as ProjectConfig;
 
     await fs.writeJson(path.join(tempDir, 'ai-rules-sync.json'), config, { spaces: 2 });
     const repoConfig = await getRepoSourceConfig(tempDir);

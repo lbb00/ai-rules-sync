@@ -17,7 +17,7 @@ export interface SyncAdapter {
     subtype: string;
 
     /** Config key path, e.g. ['cursor', 'rules'] or ['copilot', 'instructions'] */
-    configPath: [string, string];
+    configPath: string[];
 
     /** Default source directory in rules repo, e.g. ".cursor/rules", ".cursor/plans", ".github/instructions" */
     defaultSourceDir: string;

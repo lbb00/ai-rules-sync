@@ -51,9 +51,6 @@ function collect(value: string, previous: string[]): string[] {
 
 function getAdapterEntryCount(config: ProjectConfig, adapter: SyncAdapter): number {
   const [topLevel, subLevel] = adapter.configPath;
-  if (topLevel === 'agentsMd') {
-    return Object.keys(config.agentsMd || {}).length;
-  }
 
   const topConfig = (config as any)[topLevel];
   if (!topConfig || typeof topConfig !== 'object') {
@@ -714,7 +711,7 @@ program
           adapter = getAdapter('cursor', 'rules');
         } else if (mode === 'copilot') {
           // Try to resolve the alias with suffix
-          const resolved = resolveCopilotAliasFromConfig(alias, Object.keys(cfg.copilot?.instructions || {}));
+          const resolved = resolveCopilotAliasFromConfig(alias, Object.keys((cfg.copilot as Record<string, unknown>)?.instructions || {}));
           adapter = getAdapter('copilot', 'instructions');
           alias = resolved;
         } else if (mode === 'claude') {

@@ -4,7 +4,7 @@ import { execa } from 'execa';
 import { adapterRegistry } from '../adapters/index.js';
 import { RepoConfig, getConfig, setConfig, getReposBaseDir, getUserProjectConfig } from '../config.js';
 import { cloneOrUpdateRepo } from '../git.js';
-import { ProjectConfig, RuleEntry, SourceDirConfig, getCombinedProjectConfig } from '../project-config.js';
+import { ProjectConfig, RuleEntry, SourceDirConfig, getCombinedProjectConfig, CURRENT_CONFIG_VERSION } from '../project-config.js';
 import { installAllUserEntries, installEntriesForAdapter } from './install.js';
 
 type CheckStatus =
@@ -85,11 +85,8 @@ function isUrlLike(target: string): boolean {
   return target.includes('://') || target.includes('git@') || target.endsWith('.git');
 }
 
-function getConfigSection(config: ProjectConfig, configPath: [string, string]): Record<string, RuleEntry> {
+function getConfigSection(config: ProjectConfig, configPath: string[]): Record<string, RuleEntry> {
   const [topLevel, subLevel] = configPath;
-  if (topLevel === 'agentsMd') {
-    return ((config as any).agentsMd || {}) as Record<string, RuleEntry>;
-  }
   return (((config as any)[topLevel] || {})[subLevel] || {}) as Record<string, RuleEntry>;
 }
 
@@ -492,7 +489,7 @@ export async function initRulesRepository(options: InitOptions): Promise<InitRes
 
   const adapters = getFilteredAdapters(options.only, options.exclude);
   const sourceDir = buildTemplateSourceDirConfig(adapters);
-  await fs.writeJson(configPath, { sourceDir }, { spaces: 2 });
+  await fs.writeJson(configPath, { version: CURRENT_CONFIG_VERSION, sourceDir }, { spaces: 2 });
 
   const createdDirectories: string[] = [];
   if (options.createDirs !== false) {
