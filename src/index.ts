@@ -597,14 +597,18 @@ program
   .description('Initialize an ai-rules-sync repository template')
   .option('-f, --force', 'Overwrite existing ai-rules-sync.json')
   .option('--no-dirs', 'Do not create default source directories')
+  .option('--only <tools...>', 'Only include specified tools (e.g. cursor copilot claude)')
+  .option('--exclude <tools...>', 'Exclude specified tools')
   .option('--json', 'Output results as JSON')
-  .action(async (name: string | undefined, cmdOptions: { force?: boolean; dirs?: boolean; json?: boolean }) => {
+  .action(async (name: string | undefined, cmdOptions: { force?: boolean; dirs?: boolean; only?: string[]; exclude?: string[]; json?: boolean }) => {
     try {
       const result = await initRulesRepository({
         cwd: process.cwd(),
         name,
         force: cmdOptions.force,
-        createDirs: cmdOptions.dirs
+        createDirs: cmdOptions.dirs,
+        only: cmdOptions.only,
+        exclude: cmdOptions.exclude
       });
 
       if (cmdOptions.json) {

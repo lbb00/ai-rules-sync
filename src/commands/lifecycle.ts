@@ -71,6 +71,8 @@ export interface InitOptions {
   name?: string;
   force?: boolean;
   createDirs?: boolean;
+  only?: string[];
+  exclude?: string[];
 }
 
 export interface InitResult {
@@ -449,10 +451,22 @@ export async function updateRepositories(options: CheckOptions & { dryRun?: bool
   };
 }
 
-function buildTemplateSourceDirConfig(): SourceDirConfig {
+function getFilteredAdapters(only?: string[], exclude?: string[]) {
+  let adapters = adapterRegistry.all();
+  if (only && only.length > 0) {
+    const set = new Set(only.map(t => t.toLowerCase()));
+    adapters = adapters.filter(a => set.has(a.tool));
+  } else if (exclude && exclude.length > 0) {
+    const set = new Set(exclude.map(t => t.toLowerCase()));
+    adapters = adapters.filter(a => !set.has(a.tool));
+  }
+  return adapters;
+}
+
+function buildTemplateSourceDirConfig(adapters: ReturnType<typeof adapterRegistry.all>): SourceDirConfig {
   const sourceDir: SourceDirConfig = {};
 
-  for (const adapter of adapterRegistry.all()) {
+  for (const adapter of adapters) {
     const toolSection = sourceDir[adapter.tool] || {};
     if (!toolSection[adapter.subtype]) {
       toolSection[adapter.subtype] = adapter.defaultSourceDir;
@@ -476,13 +490,14 @@ export async function initRulesRepository(options: InitOptions): Promise<InitRes
     throw new Error(`"${configPath}" already exists. Use --force to overwrite.`);
   }
 
-  const sourceDir = buildTemplateSourceDirConfig();
+  const adapters = getFilteredAdapters(options.only, options.exclude);
+  const sourceDir = buildTemplateSourceDirConfig(adapters);
   await fs.writeJson(configPath, { sourceDir }, { spaces: 2 });
 
   const createdDirectories: string[] = [];
   if (options.createDirs !== false) {
     const dirs = new Set<string>();
-    for (const adapter of adapterRegistry.all()) {
+    for (const adapter of adapters) {
       if (!adapter.defaultSourceDir || adapter.defaultSourceDir === '.') {
         continue;
       }
