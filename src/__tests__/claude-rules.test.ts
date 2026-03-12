@@ -13,9 +13,9 @@ describe('claude-rules adapter', () => {
       subtype: 'rules',
       defaultSourceDir: '.claude/rules',
       targetDir: '.claude/rules',
-      mode: 'file',
+      mode: 'hybrid',
       configPath: ['claude', 'rules'],
-      fileSuffixes: ['.md']
+      hybridFileSuffixes: ['.md']
     }
   });
 });

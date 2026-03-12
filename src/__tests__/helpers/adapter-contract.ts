@@ -10,6 +10,7 @@ interface StandardAdapterExpectation {
   mode: 'directory' | 'file' | 'hybrid';
   configPath: [string, string];
   fileSuffixes?: string[];
+  hybridFileSuffixes?: string[];
 }
 
 interface StandardAdapterContractOptions {
@@ -33,6 +34,9 @@ export function runStandardAdapterContract(options: StandardAdapterContractOptio
     expect(adapter.mode).toBe(expected.mode);
     if (expected.fileSuffixes) {
       expect(adapter.fileSuffixes).toEqual(expected.fileSuffixes);
+    }
+    if (expected.hybridFileSuffixes) {
+      expect(adapter.hybridFileSuffixes).toEqual(expected.hybridFileSuffixes);
     }
   });
 

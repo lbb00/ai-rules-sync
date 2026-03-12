@@ -13,9 +13,9 @@ describe('claude-commands adapter', () => {
       subtype: 'commands',
       defaultSourceDir: '.claude/commands',
       targetDir: '.claude/commands',
-      mode: 'file',
+      mode: 'hybrid',
       configPath: ['claude', 'commands'],
-      fileSuffixes: ['.md']
+      hybridFileSuffixes: ['.md']
     }
   });
 });
