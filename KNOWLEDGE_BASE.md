@@ -697,6 +697,12 @@ ais config repo list
 - **Object (file mode)**: `"claude": { "md": { "dir": "common", "sourceFile": "AGENTS.md", "targetFile": "CLAUDE.md" } }` — use a different source file and target filename (e.g. map `common/AGENTS.md` → `.claude/CLAUDE.md`)
 - **Object (directory mode)**: `"cursor": { "rules": { "dir": "common", "sourceDir": "shared-rules", "targetName": "cursor-rules" } }` — use a different source subdirectory and target symlink name (e.g. map `common/shared-rules` → `.cursor/rules/cursor-rules`)
 
+**Wildcard (`*`) fallback:**
+- Use `*` as tool key to define shared config when tool-specific config is missing
+- Example: `"*": { "skills": "common/skills" }` — cursor.skills, copilot.skills, etc. all resolve to `common/skills` when not explicitly defined
+- Applies to both `sourceDir` (rules repo) and dependency records (project config)
+- Tool-specific config takes precedence; remove falls back to `*` when entry is in wildcard config
+
 **Priority Resolution in `getSourceDir()`:**
 
 1. **CLI override** (highest priority) - `-s` parameter, no rootPath prefix
