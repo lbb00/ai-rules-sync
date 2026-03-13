@@ -30,7 +30,7 @@ import { windsurfRulesAdapter } from './windsurf-rules.js';
 import { clineRulesAdapter } from './cline-rules.js';
 import { windsurfSkillsAdapter } from './windsurf-skills.js';
 import { clineSkillsAdapter } from './cline-skills.js';
-import { ProjectConfig } from '../project-config.js';
+import { ProjectConfig, getConfigSectionWithFallback } from '../project-config.js';
 
 // Re-export types and utilities
 export * from './types.js';
@@ -158,19 +158,10 @@ export function findAdapterForAlias(
     return null;
 }
 
-function getAliasSectionConfig(cfg: ProjectConfig, adapter: SyncAdapter): Record<string, unknown> | undefined {
+function getAliasSectionConfig(cfg: ProjectConfig, adapter: SyncAdapter): Record<string, unknown> {
     const [topLevel, subLevel] = adapter.configPath;
-    const top = (cfg as Record<string, unknown>)[topLevel];
-    if (!top || typeof top !== 'object') {
-        return undefined;
-    }
-
-    const nested = (top as Record<string, unknown>)[subLevel];
-    if (!nested || typeof nested !== 'object') {
-        return undefined;
-    }
-
-    return nested as Record<string, unknown>;
+    const section = getConfigSectionWithFallback(cfg, topLevel, subLevel);
+    return section as Record<string, unknown>;
 }
 
 function getSectionName(adapter: SyncAdapter): string {
