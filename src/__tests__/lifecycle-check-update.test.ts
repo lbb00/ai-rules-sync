@@ -18,9 +18,13 @@ vi.mock('../config.js', () => ({
   getUserProjectConfig: vi.fn()
 }));
 
-vi.mock('../project-config.js', () => ({
-  getCombinedProjectConfig: vi.fn()
-}));
+vi.mock('../project-config.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../project-config.js')>();
+  return {
+    ...actual,
+    getCombinedProjectConfig: vi.fn()
+  };
+});
 
 vi.mock('../git.js', () => ({
   cloneOrUpdateRepo: vi.fn()

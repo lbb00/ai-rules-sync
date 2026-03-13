@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
-import { getRepoSourceConfig, getSourceDir, getSourceFileOverride, getSourceDirOverride, getTargetFileOverride, getTargetNameOverride } from '../project-config.js';
+import { getRepoSourceConfig, getSourceDir, getSourceFileOverride, getSourceDirOverride, getTargetFileOverride, getTargetNameOverride, getEntryConfig, getRuleSection, getConfigSectionWithFallback, removeDependencyGeneric } from '../project-config.js';
 import type { ProjectConfig, RepoSourceConfig, SourceDirConfig } from '../project-config.js';
 
 describe('project-config source directory resolution', () => {
@@ -151,5 +151,96 @@ describe('project-config source directory resolution', () => {
 
     expect(getSourceDirOverride(repoConfig, 'cursor', 'rules')).toBeUndefined();
     expect(getTargetNameOverride(repoConfig, 'cursor', 'rules')).toBeUndefined();
+  });
+});
+
+describe('wildcard (*) config fallback', () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-wildcard-'));
+  });
+
+  afterEach(async () => {
+    await fs.remove(tempDir);
+  });
+
+  it('should fallback to * for sourceDir when tool-specific config is missing', async () => {
+    const config: ProjectConfig = {
+      rootPath: 'rules-root',
+      sourceDir: {
+        '*': {
+          skills: 'common/skills'
+        },
+        cursor: {
+          rules: '.cursor/rules'
+        }
+      }
+    };
+
+    await fs.writeJson(path.join(tempDir, 'ai-rules-sync.json'), config, { spaces: 2 });
+    const repoConfig = await getRepoSourceConfig(tempDir);
+
+    // cursor.skills not defined - should fallback to *.skills
+    expect(getSourceDir(repoConfig, 'cursor', 'skills', '.cursor/skills')).toBe(path.join('rules-root', 'common/skills'));
+    expect(getSourceDir(repoConfig, 'copilot', 'skills', '.github/skills')).toBe(path.join('rules-root', 'common/skills'));
+
+    // cursor.rules is defined - should use it
+    expect(getSourceDir(repoConfig, 'cursor', 'rules', '.cursor/rules')).toBe(path.join('rules-root', '.cursor/rules'));
+  });
+
+  it('should fallback to * for getEntryConfig when tool-specific config is missing', () => {
+    const config: ProjectConfig = {
+      '*': {
+        skills: {
+          'my-skill': 'https://example.com/skills.git'
+        }
+      },
+      cursor: {
+        rules: {
+          'my-rule': 'https://example.com/rules.git'
+        }
+      }
+    } as ProjectConfig;
+
+    expect(getEntryConfig(config, 'cursor', 'skills', 'my-skill')).toBe('https://example.com/skills.git');
+    expect(getEntryConfig(config, 'copilot', 'skills', 'my-skill')).toBe('https://example.com/skills.git');
+    expect(getEntryConfig(config, 'cursor', 'rules', 'my-rule')).toBe('https://example.com/rules.git');
+    expect(getEntryConfig(config, 'cursor', 'skills', 'nonexistent')).toBeUndefined();
+  });
+
+  it('should fallback to * for getRuleSection when tool-specific section is missing', () => {
+    const config: ProjectConfig = {
+      '*': {
+        skills: {
+          shared: 'https://example.com/shared.git'
+        }
+      },
+      cursor: {
+        rules: { local: 'https://example.com/local.git' }
+      }
+    } as ProjectConfig;
+
+    expect(getRuleSection(config, ['cursor', 'skills'])).toEqual({ shared: 'https://example.com/shared.git' });
+    expect(getRuleSection(config, ['cursor', 'rules'])).toEqual({ local: 'https://example.com/local.git' });
+    expect(getRuleSection(config, ['copilot', 'skills'])).toEqual({ shared: 'https://example.com/shared.git' });
+  });
+
+  it('should remove from * when entry is in wildcard config', async () => {
+    const config = {
+      '*': {
+        skills: {
+          'wild-skill': 'https://example.com/wild.git'
+        }
+      }
+    };
+
+    await fs.writeJson(path.join(tempDir, 'ai-rules-sync.json'), config, { spaces: 2 });
+
+    const { removedFrom } = await removeDependencyGeneric(tempDir, ['cursor', 'skills'], 'wild-skill');
+    expect(removedFrom).toContain('ai-rules-sync.json');
+
+    const after = await fs.readJson(path.join(tempDir, 'ai-rules-sync.json'));
+    expect(after['*']?.skills?.['wild-skill']).toBeUndefined();
   });
 });
