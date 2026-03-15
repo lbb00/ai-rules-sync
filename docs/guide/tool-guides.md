@@ -113,12 +113,18 @@ ais gemini md add GEMINI --user    # ~/.gemini/GEMINI.md
 
 ## AGENTS.md (Universal)
 
+AGENTS.md is a [standard file](https://agents.md/) at project root. Use `ais agents-md` to sync it:
+
 ```bash
-ais agents-md add .
-ais agents-md add frontend
-ais agents-md add frontend fe-agents    # with alias
+ais agents-md add .                    # Add AGENTS.md from repo root
+ais agents-md add frontend             # Add frontend/AGENTS.md as frontend
+ais agents-md add frontend fe-agents   # Same, with alias fe-agents
 ais agents-md rm fe-agents
 ```
+
+::: info
+Warp Rules use the same AGENTS.md format. Use `ais agents-md` for Warp projects.
+:::
 
 ## Warp
 
