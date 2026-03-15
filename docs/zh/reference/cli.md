@@ -43,12 +43,16 @@ ais ls --json
 
 ### `ais install`
 
-从 `ai-rules-sync.json` 安装所有规则。
+从配置文件安装所有规则。
 
 ```bash
-ais install                # 项目规则
-ais install --user         # 用户规则
+ais install                # 项目规则（来自 ai-rules-sync.json）
+ais install --user         # 用户规则（来自 ~/.config/ai-rules-sync/user.json）
 ```
+
+::: tip
+也可使用 `ais user install` 安装用户级配置，两者等效。
+:::
 
 ### `ais init`
 
@@ -122,6 +126,14 @@ ais git log --oneline
 ais git status -t company-rules
 ```
 
+### `ais user install`
+
+从 `~/.config/ai-rules-sync/user.json` 安装所有用户级条目。与 `ais install --user` 等效。
+
+```bash
+ais user install
+```
+
 ### `ais completion install`
 
 安装 shell Tab 补全。
@@ -149,8 +161,8 @@ ais config user reset
 
 ```bash
 ais <tool> add <name> [-t repo] [-l] [-d targetDir]
-ais <tool> rm <name>
-ais <tool> install
+ais <tool> rm <name>              # 移除条目
+ais <tool> install                # 安装该工具的所有条目
 
 # 子类型
 ais <tool> <subtype> add <name>

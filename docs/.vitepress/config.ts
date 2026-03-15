@@ -41,6 +41,7 @@ const guideSidebar = [
       { text: "Monorepo & Custom Dirs", link: "/guide/monorepo" },
       { text: "Core Concepts", link: "/guide/core-concepts" },
       { text: "Advanced Features", link: "/guide/advanced-features" },
+      { text: "Troubleshooting", link: "/guide/troubleshooting" },
     ],
   },
   {
@@ -62,6 +63,7 @@ const guideSidebarZh = [
       { text: "Monorepo 与自定义目录", link: "/zh/guide/monorepo" },
       { text: "核心概念", link: "/zh/guide/core-concepts" },
       { text: "高级功能", link: "/zh/guide/advanced-features" },
+      { text: "故障排查", link: "/zh/guide/troubleshooting" },
     ],
   },
   {
@@ -110,6 +112,10 @@ export default defineConfig({
                   text: "ai-rules-sync.json",
                   link: "/reference/configuration",
                 },
+                {
+                  text: "Supported Tools",
+                  link: "/reference/supported-tools",
+                },
               ],
             },
           ],
@@ -135,6 +141,10 @@ export default defineConfig({
                 {
                   text: "ai-rules-sync.json",
                   link: "/zh/reference/configuration",
+                },
+                {
+                  text: "支持的工具",
+                  link: "/zh/reference/supported-tools",
                 },
               ],
             },

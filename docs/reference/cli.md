@@ -43,12 +43,16 @@ ais ls --json
 
 ### `ais install`
 
-Install all rules from `ai-rules-sync.json`.
+Install all rules from config files.
 
 ```bash
-ais install                # project rules
-ais install --user         # user rules
+ais install                # project rules (from ai-rules-sync.json)
+ais install --user         # user rules (from ~/.config/ai-rules-sync/user.json)
 ```
+
+::: tip
+You can also use `ais user install` to install user-level configs. Both are equivalent.
+:::
 
 ### `ais init`
 
@@ -122,6 +126,14 @@ ais git log --oneline
 ais git status -t company-rules
 ```
 
+### `ais user install`
+
+Install all user-level entries from `~/.config/ai-rules-sync/user.json`. Equivalent to `ais install --user`.
+
+```bash
+ais user install
+```
+
 ### `ais completion install`
 
 Install shell tab completion.
@@ -149,8 +161,8 @@ All tools follow the same pattern:
 
 ```bash
 ais <tool> add <name> [-t repo] [-l] [-d targetDir]
-ais <tool> rm <name>
-ais <tool> install
+ais <tool> rm <name>              # remove entry
+ais <tool> install                # install all entries for this tool
 
 # For subtypes
 ais <tool> <subtype> add <name>
