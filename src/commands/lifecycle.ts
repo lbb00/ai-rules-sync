@@ -4,7 +4,7 @@ import { execa } from 'execa';
 import { adapterRegistry } from '../adapters/index.js';
 import { RepoConfig, getConfig, setConfig, getReposBaseDir, getUserProjectConfig } from '../config.js';
 import { cloneOrUpdateRepo } from '../git.js';
-import { ProjectConfig, RuleEntry, SourceDirConfig, getCombinedProjectConfig, CURRENT_CONFIG_VERSION } from '../project-config.js';
+import { ProjectConfig, RuleEntry, SourceDirConfig, getCombinedProjectConfig, getRuleSection, CURRENT_CONFIG_VERSION } from '../project-config.js';
 import { installAllUserEntries, installEntriesForAdapter } from './install.js';
 
 type CheckStatus =
@@ -86,8 +86,7 @@ function isUrlLike(target: string): boolean {
 }
 
 function getConfigSection(config: ProjectConfig, configPath: string[]): Record<string, RuleEntry> {
-  const [topLevel, subLevel] = configPath;
-  return (((config as any)[topLevel] || {})[subLevel] || {}) as Record<string, RuleEntry>;
+  return getRuleSection(config, configPath);
 }
 
 function collectRepoUrls(config: ProjectConfig): string[] {

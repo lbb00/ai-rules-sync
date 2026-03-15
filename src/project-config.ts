@@ -7,6 +7,9 @@ const LOCAL_CONFIG_FILENAME = 'ai-rules-sync.local.json';
 
 export const CURRENT_CONFIG_VERSION = 1;
 
+/** Wildcard key for fallback config when tool-specific config is not found */
+export const WILDCARD_TOOL = '*';
+
 /**
  * Source dir value: string (legacy) or discriminated union with mode.
  */
@@ -26,30 +29,33 @@ export interface SourceDirDirectoryValue {
     targetName?: string;
 }
 
-function readNestedStringValue(source: unknown, tool: string, subtype: string): string | undefined {
-    if (!source || typeof source !== 'object') {
-        return undefined;
-    }
-
-    const toolConfig = (source as Record<string, unknown>)[tool];
+function readNestedStringValueFromTool(source: Record<string, unknown>, tool: string, subtype: string): string | undefined {
+    const toolConfig = source[tool];
     if (!toolConfig || typeof toolConfig !== 'object') {
         return undefined;
     }
-
     const value = (toolConfig as Record<string, unknown>)[subtype];
     return typeof value === 'string' ? value : undefined;
 }
 
-function readNestedSourceDirValue(source: unknown, tool: string, subtype: string): SourceDirValue | undefined {
+function readNestedStringValue(source: unknown, tool: string, subtype: string): string | undefined {
     if (!source || typeof source !== 'object') {
         return undefined;
     }
+    const src = source as Record<string, unknown>;
+    const fromTool = readNestedStringValueFromTool(src, tool, subtype);
+    if (fromTool !== undefined) return fromTool;
+    if (tool !== WILDCARD_TOOL) {
+        return readNestedStringValueFromTool(src, WILDCARD_TOOL, subtype);
+    }
+    return undefined;
+}
 
-    const toolConfig = (source as Record<string, unknown>)[tool];
+function readNestedSourceDirValueFromTool(source: Record<string, unknown>, tool: string, subtype: string): SourceDirValue | undefined {
+    const toolConfig = source[tool];
     if (!toolConfig || typeof toolConfig !== 'object') {
         return undefined;
     }
-
     const value = (toolConfig as Record<string, unknown>)[subtype];
     if (typeof value === 'string') return value;
     if (value && typeof value === 'object') {
@@ -64,6 +70,19 @@ function readNestedSourceDirValue(source: unknown, tool: string, subtype: string
             // Just dir - treat as string equivalent
             return v.dir as string;
         }
+    }
+    return undefined;
+}
+
+function readNestedSourceDirValue(source: unknown, tool: string, subtype: string): SourceDirValue | undefined {
+    if (!source || typeof source !== 'object') {
+        return undefined;
+    }
+    const src = source as Record<string, unknown>;
+    const fromTool = readNestedSourceDirValueFromTool(src, tool, subtype);
+    if (fromTool !== undefined) return fromTool;
+    if (tool !== WILDCARD_TOOL) {
+        return readNestedSourceDirValueFromTool(src, WILDCARD_TOOL, subtype);
     }
     return undefined;
 }
@@ -247,12 +266,33 @@ export function deleteAtPath(obj: unknown, configPath: ConfigPath, key: string):
 }
 
 /**
- * Get the rule section for a given config path
+ * Get a config section (tool.subtype) with fallback to * when tool-specific section is not found.
+ * Use this when reading dependency records (rules, skills, etc.) from project config.
+ */
+export function getConfigSectionWithFallback(
+    config: ProjectConfig,
+    tool: string,
+    subtype: string
+): Record<string, RuleEntry> {
+    return getRuleSection(config, [tool, subtype]);
+}
+
+/**
+ * Get the rule section for a given config path.
+ * Falls back to * (wildcard) config when tool-specific section is not found.
  */
 export function getRuleSection(config: ProjectConfig, configPath: ConfigPath): Record<string, RuleEntry> {
     const section = getAtPath(config, configPath);
-    if (!section || typeof section !== 'object') return {};
-    return section as Record<string, RuleEntry>;
+    if (section !== undefined && section !== null && typeof section === 'object') {
+        return section as Record<string, RuleEntry>;
+    }
+    if (configPath.length >= 2 && configPath[0] !== WILDCARD_TOOL) {
+        const wildSection = getAtPath(config, [WILDCARD_TOOL, configPath[1]]);
+        if (wildSection !== undefined && wildSection !== null && typeof wildSection === 'object') {
+            return wildSection as Record<string, RuleEntry>;
+        }
+    }
+    return {};
 }
 
 /**
@@ -450,7 +490,8 @@ export function getTargetNameOverride(repoConfig: RepoSourceConfig, tool: string
 }
 
 /**
- * Get entry configuration from project config
+ * Get entry configuration from project config.
+ * Falls back to * (wildcard) config when tool-specific config is not found.
  */
 export function getEntryConfig(
     projectConfig: ProjectConfig,
@@ -458,13 +499,26 @@ export function getEntryConfig(
     subtype: string,
     key: string
 ): RuleEntry | undefined {
-    const toolConfig = (projectConfig as any)[tool];
-    if (!toolConfig) return undefined;
-
-    const subtypeConfig = toolConfig[subtype];
-    if (!subtypeConfig) return undefined;
-
-    return subtypeConfig[key];
+    const cfg = projectConfig as Record<string, unknown>;
+    const toolConfig = cfg[tool];
+    if (toolConfig && typeof toolConfig === 'object') {
+        const subtypeConfig = (toolConfig as Record<string, unknown>)[subtype];
+        if (subtypeConfig && typeof subtypeConfig === 'object') {
+            const entry = (subtypeConfig as Record<string, unknown>)[key];
+            if (entry !== undefined) return entry as RuleEntry;
+        }
+    }
+    if (tool !== WILDCARD_TOOL) {
+        const wildConfig = cfg[WILDCARD_TOOL];
+        if (wildConfig && typeof wildConfig === 'object') {
+            const subtypeConfig = (wildConfig as Record<string, unknown>)[subtype];
+            if (subtypeConfig && typeof subtypeConfig === 'object') {
+                const entry = (subtypeConfig as Record<string, unknown>)[key];
+                if (entry !== undefined) return entry as RuleEntry;
+            }
+        }
+    }
+    return undefined;
 }
 
 /**
@@ -546,7 +600,20 @@ export async function addDependencyGeneric(
 }
 
 /**
- * Generic function to remove a dependency from project config
+ * Try to delete a key from config at configPath; if not found and configPath is tool-specific,
+ * try deleting from wildcard path ['*', subtype].
+ */
+function deleteAtPathWithFallback(config: unknown, configPath: ConfigPath, key: string): boolean {
+    if (deleteAtPath(config, configPath, key)) return true;
+    if (configPath.length >= 2 && configPath[0] !== WILDCARD_TOOL) {
+        return deleteAtPath(config, [WILDCARD_TOOL, configPath[1]], key);
+    }
+    return false;
+}
+
+/**
+ * Generic function to remove a dependency from project config.
+ * Tries tool-specific path first, then falls back to * when entry is in wildcard config.
  */
 export async function removeDependencyGeneric(
     projectPath: string,
@@ -557,14 +624,14 @@ export async function removeDependencyGeneric(
 
     const mainPath = path.join(projectPath, CONFIG_FILENAME);
     const mainConfig = await readConfigFile<ProjectConfig>(mainPath);
-    if (deleteAtPath(mainConfig, configPath, alias)) {
+    if (deleteAtPathWithFallback(mainConfig, configPath, alias)) {
         await fs.writeJson(mainPath, mainConfig, { spaces: 2 });
         removedFrom.push(CONFIG_FILENAME);
     }
 
     const localPath = path.join(projectPath, LOCAL_CONFIG_FILENAME);
     const localConfig = await readConfigFile<ProjectConfig>(localPath);
-    if (deleteAtPath(localConfig, configPath, alias)) {
+    if (deleteAtPathWithFallback(localConfig, configPath, alias)) {
         await fs.writeJson(localPath, localConfig, { spaces: 2 });
         removedFrom.push(LOCAL_CONFIG_FILENAME);
     }
@@ -607,6 +674,7 @@ export async function addUserDependency(
 /**
  * Remove a dependency from the user project config (user.json).
  * Used when --user flag is set.
+ * Tries tool-specific path first, then falls back to * when entry is in wildcard config.
  */
 export async function removeUserDependency(
     configPath: ConfigPath,
@@ -616,7 +684,7 @@ export async function removeUserDependency(
     const userPath = await getUserConfigPath();
     const config = await getUserProjectConfig();
 
-    if (deleteAtPath(config, configPath, alias)) {
+    if (deleteAtPathWithFallback(config, configPath, alias)) {
         await saveUserProjectConfig(config);
         removedFrom.push(path.basename(userPath));
     }

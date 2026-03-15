@@ -74,6 +74,28 @@ AIS automatically migrates legacy configs (without `version`) on read.
 
 With `rootPath: "src"`, the actual path for Cursor rules resolves to `src/.cursor/rules`.
 
+### Wildcard (`*`) Fallback
+
+Use `*` as a tool key to define shared config that applies to all tools when tool-specific config is missing. Useful for subtypes like `skills` that are identical across Cursor, Copilot, Claude, etc.
+
+```json
+{
+  "version": 1,
+  "rootPath": "src",
+  "sourceDir": {
+    "*": {
+      "skills": "common/skills"
+    },
+    "cursor": {
+      "rules": ".cursor/rules"
+    }
+  }
+}
+```
+
+- `cursor.skills`, `copilot.skills`, `claude.skills`, etc. all resolve to `common/skills` when not explicitly defined
+- Tool-specific config (e.g. `cursor.rules`) takes precedence over `*`
+
 ### Source Path Modes
 
 Source paths can be a simple string or an object with a `mode` discriminant for advanced mapping:
@@ -136,6 +158,29 @@ This maps `common/shared-rules/` in the repo → `.cursor/rules/cursor-rules/` i
   }
 }
 ```
+
+### Wildcard (`*`) Fallback
+
+Use `*` as a tool key to define shared dependencies that apply to all tools when tool-specific config is missing:
+
+```json
+{
+  "version": 1,
+  "*": {
+    "skills": {
+      "shared-skill": "https://example.com/skills.git"
+    }
+  },
+  "cursor": {
+    "rules": {
+      "my-rule": "https://example.com/rules.git"
+    }
+  }
+}
+```
+
+- `cursor skills`, `copilot skills`, etc. all see `shared-skill` when their own `skills` section is empty
+- Tool-specific entries take precedence; add/remove uses the adapter's config path, with fallback to `*` for remove
 
 ### Example
 

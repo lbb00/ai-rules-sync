@@ -74,6 +74,28 @@ AIS 在读取时会自动迁移不含 `version` 的旧格式配置。
 
 设置 `rootPath: "src"` 后，Cursor 规则的实际路径解析为 `src/.cursor/rules`。
 
+### 通配符（`*`）回退
+
+使用 `*` 作为工具键可定义共享配置，当工具特定配置缺失时应用于所有工具。适用于如 `skills` 等在 Cursor、Copilot、Claude 等中相同的子类型。
+
+```json
+{
+  "version": 1,
+  "rootPath": "src",
+  "sourceDir": {
+    "*": {
+      "skills": "common/skills"
+    },
+    "cursor": {
+      "rules": ".cursor/rules"
+    }
+  }
+}
+```
+
+- 当未显式定义时，`cursor.skills`、`copilot.skills`、`claude.skills` 等均解析为 `common/skills`
+- 工具特定配置（如 `cursor.rules`）优先于 `*`
+
 ### 源路径模式
 
 源路径可以是简单字符串，也可以是带 `mode` 判别字段的对象（用于高级映射）：
@@ -136,6 +158,29 @@ AIS 在读取时会自动迁移不含 `version` 的旧格式配置。
   }
 }
 ```
+
+### 通配符（`*`）回退
+
+使用 `*` 作为工具键可定义共享依赖，当工具特定配置缺失时应用于所有工具：
+
+```json
+{
+  "version": 1,
+  "*": {
+    "skills": {
+      "shared-skill": "https://example.com/skills.git"
+    }
+  },
+  "cursor": {
+    "rules": {
+      "my-rule": "https://example.com/rules.git"
+    }
+  }
+}
+```
+
+- 当各自的 `skills` 区块为空时，`cursor skills`、`copilot skills` 等均可看到 `shared-skill`
+- 工具特定条目优先；add/remove 使用适配器的配置路径，remove 时会回退到 `*`
 
 ### 示例
 

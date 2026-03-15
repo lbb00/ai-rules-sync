@@ -7,7 +7,7 @@ import os from 'os';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 import { SyncAdapter } from '../adapters/types.js';
-import { RuleEntry } from '../project-config.js';
+import { RuleEntry, ProjectConfig, getConfigSectionWithFallback } from '../project-config.js';
 import { getConfig, setConfig, getReposBaseDir, getUserProjectConfig, getUserConfigPath, RepoConfig } from '../config.js';
 import { cloneOrUpdateRepo } from '../git.js';
 import { parseConfigEntry } from './helpers.js';
@@ -115,9 +115,9 @@ export async function installUserEntriesForAdapter(
 ): Promise<void> {
     const userConfig = await getUserProjectConfig();
     const [topLevel, subLevel] = adapter.configPath;
-    const entries = (userConfig as any)?.[topLevel]?.[subLevel] as Record<string, RuleEntry> | undefined;
+    const entries = getConfigSectionWithFallback(userConfig as ProjectConfig, topLevel, subLevel);
 
-    if (!entries || Object.keys(entries).length === 0) {
+    if (Object.keys(entries).length === 0) {
         console.log(chalk.yellow(`No user ${adapter.tool} ${adapter.subtype} found in user config.`));
         return;
     }
@@ -162,8 +162,8 @@ export async function installAllUserEntries(
 
     for (const adapter of adapters) {
         const [topLevel, subLevel] = adapter.configPath;
-        const entries = (userConfig as any)?.[topLevel]?.[subLevel] as Record<string, RuleEntry> | undefined;
-        if (entries && Object.keys(entries).length > 0) {
+        const entries = getConfigSectionWithFallback(userConfig as ProjectConfig, topLevel, subLevel);
+        if (Object.keys(entries).length > 0) {
             await installUserEntriesForAdapter(adapter);
             total += Object.keys(entries).length;
         }
