@@ -2,10 +2,21 @@
 
 `ai-rules-sync.json` serves **two different roles** depending on where it is placed:
 
-| Location | Role | Key Fields |
-|----------|------|------------|
-| **Rules Repository** (provider) | Defines how rules are organized in the repo | `version`, `sourceDir`, `rootPath` |
-| **Project** (consumer) | Records which rules to sync from which repos | `version`, `tool.subtype` entries |
+| Location | Path | Role | Key Fields |
+|----------|------|------|------------|
+| **Rules Repository** (provider) | `./ai-rules-sync.json` (repo root) | Defines how rules are organized in the repo | `version`, `sourceDir`, `rootPath` |
+| **Project** (consumer) | `./ai-rules-sync.json` (project root) | Records which rules to sync from which repos | `version`, `tool.subtype` entries |
+
+Additional config files:
+
+| File | Path | Purpose |
+|------|------|---------|
+| `ai-rules-sync.local.json` | Project root | Private rules (not committed, auto-added to `.gitignore`) |
+| `user.json` | `~/.config/ai-rules-sync/user.json` | User-level config (applies to all projects) |
+
+::: tip
+Most users never edit these files directly — the CLI (`ais add`, `ais rm`, etc.) manages them. Edit manually only for advanced cases: aliases, custom `targetDir`, or custom `sourceDir` in rules repos.
+:::
 
 ## Schema Version
 
@@ -24,6 +35,8 @@ AIS automatically migrates legacy configs (without `version`) on read.
 ## Rules Repository Config (Provider)
 
 > Placed in the **rules repository root**. Tells AIS where to find rules within this repo.
+
+**When to customize:** Only needed when your rules are not in the default locations (e.g., `.cursor/rules`, `.claude/skills`). Run `ais init` to create a repo with default structure — no custom config required.
 
 ### Basic Structure
 
@@ -214,6 +227,12 @@ Use `*` as a tool key to define shared dependencies that apply to all tools when
 All tools (`copilot`, `trae`, `opencode`, `codex`, `gemini`, `warp`, `windsurf`, `cline`) follow the same `tool → subtype → entries` structure.
 
 ### Entry Formats
+
+| Format | When to use | Example |
+|--------|-------------|---------|
+| **String** | Same name in project and repo | `"react": "https://github.com/user/repo.git"` |
+| **Object with `rule`** | Different local name (alias) | `"react-v2": { "url": "...", "rule": "react" }` |
+| **Object with `targetDir`** | Custom symlink location | `"docs-rule": { "url": "...", "targetDir": "docs/ai/rules" }` |
 
 #### Simple string — just the repo URL
 

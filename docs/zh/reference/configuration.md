@@ -2,10 +2,21 @@
 
 `ai-rules-sync.json` 根据放置位置的不同，承担**两种角色**：
 
-| 位置 | 角色 | 关键字段 |
-|------|------|----------|
-| **规则仓库**（提供方） | 定义仓库中规则的组织方式 | `version`、`sourceDir`、`rootPath` |
-| **项目**（引用方） | 记录从哪些仓库同步哪些规则 | `version`、`tool.subtype` 条目 |
+| 位置 | 路径 | 角色 | 关键字段 |
+|------|------|------|----------|
+| **规则仓库**（提供方） | `./ai-rules-sync.json`（仓库根目录） | 定义仓库中规则的组织方式 | `version`、`sourceDir`、`rootPath` |
+| **项目**（引用方） | `./ai-rules-sync.json`（项目根目录） | 记录从哪些仓库同步哪些规则 | `version`、`tool.subtype` 条目 |
+
+其他配置文件：
+
+| 文件 | 路径 | 用途 |
+|------|------|------|
+| `ai-rules-sync.local.json` | 项目根目录 | 私有规则（不提交，自动加入 `.gitignore`） |
+| `user.json` | `~/.config/ai-rules-sync/user.json` | 用户级配置（适用于所有项目） |
+
+::: tip
+大多数用户无需直接编辑这些文件 — CLI（`ais add`、`ais rm` 等）会自动管理。仅在高级场景下手动编辑：别名、自定义 `targetDir` 或规则仓库中的自定义 `sourceDir`。
+:::
 
 ## Schema 版本
 
@@ -24,6 +35,8 @@ AIS 在读取时会自动迁移不含 `version` 的旧格式配置。
 ## 规则仓库配置（提供方）
 
 > 放在**规则仓库根目录**。告诉 AIS 在此仓库中如何查找规则。
+
+**何时需要自定义：** 仅当规则不在默认位置（如 `.cursor/rules`、`.claude/skills`）时才需要。运行 `ais init` 可创建使用默认结构的仓库 — 通常无需自定义配置。
 
 ### 基本结构
 
@@ -214,6 +227,12 @@ AIS 在读取时会自动迁移不含 `version` 的旧格式配置。
 所有工具（`copilot`、`trae`、`opencode`、`codex`、`gemini`、`warp`、`windsurf`、`cline`）遵循相同的 `工具 → 子类型 → 条目` 结构。
 
 ### 条目格式
+
+| 格式 | 适用场景 | 示例 |
+|------|----------|------|
+| **字符串** | 项目与仓库中名称相同 | `"react": "https://github.com/user/repo.git"` |
+| **带 `rule` 的对象** | 不同本地名称（别名） | `"react-v2": { "url": "...", "rule": "react" }` |
+| **带 `targetDir` 的对象** | 自定义符号链接位置 | `"docs-rule": { "url": "...", "targetDir": "docs/ai/rules" }` |
 
 #### 简单字符串 — 仅仓库 URL
 

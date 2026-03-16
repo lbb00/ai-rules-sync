@@ -41,6 +41,21 @@ ais ls
 ais ls --json
 ```
 
+### `ais add` / `ais rm`
+
+Top-level shortcuts that auto-detect the tool (Cursor, Copilot, Windsurf, or Cline) when config is unambiguous. Prefer explicit tool commands when using multiple tools.
+
+```bash
+ais add react                    # Add rule (cursor/copilot when unambiguous)
+ais add react my-alias -d dir    # With alias and custom target dir
+ais rm react                     # Remove entry
+ais rm react --dry-run           # Preview removal
+```
+
+::: tip
+For Claude, Trae, OpenCode, Codex, Gemini, Warp, or AGENTS.md, use the explicit tool command (e.g., `ais claude skills add`).
+:::
+
 ### `ais install`
 
 Install all rules from config files.
@@ -61,7 +76,11 @@ Initialize a rules repository template.
 ```bash
 ais init
 ais init my-rules-repo
-ais init --force --no-dirs
+ais init --force                 # Overwrite existing ai-rules-sync.json
+ais init --no-dirs               # Skip creating default source directories
+ais init --only cursor copilot    # Only include specified tools
+ais init --exclude codex          # Exclude specified tools
+ais init --json                  # Output result as JSON
 ```
 
 ### `ais update`
@@ -85,10 +104,11 @@ ais check --json
 
 ### `ais status`
 
-Show project status.
+Show project status (repos, symlinks, config files).
 
 ```bash
 ais status
+ais status --user                 # Include user config status
 ais status --json
 ```
 
@@ -103,16 +123,52 @@ ais search react --json
 
 ### `ais add-all`
 
-Discover and install all available rules.
+Discover and install all available rules from the current repository.
 
 ```bash
 ais add-all
-ais add-all --dry-run
-ais add-all --tools cursor,copilot
-ais add-all --interactive
-ais add-all --force
-ais add-all --skip-existing
+ais add-all --dry-run             # Preview without installing
+ais add-all --tools cursor,copilot # Filter by tools
+ais add-all --interactive         # Prompt for each entry
+ais add-all --force               # Overwrite existing
+ais add-all --skip-existing       # Skip entries already in config
+ais add-all -l                    # Save to ai-rules-sync.local.json
+ais add-all --quiet               # Minimal output
 ```
+
+## Tool Commands
+
+Tool-specific commands: `ais <tool> [subtype] <action>`. See [Tool Guides](/guide/tool-guides) for details.
+
+**Common pattern:**
+
+```bash
+ais cursor add react              # Add Cursor rule
+ais cursor rules add react        # Same, explicit subtype
+ais claude skills add code-review # Add Claude skill
+ais copilot instructions add coding-style
+ais cursor rules rm react         # Remove
+ais cursor install                # Install all Cursor entries
+ais cursor rules import my-rule  # Import from project to repo
+```
+
+**Tools and subtypes:**
+
+| Tool | Subtypes | Example |
+|------|----------|---------|
+| `cursor` | rules, commands, skills, agents | `ais cursor rules add react` |
+| `copilot` | instructions, prompts, skills, agents | `ais copilot instructions add x` |
+| `claude` | rules, skills, agents, md | `ais claude md add CLAUDE --user` |
+| `trae` | rules, skills | `ais trae rules add x` |
+| `opencode` | commands, skills, agents, tools | `ais opencode skills add x` |
+| `codex` | rules, skills, md | `ais codex md add AGENTS` |
+| `gemini` | commands, skills, agents, md | `ais gemini md add GEMINI` |
+| `warp` | skills | `ais warp skills add x` |
+| `windsurf` | rules, skills | `ais windsurf rules add x` |
+| `cline` | rules, skills | `ais cline rules add x` |
+| `agents-md` | file | `ais agents-md add .` |
+
+**Options:** `-t` repo, `-l` local, `-d` targetDir, `-s` sourceDir, `--dry-run`, `--force`, `--user`
 
 ### `ais git <command>`
 
@@ -136,18 +192,25 @@ ais user install
 
 ### `ais completion install`
 
-Install shell tab completion.
+Install shell tab completion. Auto-detects shell (bash, zsh, fish) and appends to config file.
+
+```bash
+ais completion install            # Auto-detect shell and install
+ais completion install --force    # Force reinstall
+ais completion bash               # Output script only (for manual install)
+```
 
 ### `ais config`
 
 Manage configuration.
 
 ```bash
-# Repository source directories
-ais config repo set-source <repo> <key> <dir>
+# Repository source directories (override where AIS looks for rules in a repo)
+ais config repo set-source <repo> <tool.subtype> <path>
+# Example: ais config repo set-source my-repo cursor.rules custom/rules
 ais config repo show <repo>
-ais config repo clear-source <repo> [key]
-ais config repo list
+ais config repo clear-source <repo> [tool.subtype]   # Omit subtype to clear all
+ais config repo list            # Same as ais ls
 
 # User config path
 ais config user show
@@ -155,27 +218,7 @@ ais config user set <path>
 ais config user reset
 ```
 
-## Tool Commands
-
-All tools follow the same pattern:
-
-```bash
-ais <tool> add <name> [-t repo] [-l] [-d targetDir]
-ais <tool> rm <name>              # remove entry
-ais <tool> install                # install all entries for this tool
-
-# For subtypes
-ais <tool> <subtype> add <name>
-ais <tool> <subtype> rm <name>
-ais <tool> <subtype> import <name> [-m msg] [--push] [--force]
-ais <tool> <subtype> add-all [-s sourceDir]
-```
-
-### Tools
-
-`cursor`, `copilot`, `claude`, `trae`, `opencode`, `codex`, `gemini`, `warp`, `windsurf`, `cline`, `agents-md`
-
-### Common Options
+### Common Options (tool commands)
 
 | Option | Description |
 |--------|-------------|
@@ -184,6 +227,5 @@ ais <tool> <subtype> add-all [-s sourceDir]
 | `-d, --target-dir <dir>` | Custom target directory |
 | `-s, --source-dir <dir>` | Custom source directory |
 | `--dry-run` | Preview without making changes |
-| `--json` | Output in JSON format |
 | `--force` | Force overwrite existing |
 | `--user` | Use user mode (personal config) |

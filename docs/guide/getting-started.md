@@ -35,9 +35,17 @@ ais completion install
 
 ## Quick Start
 
+::: tip Rules repository vs project
+A **rules repository** stores your rules (e.g., `react.mdc`). Your **project** consumes them — AIS creates symlinks from the repo into your project. You need a rules repo (or create one) before adding rules.
+:::
+
 ### Scenario 1: Use Existing Rules
 
 You have a rules repository and want to use its rules in your project.
+
+::: info Don't have a rules repo?
+Try [Scenario 4](#scenario-4-create-rules-from-scratch) to create one from scratch, or use any Git repo that already has `.cursor/rules/`, `.claude/skills/`, etc.
+:::
 
 ```bash
 # 1. Go to your project
@@ -125,6 +133,13 @@ git push -u origin main
 cd your-project
 ais cursor add react -t https://github.com/your-org/rules-repo.git
 ```
+
+## What's Next
+
+- **Understand the model:** [Core Concepts](/guide/core-concepts) — add vs import vs install, repository lifecycle
+- **Project vs personal:** [Project-Level Sync](/guide/project-level) for team rules, [User Global-Level Sync](/guide/user-level) for personal CLAUDE.md / GEMINI.md
+- **Your tool:** [Tool Guides](/guide/tool-guides) — Cursor, Copilot, Claude, and more
+- **CLI reference:** [CLI Commands](/reference/cli) — full command list
 
 ## Troubleshooting
 

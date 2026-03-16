@@ -35,9 +35,17 @@ ais completion install
 
 ## 快速上手
 
+::: tip 规则仓库 vs 项目
+**规则仓库**存储你的规则（如 `react.mdc`）。**项目**消费这些规则 — AIS 在仓库与项目之间创建符号链接。添加规则前需要先有规则仓库（或创建一个）。
+:::
+
 ### 场景 1：使用现有规则
 
 你有一个规则仓库，想在项目中使用其规则。
+
+::: info 没有规则仓库？
+可尝试[场景 4](#场景-4-从零创建规则)从零创建，或使用任何已有 `.cursor/rules/`、`.claude/skills/` 等目录的 Git 仓库。
+:::
 
 ```bash
 # 1. 进入你的项目
@@ -125,6 +133,13 @@ git push -u origin main
 cd your-project
 ais cursor add react -t https://github.com/your-org/rules-repo.git
 ```
+
+## 下一步
+
+- **理解模型：** [核心概念](/zh/guide/core-concepts) — add、import、install 的区别，仓库生命周期
+- **项目 vs 个人：** [项目级别同步](/zh/guide/project-level) 用于团队规则，[用户全局级别同步](/zh/guide/user-level) 用于个人 CLAUDE.md / GEMINI.md
+- **你的工具：** [工具指南](/zh/guide/tool-guides) — Cursor、Copilot、Claude 等
+- **CLI 参考：** [CLI 命令](/zh/reference/cli) — 完整命令列表
 
 ## 故障排查
 
