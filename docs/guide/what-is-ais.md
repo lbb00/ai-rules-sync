@@ -2,6 +2,8 @@
 
 **AI Rules Sync (AIS)** is a CLI tool for synchronizing, managing, and sharing AI agent rules across projects and teams.
 
+**TL;DR:** AIS syncs rules from Git repositories to your project via symbolic links. Edit once in the repo, all projects get the update. Supports Cursor, Copilot, Claude Code, and 8+ more AI tools.
+
 ## The Problem
 
 Modern AI coding assistants (Cursor, GitHub Copilot, Claude Code, etc.) use project-level configuration files to customize their behavior. Teams often:

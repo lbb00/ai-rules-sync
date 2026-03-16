@@ -34,13 +34,14 @@ const guideSidebar = [
     items: [
       { text: "What is AIS?", link: "/guide/what-is-ais" },
       { text: "Getting Started", link: "/guide/getting-started" },
+      { text: "Core Concepts", link: "/guide/core-concepts" },
       { text: "Project-Level Sync", link: "/guide/project-level" },
       { text: "User Global-Level Sync", link: "/guide/user-level" },
       { text: "Multiple Repositories", link: "/guide/multiple-repos" },
       { text: "Import Rules", link: "/guide/import-rules" },
       { text: "Monorepo & Custom Dirs", link: "/guide/monorepo" },
-      { text: "Core Concepts", link: "/guide/core-concepts" },
       { text: "Advanced Features", link: "/guide/advanced-features" },
+      { text: "Troubleshooting", link: "/guide/troubleshooting" },
     ],
   },
   {
@@ -55,13 +56,14 @@ const guideSidebarZh = [
     items: [
       { text: "什么是 AIS？", link: "/zh/guide/what-is-ais" },
       { text: "快速开始", link: "/zh/guide/getting-started" },
+      { text: "核心概念", link: "/zh/guide/core-concepts" },
       { text: "项目级别同步", link: "/zh/guide/project-level" },
       { text: "用户全局级别同步", link: "/zh/guide/user-level" },
       { text: "多仓库", link: "/zh/guide/multiple-repos" },
       { text: "导入规则", link: "/zh/guide/import-rules" },
       { text: "Monorepo 与自定义目录", link: "/zh/guide/monorepo" },
-      { text: "核心概念", link: "/zh/guide/core-concepts" },
       { text: "高级功能", link: "/zh/guide/advanced-features" },
+      { text: "故障排查", link: "/zh/guide/troubleshooting" },
     ],
   },
   {
@@ -110,6 +112,10 @@ export default defineConfig({
                   text: "ai-rules-sync.json",
                   link: "/reference/configuration",
                 },
+                {
+                  text: "Supported Tools",
+                  link: "/reference/supported-tools",
+                },
               ],
             },
           ],
@@ -135,6 +141,10 @@ export default defineConfig({
                 {
                   text: "ai-rules-sync.json",
                   link: "/zh/reference/configuration",
+                },
+                {
+                  text: "支持的工具",
+                  link: "/zh/reference/supported-tools",
                 },
               ],
             },

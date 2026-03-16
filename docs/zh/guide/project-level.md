@@ -52,3 +52,27 @@ ais install
   }
 }
 ```
+
+## 完整工作流示例
+
+从创建规则到团队共享的完整流程：
+
+```bash
+# 1. 在仓库中创建规则
+cd ~/my-rules-repo
+echo "# React rules" > .cursor/rules/react.mdc
+git add . && git commit -m "Add react rule"
+git push
+
+# 2. 添加到项目
+cd your-project
+ais cursor add react -t https://github.com/you/my-rules-repo.git
+
+# 3. 提交配置（ai-rules-sync.json）供团队使用
+git add ai-rules-sync.json && git commit -m "Add react rule via AIS"
+git push
+
+# 4. 队友克隆后执行
+git clone https://github.com/team/project.git && cd project
+ais install
+```

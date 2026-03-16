@@ -41,14 +41,33 @@ ais ls
 ais ls --json
 ```
 
-### `ais install`
+### `ais add` / `ais rm`
 
-从 `ai-rules-sync.json` 安装所有规则。
+顶层快捷命令，在配置明确时自动识别工具（Cursor、Copilot、Windsurf 或 Cline）。使用多工具时建议使用显式工具命令。
 
 ```bash
-ais install                # 项目规则
-ais install --user         # 用户规则
+ais add react                    # 添加规则（cursor/copilot 明确时）
+ais add react my-alias -d dir    # 带别名和自定义目标目录
+ais rm react                     # 移除条目
+ais rm react --dry-run           # 预览移除
 ```
+
+::: tip
+Claude、Trae、OpenCode、Codex、Gemini、Warp 或 AGENTS.md 请使用显式工具命令（如 `ais claude skills add`）。
+:::
+
+### `ais install`
+
+从配置文件安装所有规则。
+
+```bash
+ais install                # 项目规则（来自 ai-rules-sync.json）
+ais install --user         # 用户规则（来自 ~/.config/ai-rules-sync/user.json）
+```
+
+::: tip
+也可使用 `ais user install` 安装用户级配置，两者等效。
+:::
 
 ### `ais init`
 
@@ -57,7 +76,11 @@ ais install --user         # 用户规则
 ```bash
 ais init
 ais init my-rules-repo
-ais init --force --no-dirs
+ais init --force                 # 覆盖已有 ai-rules-sync.json
+ais init --no-dirs               # 不创建默认源目录
+ais init --only cursor copilot   # 仅包含指定工具
+ais init --exclude codex          # 排除指定工具
+ais init --json                  # JSON 格式输出
 ```
 
 ### `ais update`
@@ -81,10 +104,11 @@ ais check --json
 
 ### `ais status`
 
-显示项目状态。
+显示项目状态（仓库、符号链接、配置文件）。
 
 ```bash
 ais status
+ais status --user                 # 包含用户配置状态
 ais status --json
 ```
 
@@ -99,16 +123,52 @@ ais search react --json
 
 ### `ais add-all`
 
-发现并安装所有可用规则。
+从当前仓库发现并安装所有可用规则。
 
 ```bash
 ais add-all
-ais add-all --dry-run
-ais add-all --tools cursor,copilot
-ais add-all --interactive
-ais add-all --force
-ais add-all --skip-existing
+ais add-all --dry-run             # 仅预览不安装
+ais add-all --tools cursor,copilot # 按工具筛选
+ais add-all --interactive         # 逐条确认
+ais add-all --force               # 覆盖已有
+ais add-all --skip-existing       # 跳过已在配置中的条目
+ais add-all -l                    # 保存到 ai-rules-sync.local.json
+ais add-all --quiet               # 最小化输出
 ```
+
+## 工具命令
+
+按工具区分的命令：`ais <tool> [subtype] <action>`。详见[工具指南](/zh/guide/tool-guides)。
+
+**常用模式：**
+
+```bash
+ais cursor add react              # 添加 Cursor 规则
+ais cursor rules add react        # 同上，显式子类型
+ais claude skills add code-review # 添加 Claude skill
+ais copilot instructions add coding-style
+ais cursor rules rm react         # 移除
+ais cursor install                # 安装该工具全部条目
+ais cursor rules import my-rule   # 从项目导入到仓库
+```
+
+**工具与子类型：**
+
+| 工具 | 子类型 | 示例 |
+|------|--------|------|
+| `cursor` | rules, commands, skills, agents | `ais cursor rules add react` |
+| `copilot` | instructions, prompts, skills, agents | `ais copilot instructions add x` |
+| `claude` | rules, skills, agents, md | `ais claude md add CLAUDE --user` |
+| `trae` | rules, skills | `ais trae rules add x` |
+| `opencode` | commands, skills, agents, tools | `ais opencode skills add x` |
+| `codex` | rules, skills, md | `ais codex md add AGENTS` |
+| `gemini` | commands, skills, agents, md | `ais gemini md add GEMINI` |
+| `warp` | skills | `ais warp skills add x` |
+| `windsurf` | rules, skills | `ais windsurf rules add x` |
+| `cline` | rules, skills | `ais cline rules add x` |
+| `agents-md` | file | `ais agents-md add .` |
+
+**选项：** `-t` 仓库、`-l` 本地、`-d` 目标目录、`-s` 源目录、`--dry-run`、`--force`、`--user`
 
 ### `ais git <command>`
 
@@ -122,20 +182,35 @@ ais git log --oneline
 ais git status -t company-rules
 ```
 
+### `ais user install`
+
+从 `~/.config/ai-rules-sync/user.json` 安装所有用户级条目。与 `ais install --user` 等效。
+
+```bash
+ais user install
+```
+
 ### `ais completion install`
 
-安装 shell Tab 补全。
+安装 shell Tab 补全。自动检测 shell（bash、zsh、fish）并追加到配置文件。
+
+```bash
+ais completion install            # 自动检测 shell 并安装
+ais completion install --force   # 强制重新安装
+ais completion bash               # 仅输出脚本（用于手动安装）
+```
 
 ### `ais config`
 
 管理配置。
 
 ```bash
-# 仓库源目录
-ais config repo set-source <repo> <key> <dir>
+# 仓库源目录（覆盖 AIS 在仓库中查找规则的位置）
+ais config repo set-source <repo> <tool.subtype> <path>
+# 示例：ais config repo set-source my-repo cursor.rules custom/rules
 ais config repo show <repo>
-ais config repo clear-source <repo> [key]
-ais config repo list
+ais config repo clear-source <repo> [tool.subtype]   # 省略 subtype 则清除全部
+ais config repo list            # 与 ais ls 相同
 
 # 用户配置路径
 ais config user show
@@ -143,27 +218,7 @@ ais config user set <path>
 ais config user reset
 ```
 
-## 工具命令
-
-所有工具遵循相同模式：
-
-```bash
-ais <tool> add <name> [-t repo] [-l] [-d targetDir]
-ais <tool> rm <name>
-ais <tool> install
-
-# 子类型
-ais <tool> <subtype> add <name>
-ais <tool> <subtype> rm <name>
-ais <tool> <subtype> import <name> [-m msg] [--push] [--force]
-ais <tool> <subtype> add-all [-s sourceDir]
-```
-
-### 工具列表
-
-`cursor`, `copilot`, `claude`, `trae`, `opencode`, `codex`, `gemini`, `warp`, `windsurf`, `cline`, `agents-md`
-
-### 通用选项
+### 通用选项（工具命令）
 
 | 选项 | 描述 |
 |------|------|
@@ -172,6 +227,5 @@ ais <tool> <subtype> add-all [-s sourceDir]
 | `-d, --target-dir <dir>` | 自定义目标目录 |
 | `-s, --source-dir <dir>` | 自定义源目录 |
 | `--dry-run` | 预览，不实际执行 |
-| `--json` | JSON 格式输出 |
 | `--force` | 强制覆盖已有 |
 | `--user` | 使用用户模式（个人配置） |

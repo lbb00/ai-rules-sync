@@ -113,12 +113,18 @@ ais gemini md add GEMINI --user    # ~/.gemini/GEMINI.md
 
 ## AGENTS.md（通用）
 
+AGENTS.md 是项目根目录的[标准文件](https://agents.md/)。使用 `ais agents-md` 同步：
+
 ```bash
-ais agents-md add .
-ais agents-md add frontend
-ais agents-md add frontend fe-agents    # 带别名
+ais agents-md add .                    # 从仓库根目录添加 AGENTS.md
+ais agents-md add frontend             # 添加 frontend/AGENTS.md，本地名为 frontend
+ais agents-md add frontend fe-agents   # 同上，别名为 fe-agents
 ais agents-md rm fe-agents
 ```
+
+::: info
+Warp Rules 使用相同 AGENTS.md 格式，Warp 项目请使用 `ais agents-md`。
+:::
 
 ## Warp
 

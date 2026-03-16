@@ -35,9 +35,17 @@ ais completion install
 
 ## Quick Start
 
+::: tip Rules repository vs project
+A **rules repository** stores your rules (e.g., `react.mdc`). Your **project** consumes them — AIS creates symlinks from the repo into your project. You need a rules repo (or create one) before adding rules.
+:::
+
 ### Scenario 1: Use Existing Rules
 
 You have a rules repository and want to use its rules in your project.
+
+::: info Don't have a rules repo?
+Try [Scenario 4](#scenario-4-create-rules-from-scratch) to create one from scratch, or use any Git repo that already has `.cursor/rules/`, `.claude/skills/`, etc.
+:::
 
 ```bash
 # 1. Go to your project
@@ -66,6 +74,8 @@ ais cursor add testing
 
 You have rules in your project and want to share them via a repository.
 
+**Prerequisites:** Your project must already have the rule file (e.g., `.cursor/rules/my-custom-rule.mdc`).
+
 ```bash
 # 1. Create a rules repository
 mkdir ~/my-rules-repo && cd ~/my-rules-repo
@@ -73,9 +83,17 @@ git init
 ais init
 ais use .
 
-# 2. Import your existing rule
+# 2. (Optional) Push to remote so others can use it
+git remote add origin https://github.com/your-org/rules-repo.git
+git add . && git commit -m "Initial rules repo"
+git push -u origin main
+
+# 3. Import your existing rule from the project
 cd your-project
 ais cursor rules import my-custom-rule
+
+# 4. (Optional) Push the imported rule to remote
+ais git push
 
 # Done! Your rule is now in the repository and linked
 ```
@@ -90,3 +108,44 @@ cd project
 ais install
 # All rules are now set up!
 ```
+
+### Scenario 4: Create Rules from Scratch
+
+You want to build a rules repository from scratch and use it across projects.
+
+```bash
+# 1. Create and initialize a rules repository
+mkdir ~/my-rules-repo && cd ~/my-rules-repo
+git init
+ais init
+ais use .
+
+# 2. Add rule files to the repository (create .cursor/rules/, etc.)
+mkdir -p .cursor/rules
+echo "# React Best Practices" > .cursor/rules/react.mdc
+git add . && git commit -m "Add react rule"
+
+# 3. Push to remote
+git remote add origin https://github.com/your-org/rules-repo.git
+git push -u origin main
+
+# 4. Use in any project
+cd your-project
+ais cursor add react -t https://github.com/your-org/rules-repo.git
+```
+
+## What's Next
+
+- **Understand the model:** [Core Concepts](/guide/core-concepts) — add vs import vs install, repository lifecycle
+- **Project vs personal:** [Project-Level Sync](/guide/project-level) for team rules, [User Global-Level Sync](/guide/user-level) for personal CLAUDE.md / GEMINI.md
+- **Your tool:** [Tool Guides](/guide/tool-guides) — Cursor, Copilot, Claude, and more
+- **CLI reference:** [CLI Commands](/reference/cli) — full command list
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| `-t` required on first add | Specify the repository URL or name the first time: `ais cursor add react -t https://github.com/org/repo.git` |
+| Import fails: "entry not found" | Ensure the rule file exists in your project (e.g., `.cursor/rules/my-rule.mdc`) before importing |
+| Symlinks broken after clone | Run `ais install` in the project root to recreate symlinks from config |
+| Wrong repository used | Run `ais use <repo>` to switch, or use `-t <repo>` with add/import |
