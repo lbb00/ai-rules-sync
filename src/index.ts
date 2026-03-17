@@ -1200,6 +1200,22 @@ registerAdapterCommands({ adapter: getAdapter('claude', 'commands'), parentComma
 const claudeMd = claude.command('md').description('Manage Claude CLAUDE.md files (.claude/CLAUDE.md)');
 registerAdapterCommands({ adapter: getAdapter('claude', 'md'), parentCommand: claudeMd, programOpts: () => program.opts() });
 
+// claude output-styles subgroup
+const claudeOutputStyles = claude.command('output-styles').description('Manage Claude output styles (.claude/output-styles/)');
+registerAdapterCommands({ adapter: getAdapter('claude', 'output-styles'), parentCommand: claudeOutputStyles, programOpts: () => program.opts() });
+
+// claude status-lines subgroup
+const claudeStatusLines = claude.command('status-lines').description('Manage Claude status lines (.claude/status-lines/)');
+registerAdapterCommands({ adapter: getAdapter('claude', 'status-lines'), parentCommand: claudeStatusLines, programOpts: () => program.opts() });
+
+// claude agent-memory subgroup
+const claudeAgentMemory = claude.command('agent-memory').description('Manage Claude agent memory (.claude/agent-memory/)');
+registerAdapterCommands({ adapter: getAdapter('claude', 'agent-memory'), parentCommand: claudeAgentMemory, programOpts: () => program.opts() });
+
+// claude settings subgroup
+const claudeSettings = claude.command('settings').description('Manage Claude settings (.claude/settings.json)');
+registerAdapterCommands({ adapter: getAdapter('claude', 'settings'), parentCommand: claudeSettings, programOpts: () => program.opts() });
+
 // ============ Trae command group ============
 const trae = program
   .command('trae')
@@ -1956,7 +1972,7 @@ program
 // ============ Internal _complete command ============
 program
   .command('_complete')
-  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, cursor-agents, copilot, claude-skills, claude-agents, claude-commands, claude-rules, trae-rules, trae-skills, opencode-agents, opencode-skills, opencode-commands, opencode-tools, codex-rules, codex-skills, codex-md, gemini-commands, gemini-skills, gemini-agents, gemini-md, warp-skills, windsurf-rules, windsurf-skills, cline-rules, cline-skills, agents-md')
+  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, cursor-agents, copilot, claude-skills, claude-agents, claude-commands, claude-rules, claude-output-styles, claude-status-lines, claude-agent-memory, claude-settings, trae-rules, trae-skills, opencode-agents, opencode-skills, opencode-commands, opencode-tools, codex-rules, codex-skills, codex-md, gemini-commands, gemini-skills, gemini-agents, gemini-md, warp-skills, windsurf-rules, windsurf-skills, cline-rules, cline-skills, agents-md')
   .description('Internal command for shell completion')
   .action(async (type: string) => {
     try {
@@ -2002,6 +2018,18 @@ program
           break;
         case 'claude-rules':
           sourceDir = getSourceDir(repoConfig, 'claude', 'rules', '.claude/rules');
+          break;
+        case 'claude-output-styles':
+          sourceDir = getSourceDir(repoConfig, 'claude', 'output-styles', '.claude/output-styles');
+          break;
+        case 'claude-status-lines':
+          sourceDir = getSourceDir(repoConfig, 'claude', 'status-lines', '.claude/status-lines');
+          break;
+        case 'claude-agent-memory':
+          sourceDir = getSourceDir(repoConfig, 'claude', 'agent-memory', '.claude/agent-memory');
+          break;
+        case 'claude-settings':
+          sourceDir = getSourceDir(repoConfig, 'claude', 'settings', '.claude');
           break;
         case 'trae-rules':
           sourceDir = getSourceDir(repoConfig, 'trae', 'rules', '.trae/rules');

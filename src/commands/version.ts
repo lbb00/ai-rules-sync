@@ -47,7 +47,7 @@ export async function getVersionInfo(): Promise<VersionInfo> {
  * @returns Formatted version string
  */
 export function formatVersionOutput(versionInfo: VersionInfo): string {
-  return `ai-rules-sync ${versionInfo.projectVersion} (powered by linkany ${versionInfo.linkanyVersion})`;
+  return `ai-rules-sync ${versionInfo.projectVersion}`;
 }
 
 /**

@@ -51,8 +51,8 @@ describe('AI Tool Adapters', () => {
       expect(claudeAgentsAdapter.configPath).toEqual(['claude', 'agents']);
       expect(claudeAgentsAdapter.defaultSourceDir).toBe('.claude/agents');
       expect(claudeAgentsAdapter.targetDir).toBe('.claude/agents');
-      expect(claudeAgentsAdapter.mode).toBe('file');
-      expect(claudeAgentsAdapter.fileSuffixes).toEqual(['.md']);
+      expect(claudeAgentsAdapter.mode).toBe('hybrid');
+      expect(claudeAgentsAdapter.hybridFileSuffixes).toEqual(['.md']);
     });
   });
 

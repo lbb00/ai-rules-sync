@@ -120,6 +120,10 @@ const TOOL_SPECS: ToolCompletionSpec[] = [
       { name: 'rules', description: 'Manage Claude rules' },
       { name: 'skills', description: 'Manage Claude skills' },
       { name: 'agents', description: 'Manage Claude agents' },
+      { name: 'output-styles', description: 'Manage Claude output styles' },
+      { name: 'status-lines', description: 'Manage Claude status lines' },
+      { name: 'agent-memory', description: 'Manage Claude agent memory' },
+      { name: 'settings', description: 'Manage Claude settings' },
       { name: 'install', description: 'Install all Claude components' }
     ],
     nestedSubcommands: {
@@ -140,12 +144,40 @@ const TOOL_SPECS: ToolCompletionSpec[] = [
         { name: 'remove', description: 'Remove a Claude agent' },
         { name: 'install', description: 'Install all Claude agents' },
         { name: 'import', description: 'Import agent to repository' }
+      ],
+      'output-styles': [
+        { name: 'add', description: 'Add a Claude output style' },
+        { name: 'remove', description: 'Remove a Claude output style' },
+        { name: 'install', description: 'Install all Claude output styles' },
+        { name: 'import', description: 'Import output style to repository' }
+      ],
+      'status-lines': [
+        { name: 'add', description: 'Add a Claude status line' },
+        { name: 'remove', description: 'Remove a Claude status line' },
+        { name: 'install', description: 'Install all Claude status lines' },
+        { name: 'import', description: 'Import status line to repository' }
+      ],
+      'agent-memory': [
+        { name: 'add', description: 'Add a Claude agent memory' },
+        { name: 'remove', description: 'Remove a Claude agent memory' },
+        { name: 'install', description: 'Install all Claude agent memories' },
+        { name: 'import', description: 'Import agent memory to repository' }
+      ],
+      settings: [
+        { name: 'add', description: 'Add a Claude settings file' },
+        { name: 'remove', description: 'Remove a Claude settings file' },
+        { name: 'install', description: 'Install all Claude settings' },
+        { name: 'import', description: 'Import settings to repository' }
       ]
     },
     nestedAddCompletionTypes: {
       rules: 'claude-rules',
       skills: 'claude-skills',
-      agents: 'claude-agents'
+      agents: 'claude-agents',
+      'output-styles': 'claude-output-styles',
+      'status-lines': 'claude-status-lines',
+      'agent-memory': 'claude-agent-memory',
+      settings: 'claude-settings'
     }
   },
   {

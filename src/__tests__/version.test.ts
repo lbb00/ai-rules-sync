@@ -58,7 +58,7 @@ describe('version module', () => {
         linkanyVersion: '0.0.3'
       });
 
-      expect(output).toBe('ai-rules-sync 0.4.0 (powered by linkany 0.0.3)');
+      expect(output).toBe('ai-rules-sync 0.4.0');
     });
 
     it('should handle unknown versions', () => {
@@ -67,7 +67,7 @@ describe('version module', () => {
         linkanyVersion: 'unknown'
       });
 
-      expect(output).toBe('ai-rules-sync unknown (powered by linkany unknown)');
+      expect(output).toBe('ai-rules-sync unknown');
     });
   });
 
@@ -84,7 +84,7 @@ describe('version module', () => {
       const result = await getFormattedVersion();
 
       expect(result).toContain('ai-rules-sync');
-      expect(result).toContain('powered by linkany');
+      expect(result).toContain('ai-rules-sync');
     });
   });
 });
