@@ -10,7 +10,6 @@ import { claudeAgentsAdapter } from './claude-agents.js';
 import { claudeCommandsAdapter } from './claude-commands.js';
 import { claudeRulesAdapter } from './claude-rules.js';
 import { claudeMdAdapter } from './claude-md.js';
-import { claudeOutputStylesAdapter } from './claude-output-styles.js';
 import { claudeStatusLinesAdapter } from './claude-status-lines.js';
 import { claudeAgentMemoryAdapter } from './claude-agent-memory.js';
 import { claudeSettingsAdapter } from './claude-settings.js';
@@ -64,7 +63,6 @@ class DefaultAdapterRegistry implements AdapterRegistry {
         this.register(claudeCommandsAdapter);
         this.register(claudeRulesAdapter);
         this.register(claudeMdAdapter);
-        this.register(claudeOutputStylesAdapter);
         this.register(claudeStatusLinesAdapter);
         this.register(claudeAgentMemoryAdapter);
         this.register(claudeSettingsAdapter);

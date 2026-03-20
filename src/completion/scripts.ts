@@ -120,7 +120,6 @@ const TOOL_SPECS: ToolCompletionSpec[] = [
       { name: 'rules', description: 'Manage Claude rules' },
       { name: 'skills', description: 'Manage Claude skills' },
       { name: 'agents', description: 'Manage Claude agents' },
-      { name: 'output-styles', description: 'Manage Claude output styles' },
       { name: 'status-lines', description: 'Manage Claude status lines' },
       { name: 'agent-memory', description: 'Manage Claude agent memory' },
       { name: 'settings', description: 'Manage Claude settings' },
@@ -145,12 +144,6 @@ const TOOL_SPECS: ToolCompletionSpec[] = [
         { name: 'install', description: 'Install all Claude agents' },
         { name: 'import', description: 'Import agent to repository' }
       ],
-      'output-styles': [
-        { name: 'add', description: 'Add a Claude output style' },
-        { name: 'remove', description: 'Remove a Claude output style' },
-        { name: 'install', description: 'Install all Claude output styles' },
-        { name: 'import', description: 'Import output style to repository' }
-      ],
       'status-lines': [
         { name: 'add', description: 'Add a Claude status line' },
         { name: 'remove', description: 'Remove a Claude status line' },
@@ -174,7 +167,6 @@ const TOOL_SPECS: ToolCompletionSpec[] = [
       rules: 'claude-rules',
       skills: 'claude-skills',
       agents: 'claude-agents',
-      'output-styles': 'claude-output-styles',
       'status-lines': 'claude-status-lines',
       'agent-memory': 'claude-agent-memory',
       settings: 'claude-settings'

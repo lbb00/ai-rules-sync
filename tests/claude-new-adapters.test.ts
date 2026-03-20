@@ -1,55 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { claudeOutputStylesAdapter } from '../src/adapters/claude-output-styles.js';
 import { claudeStatusLinesAdapter } from '../src/adapters/claude-status-lines.js';
 import { claudeAgentMemoryAdapter } from '../src/adapters/claude-agent-memory.js';
 import { claudeSettingsAdapter } from '../src/adapters/claude-settings.js';
 import { adapterRegistry } from '../src/adapters/index.js';
 
 describe('Claude New Adapters (AGT-9)', () => {
-  describe('claudeOutputStylesAdapter', () => {
-    it('should have correct adapter properties', () => {
-      expect(claudeOutputStylesAdapter.name).toBe('claude-output-styles');
-      expect(claudeOutputStylesAdapter.tool).toBe('claude');
-      expect(claudeOutputStylesAdapter.subtype).toBe('output-styles');
-      expect(claudeOutputStylesAdapter.configPath).toEqual(['claude', 'output-styles']);
-      expect(claudeOutputStylesAdapter.defaultSourceDir).toBe('.claude/output-styles');
-      expect(claudeOutputStylesAdapter.targetDir).toBe('.claude/output-styles');
-      expect(claudeOutputStylesAdapter.mode).toBe('directory');
-    });
-
-    it('should be registered in the adapter registry', () => {
-      const adapter = adapterRegistry.get('claude', 'output-styles');
-      expect(adapter).toBeDefined();
-      expect(adapter!.name).toBe('claude-output-styles');
-    });
-
-    it('should be discoverable by tool lookup', () => {
-      const claudeAdapters = adapterRegistry.getForTool('claude');
-      const names = claudeAdapters.map(a => a.name);
-      expect(names).toContain('claude-output-styles');
-    });
-
-    it('should have forProject method', () => {
-      expect(typeof claudeOutputStylesAdapter.forProject).toBe('function');
-    });
-
-    it('should have addDependency method', () => {
-      expect(typeof claudeOutputStylesAdapter.addDependency).toBe('function');
-    });
-
-    it('should have removeDependency method', () => {
-      expect(typeof claudeOutputStylesAdapter.removeDependency).toBe('function');
-    });
-
-    it('should have link method', () => {
-      expect(typeof claudeOutputStylesAdapter.link).toBe('function');
-    });
-
-    it('should have unlink method', () => {
-      expect(typeof claudeOutputStylesAdapter.unlink).toBe('function');
-    });
-  });
-
   describe('claudeStatusLinesAdapter', () => {
     it('should have correct adapter properties', () => {
       expect(claudeStatusLinesAdapter.name).toBe('claude-status-lines');
@@ -58,6 +13,7 @@ describe('Claude New Adapters (AGT-9)', () => {
       expect(claudeStatusLinesAdapter.configPath).toEqual(['claude', 'status-lines']);
       expect(claudeStatusLinesAdapter.defaultSourceDir).toBe('.claude/status-lines');
       expect(claudeStatusLinesAdapter.targetDir).toBe('.claude/status-lines');
+      expect(claudeStatusLinesAdapter.userTargetDir).toBe('.claude/status_lines');
       expect(claudeStatusLinesAdapter.mode).toBe('directory');
     });
 
@@ -202,14 +158,12 @@ describe('Claude New Adapters (AGT-9)', () => {
     it('should include all new adapters in claude tool list', () => {
       const claudeAdapters = adapterRegistry.getForTool('claude');
       const names = claudeAdapters.map(a => a.name);
-      expect(names).toContain('claude-output-styles');
       expect(names).toContain('claude-status-lines');
       expect(names).toContain('claude-agent-memory');
       expect(names).toContain('claude-settings');
     });
 
     it('should find adapters by name', () => {
-      expect(adapterRegistry.getByName('claude-output-styles')).toBeDefined();
       expect(adapterRegistry.getByName('claude-status-lines')).toBeDefined();
       expect(adapterRegistry.getByName('claude-agent-memory')).toBeDefined();
       expect(adapterRegistry.getByName('claude-settings')).toBeDefined();
