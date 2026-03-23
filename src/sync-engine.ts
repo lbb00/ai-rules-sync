@@ -254,20 +254,34 @@ export async function importEntry(
     const absoluteProjectPath = path.resolve(projectPath);
 
     // Determine target path in project
-    const projectConfig = await getCombinedProjectConfig(projectPath);
-    const targetDirPath = getTargetDir(
-        projectConfig,
-        adapter.tool,
-        adapter.subtype,
-        name,
-        adapter.targetDir
-    );
+    // In user mode (skipIgnore=true), use userTargetDir if defined to resolve the source file
+    // from the user's home directory rather than the project directory
+    let targetDirPath: string;
+    if (options.skipIgnore && adapter.userTargetDir) {
+        targetDirPath = adapter.userTargetDir;
+    } else {
+        const projectConfig = await getCombinedProjectConfig(projectPath);
+        targetDirPath = getTargetDir(
+            projectConfig,
+            adapter.tool,
+            adapter.subtype,
+            name,
+            adapter.targetDir
+        );
+    }
     const targetPath = path.join(absoluteProjectPath, targetDirPath, name);
 
     // Determine destination path in repo (needed for git operations)
+    // In user mode (skipIgnore=true), use userDefaultSourceDir if defined to segregate
+    // user-imported files from project-imported files in the repository
     const repoDir = repo.path;
-    const repoConfig = await getRepoSourceConfig(repoDir);
-    const sourceDir = getSourceDir(repoConfig, adapter.tool, adapter.subtype, adapter.defaultSourceDir);
+    let sourceDir: string;
+    if (options.skipIgnore && adapter.userDefaultSourceDir) {
+        sourceDir = adapter.userDefaultSourceDir;
+    } else {
+        const repoConfig = await getRepoSourceConfig(repoDir);
+        sourceDir = getSourceDir(repoConfig, adapter.tool, adapter.subtype, adapter.defaultSourceDir);
+    }
     const destPath = path.join(repoDir, sourceDir, name);
     const relativePath = path.relative(repoDir, destPath);
 
@@ -319,20 +333,32 @@ export async function importEntryNoCommit(
     const absoluteProjectPath = path.resolve(projectPath);
 
     // Determine target path in project (mirrors importEntry)
-    const projectConfig = await getCombinedProjectConfig(projectPath);
-    const targetDirPath = getTargetDir(
-        projectConfig,
-        adapter.tool,
-        adapter.subtype,
-        name,
-        adapter.targetDir
-    );
+    // In user mode (skipIgnore=true), use userTargetDir if defined
+    let targetDirPath: string;
+    if (options.skipIgnore && adapter.userTargetDir) {
+        targetDirPath = adapter.userTargetDir;
+    } else {
+        const projectConfig = await getCombinedProjectConfig(projectPath);
+        targetDirPath = getTargetDir(
+            projectConfig,
+            adapter.tool,
+            adapter.subtype,
+            name,
+            adapter.targetDir
+        );
+    }
     const targetPath = path.join(absoluteProjectPath, targetDirPath, name);
 
     // Determine destination path in repo
+    // In user mode (skipIgnore=true), use userDefaultSourceDir if defined
     const repoDir = repo.path;
-    const repoConfig = await getRepoSourceConfig(repoDir);
-    const sourceDir = getSourceDir(repoConfig, adapter.tool, adapter.subtype, adapter.defaultSourceDir);
+    let sourceDir: string;
+    if (options.skipIgnore && adapter.userDefaultSourceDir) {
+        sourceDir = adapter.userDefaultSourceDir;
+    } else {
+        const repoConfig = await getRepoSourceConfig(repoDir);
+        sourceDir = getSourceDir(repoConfig, adapter.tool, adapter.subtype, adapter.defaultSourceDir);
+    }
     const destPath = path.join(repoDir, sourceDir, name);
     const repoRelativePath = path.relative(repoDir, destPath);
 
