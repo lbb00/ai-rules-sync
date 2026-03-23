@@ -23,13 +23,16 @@ TypeScript (strict mode) targeting ES2022, running on Node.js. Module system is 
 ## Architecture Decisions
 
 ### Plugin-based adapter system
-Each AI tool/subtype pair is an independent adapter implementing `SyncAdapter`. Adding a new tool means creating one new adapter file — no changes to the core engine. Adapters declare their `mode` (`file`, `directory`, `hybrid`) and the engine handles the rest generically.
+Each AI tool/subtype pair is an independent adapter implementing `SyncAdapter`. Adding a new tool means creating one new adapter file -- no changes to the core engine. Adapters declare their `mode` (`file`, `directory`, `hybrid`) and the engine handles the rest generically. Adapters may optionally declare `userTargetDir` and `userDefaultSourceDir` to support user-mode (global) operations with paths distinct from project-mode.
 
 ### Dotfile abstraction layer (`src/dotany/`)
 A tool-agnostic library for symlink management. `DotfileManager` wraps all add/remove/apply/diff/status operations. All symlink creation goes through `linkany` via `DotfileManager.doLink` / `doUnlink`. No bare `fs.ensureSymlink` calls outside dotany.
 
-### Declarative CLI registration (`src/cli/register.ts`)
-`registerAdapterCommands()` takes an adapter and a parent `Command`, then auto-registers `add`, `remove`, `install`, `import` subcommands. Avoids duplicating CLI boilerplate per tool.
+### Declarative CLI registration (`src/cli/`)
+`registerAdapterCommands()` takes an adapter and a parent `Command`, then auto-registers `add`, `remove`, `install`, `import` subcommands. Avoids duplicating CLI boilerplate per tool. `source-dir-parser.ts` handles parsing `--source-dir` option values into adapter override maps.
+
+### Tool-specific list command (`src/commands/list.ts`)
+`handleClaudeList()` implements a multi-mode list pattern (installed/available/user/repo cross-product). Currently Claude-specific but the pattern is generalizable. Four modes: (A) project config, (B) user config, (C) repo source dirs, (D) repo user-source dirs.
 
 ### Configuration split
 - `ai-rules-sync.json` — project-level, committed to git

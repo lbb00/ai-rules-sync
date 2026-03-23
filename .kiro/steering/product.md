@@ -19,7 +19,9 @@ AI Rules Sync (`ais`) is a CLI tool that solves the problem of AI agent configur
 4. **Install**: read `ai-rules-sync.json` and recreate all symlinks (post-clone setup)
 5. **Update**: pull all repos and reinstall links
 6. **add-all**: discover and link every entry in a repo for a given tool/type
-7. **User Mode** (`--user`): target `$HOME` instead of the project root, track in `~/.config/ai-rules-sync/user.json`
+7. **import-all**: discover and bulk-import project files into the rules repo
+8. **List**: show installed, available, or user-mode entries for a tool (with `--repo`, `--user` flags)
+9. **User Mode** (`--user`): target `$HOME` instead of the project root, track in `~/.config/ai-rules-sync/user.json`
 
 ## Supported Tools
 

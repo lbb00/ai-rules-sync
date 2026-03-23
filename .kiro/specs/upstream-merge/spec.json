@@ -1,0 +1,19 @@
+{
+  "featureName": "upstream-merge",
+  "description": "Investigate upstream changes, understand our fork's forward development, and safely merge upstream progress without sacrificing our improvements",
+  "createdAt": "2026-03-23T11:40:00Z",
+  "updatedAt": "2026-03-23T12:00:00Z",
+  "language": "en",
+  "status": "requirements-generated",
+  "phases": {
+    "requirements": "generated",
+    "design": "pending",
+    "tasks": "pending",
+    "implementation": "pending"
+  },
+  "approvals": {
+    "requirements": {
+      "generated": true
+    }
+  }
+}
