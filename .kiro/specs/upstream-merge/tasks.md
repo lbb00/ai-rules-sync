@@ -87,7 +87,7 @@
 ## Task 9: Push Feature Branch and Create Pull Request
 > Requirements: 10
 
-- [ ] Push `feat/upstream-merge-2026-03-23` to `origin` (do NOT push to `main`)
-- [ ] Create a pull request with the description containing: upstream commit range, conflict resolution summary from `MERGE_NOTES.md`, test results (pass count, coverage percentage), and follow-up items
-- [ ] Verify the merge commit has two parents (`git log --oneline -1 --format=%P`) confirming it can be reverted via `git revert -m 1`
-- [ ] Do NOT delete the merge branch until the PR is approved and merged to `main`
+- [x] Push `feat/upstream-merge-2026-03-23` to `origin` (do NOT push to `main`)
+- [x] Create a pull request with the description containing: upstream commit range, conflict resolution summary from `MERGE_NOTES.md`, test results (pass count, coverage percentage), and follow-up items
+- [x] Verify the merge commit has two parents (`git log --oneline -1 --format=%P`) confirming it can be reverted via `git revert -m 1`
+- [x] Do NOT delete the merge branch until the PR is approved and merged to `main`
