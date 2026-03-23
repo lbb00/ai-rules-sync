@@ -29,7 +29,7 @@ export async function getTargetRepo(options: { target?: string }): Promise<RepoC
     if (target.includes('://') || target.includes('git@') || target.endsWith('.git')) {
       // Check if this URL is already configured under ANY name
       if (config.repos) {
-        for (const [key, repo] of Object.entries(config.repos)) {
+        for (const [, repo] of Object.entries(config.repos)) {
           if (repo.url === target) {
             return repo;
           }
@@ -163,7 +163,7 @@ export async function inferDefaultMode(projectPath: string): Promise<DefaultMode
     const [topLevel, subLevel] = adapter.configPath;
     const count = Object.keys((cfg as any)[topLevel]?.[subLevel] || {}).length;
 
-    const modeName = topLevel;
+    const modeName = adapter.tool;
     toolCounts[modeName] = (toolCounts[modeName] || 0) + count;
   }
 

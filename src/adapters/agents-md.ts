@@ -110,7 +110,7 @@ export const agentsMdAdapter: SyncAdapter = createBaseAdapter({
     throw new Error('AGENTS.md not found at repository root');
   },
 
-  resolveTargetName: (name: string, alias?: string, sourceSuffix?: string): string => {
+  resolveTargetName: (_name: string, _alias?: string, _sourceSuffix?: string): string => {
     return 'AGENTS.md';
   }
 });

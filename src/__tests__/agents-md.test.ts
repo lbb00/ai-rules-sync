@@ -1,7 +1,7 @@
 import os from 'os';
 import path from 'path';
 import fs from 'fs-extra';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { agentsMdAdapter } from '../adapters/agents-md.js';
 import { adapterRegistry } from '../adapters/index.js';
 import { runStandardAdapterContract } from './helpers/adapter-contract.js';
@@ -152,18 +152,18 @@ describe('agents-md addDependency', () => {
     await fs.remove(tmpDir);
   });
 
-  it('should write simple string entry to flat agentsMd config', async () => {
+  it('should write simple string entry to nested agentsMd.file config', async () => {
     await agentsMdAdapter.addDependency(tmpDir, 'root', 'https://repo.git');
 
     const config = await fs.readJson(path.join(tmpDir, 'ai-rules-sync.json'));
-    expect(config.agentsMd.root).toBe('https://repo.git');
+    expect(config.agentsMd.file.root).toBe('https://repo.git');
   });
 
   it('should write object entry with alias', async () => {
     await agentsMdAdapter.addDependency(tmpDir, 'original', 'https://repo.git', 'my-alias');
 
     const config = await fs.readJson(path.join(tmpDir, 'ai-rules-sync.json'));
-    expect(config.agentsMd['my-alias']).toEqual({
+    expect(config.agentsMd.file['my-alias']).toEqual({
       url: 'https://repo.git',
       rule: 'original',
     });
@@ -173,7 +173,7 @@ describe('agents-md addDependency', () => {
     await agentsMdAdapter.addDependency(tmpDir, 'root', 'https://repo.git', undefined, false, 'frontend');
 
     const config = await fs.readJson(path.join(tmpDir, 'ai-rules-sync.json'));
-    expect(config.agentsMd.root).toEqual({
+    expect(config.agentsMd.file.root).toEqual({
       url: 'https://repo.git',
       targetDir: 'frontend',
     });
@@ -183,19 +183,19 @@ describe('agents-md addDependency', () => {
     await agentsMdAdapter.addDependency(tmpDir, 'root', 'https://repo.git', undefined, true);
 
     const config = await fs.readJson(path.join(tmpDir, 'ai-rules-sync.local.json'));
-    expect(config.agentsMd.root).toBe('https://repo.git');
+    expect(config.agentsMd.file.root).toBe('https://repo.git');
   });
 
   it('should preserve existing config entries', async () => {
     await fs.writeJson(path.join(tmpDir, 'ai-rules-sync.json'), {
-      agentsMd: { existing: 'https://other.git' },
+      agentsMd: { file: { existing: 'https://other.git' } },
     });
 
     await agentsMdAdapter.addDependency(tmpDir, 'new-entry', 'https://repo.git');
 
     const config = await fs.readJson(path.join(tmpDir, 'ai-rules-sync.json'));
-    expect(config.agentsMd.existing).toBe('https://other.git');
-    expect(config.agentsMd['new-entry']).toBe('https://repo.git');
+    expect(config.agentsMd.file.existing).toBe('https://other.git');
+    expect(config.agentsMd.file['new-entry']).toBe('https://repo.git');
   });
 });
 
@@ -212,19 +212,19 @@ describe('agents-md removeDependency', () => {
 
   it('should remove entry from main config', async () => {
     await fs.writeJson(path.join(tmpDir, 'ai-rules-sync.json'), {
-      agentsMd: { root: 'https://repo.git' },
+      agentsMd: { file: { root: 'https://repo.git' } },
     });
 
     const result = await agentsMdAdapter.removeDependency(tmpDir, 'root');
 
     expect(result.removedFrom).toEqual(['ai-rules-sync.json']);
     const config = await fs.readJson(path.join(tmpDir, 'ai-rules-sync.json'));
-    expect(config.agentsMd.root).toBeUndefined();
+    expect(config.agentsMd.file.root).toBeUndefined();
   });
 
   it('should remove entry from local config', async () => {
     await fs.writeJson(path.join(tmpDir, 'ai-rules-sync.local.json'), {
-      agentsMd: { root: 'https://repo.git' },
+      agentsMd: { file: { root: 'https://repo.git' } },
     });
 
     const result = await agentsMdAdapter.removeDependency(tmpDir, 'root');
@@ -234,10 +234,10 @@ describe('agents-md removeDependency', () => {
 
   it('should remove from both configs', async () => {
     await fs.writeJson(path.join(tmpDir, 'ai-rules-sync.json'), {
-      agentsMd: { root: 'https://repo.git' },
+      agentsMd: { file: { root: 'https://repo.git' } },
     });
     await fs.writeJson(path.join(tmpDir, 'ai-rules-sync.local.json'), {
-      agentsMd: { root: 'https://local.git' },
+      agentsMd: { file: { root: 'https://local.git' } },
     });
 
     const result = await agentsMdAdapter.removeDependency(tmpDir, 'root');

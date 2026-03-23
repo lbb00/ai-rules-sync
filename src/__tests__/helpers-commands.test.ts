@@ -1,7 +1,4 @@
-import os from 'os';
-import path from 'path';
-import fs from 'fs-extra';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 // Mock config, git, project-config, and adapters before importing helpers
 vi.mock('../config.js', async (importOriginal) => {
@@ -146,9 +143,9 @@ describe('inferDefaultMode', () => {
     expect(result).toBe('ambiguous');
   });
 
-  it('should handle agentsMd flat config', async () => {
+  it('should handle agentsMd nested config', async () => {
     vi.mocked(getCombinedProjectConfig).mockResolvedValue({
-      agentsMd: { 'root': 'https://repo.git' },
+      agentsMd: { file: { 'root': 'https://repo.git' } },
     } as any);
     const result = await inferDefaultMode('/some/path');
     expect(result).toBe('agents-md');
