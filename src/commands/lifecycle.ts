@@ -4,7 +4,7 @@ import { execa } from 'execa';
 import { adapterRegistry } from '../adapters/index.js';
 import { RepoConfig, getConfig, setConfig, getReposBaseDir, getUserProjectConfig } from '../config.js';
 import { cloneOrUpdateRepo } from '../git.js';
-import { ProjectConfig, RuleEntry, SourceDirConfig, getCombinedProjectConfig } from '../project-config.js';
+import { ProjectConfig, RuleEntry, SourceDirConfig, getCombinedProjectConfig, getRuleSection, CURRENT_CONFIG_VERSION } from '../project-config.js';
 import { installAllUserEntries, installEntriesForAdapter } from './install.js';
 
 type CheckStatus =
@@ -71,6 +71,8 @@ export interface InitOptions {
   name?: string;
   force?: boolean;
   createDirs?: boolean;
+  only?: string[];
+  exclude?: string[];
 }
 
 export interface InitResult {
@@ -83,12 +85,8 @@ function isUrlLike(target: string): boolean {
   return target.includes('://') || target.includes('git@') || target.endsWith('.git');
 }
 
-function getConfigSection(config: ProjectConfig, configPath: [string, string]): Record<string, RuleEntry> {
-  const [topLevel, subLevel] = configPath;
-  if (topLevel === 'agentsMd') {
-    return ((config as any).agentsMd || {}) as Record<string, RuleEntry>;
-  }
-  return (((config as any)[topLevel] || {})[subLevel] || {}) as Record<string, RuleEntry>;
+function getConfigSection(config: ProjectConfig, configPath: string[]): Record<string, RuleEntry> {
+  return getRuleSection(config, configPath);
 }
 
 function collectRepoUrls(config: ProjectConfig): string[] {
@@ -449,10 +447,22 @@ export async function updateRepositories(options: CheckOptions & { dryRun?: bool
   };
 }
 
-function buildTemplateSourceDirConfig(): SourceDirConfig {
+function getFilteredAdapters(only?: string[], exclude?: string[]) {
+  let adapters = adapterRegistry.all();
+  if (only && only.length > 0) {
+    const set = new Set(only.map(t => t.toLowerCase()));
+    adapters = adapters.filter(a => set.has(a.tool));
+  } else if (exclude && exclude.length > 0) {
+    const set = new Set(exclude.map(t => t.toLowerCase()));
+    adapters = adapters.filter(a => !set.has(a.tool));
+  }
+  return adapters;
+}
+
+function buildTemplateSourceDirConfig(adapters: ReturnType<typeof adapterRegistry.all>): SourceDirConfig {
   const sourceDir: SourceDirConfig = {};
 
-  for (const adapter of adapterRegistry.all()) {
+  for (const adapter of adapters) {
     const toolSection = sourceDir[adapter.tool] || {};
     if (!toolSection[adapter.subtype]) {
       toolSection[adapter.subtype] = adapter.defaultSourceDir;
@@ -476,13 +486,14 @@ export async function initRulesRepository(options: InitOptions): Promise<InitRes
     throw new Error(`"${configPath}" already exists. Use --force to overwrite.`);
   }
 
-  const sourceDir = buildTemplateSourceDirConfig();
-  await fs.writeJson(configPath, { sourceDir }, { spaces: 2 });
+  const adapters = getFilteredAdapters(options.only, options.exclude);
+  const sourceDir = buildTemplateSourceDirConfig(adapters);
+  await fs.writeJson(configPath, { version: CURRENT_CONFIG_VERSION, sourceDir }, { spaces: 2 });
 
   const createdDirectories: string[] = [];
   if (options.createDirs !== false) {
     const dirs = new Set<string>();
-    for (const adapter of adapterRegistry.all()) {
+    for (const adapter of adapters) {
       if (!adapter.defaultSourceDir || adapter.defaultSourceDir === '.') {
         continue;
       }

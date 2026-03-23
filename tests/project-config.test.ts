@@ -35,7 +35,7 @@ describe('project-config (ai-rules-sync)', () => {
     const source = await getConfigSource(projectPath);
     expect(source).toBe('none');
     const combined = await getCombinedProjectConfig(projectPath);
-    expect(combined).toEqual({});
+    expect(combined).toEqual({ version: 1 });
   });
 
   it('merges main/local ai-rules-sync configs', async () => {

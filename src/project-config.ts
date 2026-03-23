@@ -5,18 +5,105 @@ import { getUserConfigPath, getUserProjectConfig, saveUserProjectConfig } from '
 const CONFIG_FILENAME = 'ai-rules-sync.json';
 const LOCAL_CONFIG_FILENAME = 'ai-rules-sync.local.json';
 
+export const CURRENT_CONFIG_VERSION = 1;
+
+/** Wildcard key for fallback config when tool-specific config is not found */
+export const WILDCARD_TOOL = '*';
+
+/**
+ * Source dir value: string (legacy) or discriminated union with mode.
+ */
+export type SourceDirValue = string | SourceDirFileValue | SourceDirDirectoryValue;
+
+export interface SourceDirFileValue {
+    mode: 'file';
+    dir: string;
+    sourceFile?: string;
+    targetFile?: string;
+}
+
+export interface SourceDirDirectoryValue {
+    mode: 'directory';
+    dir: string;
+    sourceDir?: string;
+    targetName?: string;
+}
+
+function readNestedStringValueFromTool(source: Record<string, unknown>, tool: string, subtype: string): string | undefined {
+    const toolConfig = source[tool];
+    if (!toolConfig || typeof toolConfig !== 'object') {
+        return undefined;
+    }
+    const value = (toolConfig as Record<string, unknown>)[subtype];
+    return typeof value === 'string' ? value : undefined;
+}
+
 function readNestedStringValue(source: unknown, tool: string, subtype: string): string | undefined {
     if (!source || typeof source !== 'object') {
         return undefined;
     }
+    const src = source as Record<string, unknown>;
+    const fromTool = readNestedStringValueFromTool(src, tool, subtype);
+    if (fromTool !== undefined) return fromTool;
+    if (tool !== WILDCARD_TOOL) {
+        return readNestedStringValueFromTool(src, WILDCARD_TOOL, subtype);
+    }
+    return undefined;
+}
 
-    const toolConfig = (source as Record<string, unknown>)[tool];
+function readNestedSourceDirValueFromTool(source: Record<string, unknown>, tool: string, subtype: string): SourceDirValue | undefined {
+    const toolConfig = source[tool];
     if (!toolConfig || typeof toolConfig !== 'object') {
         return undefined;
     }
-
     const value = (toolConfig as Record<string, unknown>)[subtype];
-    return typeof value === 'string' ? value : undefined;
+    if (typeof value === 'string') return value;
+    if (value && typeof value === 'object') {
+        const v = value as Record<string, unknown>;
+        if (typeof v.dir === 'string') {
+            // Has mode field - new format
+            if (v.mode === 'file') return value as SourceDirFileValue;
+            if (v.mode === 'directory') return value as SourceDirDirectoryValue;
+            // Legacy format without mode - infer
+            if (v.sourceFile || v.targetFile) return { mode: 'file', ...v } as SourceDirFileValue;
+            if (v.sourceDir || v.targetName) return { mode: 'directory', ...v } as SourceDirDirectoryValue;
+            // Just dir - treat as string equivalent
+            return v.dir as string;
+        }
+    }
+    return undefined;
+}
+
+function readNestedSourceDirValue(source: unknown, tool: string, subtype: string): SourceDirValue | undefined {
+    if (!source || typeof source !== 'object') {
+        return undefined;
+    }
+    const src = source as Record<string, unknown>;
+    const fromTool = readNestedSourceDirValueFromTool(src, tool, subtype);
+    if (fromTool !== undefined) return fromTool;
+    if (tool !== WILDCARD_TOOL) {
+        return readNestedSourceDirValueFromTool(src, WILDCARD_TOOL, subtype);
+    }
+    return undefined;
+}
+
+function readNestedTargetFileValue(source: unknown, tool: string, subtype: string): string | undefined {
+    const rawValue = readNestedSourceDirValue(source, tool, subtype);
+    if (rawValue && typeof rawValue === 'object' && rawValue.mode === 'file' && rawValue.targetFile) {
+        return rawValue.targetFile;
+    }
+    return undefined;
+}
+
+function writeNestedValue(target: RepoSourceConfig, tool: string, subtype: string, value: SourceDirValue): void {
+    const mutable = target as Record<string, unknown>;
+    const existingToolConfig = mutable[tool];
+    const toolConfig =
+        existingToolConfig && typeof existingToolConfig === 'object'
+            ? (existingToolConfig as Record<string, unknown>)
+            : {};
+    toolConfig[subtype] = value;
+    mutable[tool] = toolConfig;
 }
 
 function writeNestedStringValue(target: RepoSourceConfig, tool: string, subtype: string, value: string): void {
@@ -51,7 +138,20 @@ function buildRepoSourceFromNestedStrings(source: unknown, rootPath?: string): {
         for (const [subtype, value] of Object.entries(toolConfig as Record<string, unknown>)) {
             if (typeof value === 'string') {
                 hasAny = true;
-                writeNestedStringValue(config, tool, subtype, value);
+                writeNestedValue(config, tool, subtype, value);
+            } else if (value && typeof value === 'object' && typeof (value as Record<string, unknown>).dir === 'string') {
+                hasAny = true;
+                const v = value as Record<string, unknown>;
+                if (v.mode === 'file' || v.mode === 'directory') {
+                    writeNestedValue(config, tool, subtype, value as SourceDirValue);
+                } else if (v.sourceFile || v.targetFile) {
+                    writeNestedValue(config, tool, subtype, { mode: 'file', ...v } as SourceDirFileValue);
+                } else if (v.sourceDir || v.targetName) {
+                    writeNestedValue(config, tool, subtype, { mode: 'directory', ...v } as SourceDirDirectoryValue);
+                } else {
+                    // Just dir - treat as string
+                    writeNestedValue(config, tool, subtype, v.dir as string);
+                }
             }
         }
     }
@@ -70,12 +170,18 @@ export type RuleEntry = string | {
 
 /**
  * Source directory configuration (for rules repositories).
- * Defines where source files are located in a rules repo.
- * Uses dynamic index signature to support any tool/subtype combination.
+ * Defines where source files/dirs are located in a rules repo.
+ * Value can be string (dir path) or object with dir + optional overrides:
+ * - File mode: sourceFile, targetFile (e.g. common/AGENTS.md -> CLAUDE.md)
+ * - Directory mode: sourceDir, targetName (e.g. common/shared-rules -> cursor-rules)
  */
 export interface SourceDirConfig {
-    [tool: string]: Record<string, string> | undefined;
+    [tool: string]: Record<string, SourceDirValue> | undefined;
 }
+
+export type RuleMap = Record<string, RuleEntry>;
+export type SubtypeMap = Record<string, RuleMap>;
+export type ToolSections = Record<string, SubtypeMap>;
 
 /**
  * Unified configuration for ai-rules-sync.json.
@@ -83,23 +189,22 @@ export interface SourceDirConfig {
  * Dynamic index signature supports any registered tool without code changes.
  */
 export interface ProjectConfig {
+    version?: number;
     // Global path prefix for source directories (only used in rules repos)
     rootPath?: string;
     // Source directory configuration (only used in rules repos)
     sourceDir?: SourceDirConfig;
     // Dependency records — indexed by tool name, then subtype
-    [tool: string]: any;
+    [tool: string]: number | string | SourceDirConfig | SubtypeMap | undefined;
 }
 
 /**
  * Repository source configuration.
  * Uses dynamic index signature so new tools require zero changes here.
- * The `any` index type allows accessing tool-specific sub-properties (e.g. repoConfig.windsurf?.rules)
- * without requiring explicit per-tool type declarations.
  */
 export interface RepoSourceConfig {
     rootPath?: string;
-    [tool: string]: any;
+    [tool: string]: string | Record<string, SourceDirValue> | undefined;
 }
 
 export type ConfigSource = 'new' | 'none';
@@ -122,45 +227,152 @@ async function hasAnyNewConfig(projectPath: string): Promise<boolean> {
     );
 }
 
+export type ConfigPath = readonly string[];
+
+/**
+ * Get a value at a nested path in an object
+ */
+export function getAtPath(obj: unknown, configPath: ConfigPath): unknown {
+    let current: unknown = obj;
+    for (const key of configPath) {
+        if (!current || typeof current !== 'object') return undefined;
+        current = (current as Record<string, unknown>)[key];
+    }
+    return current;
+}
+
+/**
+ * Ensure a nested path exists in an object, creating empty objects as needed
+ */
+export function ensureAtPath(obj: Record<string, unknown>, configPath: ConfigPath): Record<string, unknown> {
+    let current: Record<string, unknown> = obj;
+    for (const key of configPath) {
+        current[key] ??= {};
+        current = current[key] as Record<string, unknown>;
+    }
+    return current;
+}
+
+/**
+ * Delete a key at a nested path
+ */
+export function deleteAtPath(obj: unknown, configPath: ConfigPath, key: string): boolean {
+    const parent = getAtPath(obj, configPath);
+    if (parent && typeof parent === 'object' && key in (parent as Record<string, unknown>)) {
+        delete (parent as Record<string, unknown>)[key];
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Get a config section (tool.subtype) with fallback to * when tool-specific section is not found.
+ * Use this when reading dependency records (rules, skills, etc.) from project config.
+ */
+export function getConfigSectionWithFallback(
+    config: ProjectConfig,
+    tool: string,
+    subtype: string
+): Record<string, RuleEntry> {
+    return getRuleSection(config, [tool, subtype]);
+}
+
+/**
+ * Get the rule section for a given config path.
+ * Falls back to * (wildcard) config when tool-specific section is not found.
+ */
+export function getRuleSection(config: ProjectConfig, configPath: ConfigPath): Record<string, RuleEntry> {
+    const section = getAtPath(config, configPath);
+    if (section !== undefined && section !== null && typeof section === 'object') {
+        return section as Record<string, RuleEntry>;
+    }
+    if (configPath.length >= 2 && configPath[0] !== WILDCARD_TOOL) {
+        const wildSection = getAtPath(config, [WILDCARD_TOOL, configPath[1]]);
+        if (wildSection !== undefined && wildSection !== null && typeof wildSection === 'object') {
+            return wildSection as Record<string, RuleEntry>;
+        }
+    }
+    return {};
+}
+
+/**
+ * Normalize legacy config formats to current version.
+ * - Adds version field if missing
+ * - Converts flat agentsMd to nested agentsMd.file
+ * - Adds mode field to SourceDirValue objects
+ */
+export function normalizeConfig(raw: Record<string, unknown>): ProjectConfig {
+    const config = { ...raw } as Record<string, unknown>;
+
+    // Add version if missing
+    if (!config.version) {
+        config.version = CURRENT_CONFIG_VERSION;
+    }
+
+    // Normalize flat agentsMd to nested form
+    if (config.agentsMd && typeof config.agentsMd === 'object') {
+        const agentsMd = config.agentsMd as Record<string, unknown>;
+        // Check if it's flat (has string/object values directly, not subtypes with nested records)
+        const isFlat = Object.values(agentsMd).some(
+            v => typeof v === 'string' || (v && typeof v === 'object' && 'url' in (v as Record<string, unknown>))
+        );
+        if (isFlat) {
+            config.agentsMd = { file: agentsMd };
+        }
+    }
+
+    // Normalize sourceDir SourceDirValue objects
+    if (config.sourceDir && typeof config.sourceDir === 'object') {
+        const sourceDir = config.sourceDir as Record<string, Record<string, unknown>>;
+        for (const [tool, subtypes] of Object.entries(sourceDir)) {
+            if (!subtypes || typeof subtypes !== 'object') continue;
+            for (const [subtype, value] of Object.entries(subtypes)) {
+                if (value && typeof value === 'object' && !('mode' in (value as Record<string, unknown>))) {
+                    const v = value as Record<string, unknown>;
+                    if (v.sourceFile || v.targetFile) {
+                        (subtypes as Record<string, unknown>)[subtype] = { mode: 'file', ...v };
+                    } else if (v.sourceDir || v.targetName) {
+                        (subtypes as Record<string, unknown>)[subtype] = { mode: 'directory', ...v };
+                    }
+                    // If only `dir` exists, keep as-is (legacy simple path object treated as string equivalent)
+                }
+            }
+        }
+    }
+
+    return config as unknown as ProjectConfig;
+}
+
 /**
  * Merge two ProjectConfig objects dynamically.
  * Registry-driven: works with any tool/subtype combination present in the configs
  * without requiring a hardcoded tool list.
- *
- * Special cases:
- *   - rootPath / sourceDir: take from main
- *   - agentsMd: flat object (no subLevel nesting)
- *   - all others: tool → subtype → Record<alias, entry>
  */
 function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig {
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
 
     // Collect all top-level keys from both configs
     const allKeys = new Set([...Object.keys(main), ...Object.keys(local)]);
 
     for (const key of allKeys) {
-        if (key === 'rootPath' || key === 'sourceDir') {
-            // Scalar / nested config: prefer main
+        if (key === 'version' || key === 'rootPath' || key === 'sourceDir') {
             result[key] = main[key] ?? local[key];
-        } else if (key === 'agentsMd') {
-            // agentsMd is a flat record (no subtype level)
-            result[key] = { ...(main[key] || {}), ...(local[key] || {}) };
         } else {
             // Tool section with subtypes: merge each subtype independently
-            const mainTool = (main[key] && typeof main[key] === 'object') ? main[key] : {};
-            const localTool = (local[key] && typeof local[key] === 'object') ? local[key] : {};
+            const mainTool = (main[key] && typeof main[key] === 'object') ? main[key] as Record<string, unknown> : {};
+            const localTool = (local[key] && typeof local[key] === 'object') ? local[key] as Record<string, unknown> : {};
             const subtypes = new Set([...Object.keys(mainTool), ...Object.keys(localTool)]);
             result[key] = {};
             for (const subtype of subtypes) {
-                result[key][subtype] = {
-                    ...(mainTool[subtype] || {}),
-                    ...(localTool[subtype] || {}),
+                (result[key] as Record<string, unknown>)[subtype] = {
+                    ...((mainTool[subtype] as Record<string, unknown>) || {}),
+                    ...((localTool[subtype] as Record<string, unknown>) || {}),
                 };
             }
         }
     }
 
-    return result as ProjectConfig;
+    return result as unknown as ProjectConfig;
 }
 
 export async function getConfigSource(projectPath: string): Promise<ConfigSource> {
@@ -216,7 +428,8 @@ export function getSourceDir(
     }
 
     // 2. Check repoConfig (from repo's ai-rules-sync.json)
-    const toolDir = readNestedStringValue(repoConfig, tool, subtype);
+    const rawValue = readNestedSourceDirValue(repoConfig, tool, subtype);
+    const toolDir = typeof rawValue === 'string' ? rawValue : rawValue?.dir;
 
     // 3. Apply rootPath and default
     const dir = toolDir ?? defaultDir;
@@ -224,7 +437,61 @@ export function getSourceDir(
 }
 
 /**
- * Get entry configuration from project config
+ * Get optional source file override for a tool/subtype.
+ * When sourceDir uses object format { dir, sourceFile }, returns sourceFile.
+ * Used when a different source filename is needed (e.g. common/AGENTS.md as CLAUDE.md source).
+ */
+export function getSourceFileOverride(repoConfig: RepoSourceConfig, tool: string, subtype: string): string | undefined {
+    const rawValue = readNestedSourceDirValue(repoConfig, tool, subtype);
+    if (rawValue && typeof rawValue === 'object' && rawValue.mode === 'file' && rawValue.sourceFile) {
+        return rawValue.sourceFile;
+    }
+    return undefined;
+}
+
+/**
+ * Get optional target file override for a tool/subtype.
+ * When sourceDir uses object format { mode: 'file', dir, targetFile }, returns targetFile.
+ * Used when symlink should have a different name (e.g. AGENTS.md -> CLAUDE.md).
+ */
+export function getTargetFileOverride(repoConfig: RepoSourceConfig, tool: string, subtype: string): string | undefined {
+    const rawValue = readNestedSourceDirValue(repoConfig, tool, subtype);
+    if (rawValue && typeof rawValue === 'object' && rawValue.mode === 'file' && rawValue.targetFile) {
+        return rawValue.targetFile;
+    }
+    return undefined;
+}
+
+/**
+ * Get optional source directory override for a tool/subtype (directory mode).
+ * When sourceDir uses object format { mode: 'directory', dir, sourceDir }, returns sourceDir.
+ * Used when a different source subdirectory is needed (e.g. common/shared-rules).
+ */
+export function getSourceDirOverride(repoConfig: RepoSourceConfig, tool: string, subtype: string): string | undefined {
+    const rawValue = readNestedSourceDirValue(repoConfig, tool, subtype);
+    if (rawValue && typeof rawValue === 'object' && rawValue.mode === 'directory' && rawValue.sourceDir) {
+        return rawValue.sourceDir;
+    }
+    return undefined;
+}
+
+/**
+ * Get optional target name override for a tool/subtype (directory mode).
+ * When sourceDir uses object format { mode: 'directory', dir, targetName }, returns targetName.
+ * Used when symlink directory should have a different name (e.g. shared-rules -> cursor-rules).
+ * For file mode, use getTargetFileOverride instead.
+ */
+export function getTargetNameOverride(repoConfig: RepoSourceConfig, tool: string, subtype: string): string | undefined {
+    const rawValue = readNestedSourceDirValue(repoConfig, tool, subtype);
+    if (rawValue && typeof rawValue === 'object' && rawValue.mode === 'directory' && rawValue.targetName) {
+        return rawValue.targetName;
+    }
+    return undefined;
+}
+
+/**
+ * Get entry configuration from project config.
+ * Falls back to * (wildcard) config when tool-specific config is not found.
  */
 export function getEntryConfig(
     projectConfig: ProjectConfig,
@@ -232,13 +499,26 @@ export function getEntryConfig(
     subtype: string,
     key: string
 ): RuleEntry | undefined {
-    const toolConfig = (projectConfig as any)[tool];
-    if (!toolConfig) return undefined;
-
-    const subtypeConfig = toolConfig[subtype];
-    if (!subtypeConfig) return undefined;
-
-    return subtypeConfig[key];
+    const cfg = projectConfig as Record<string, unknown>;
+    const toolConfig = cfg[tool];
+    if (toolConfig && typeof toolConfig === 'object') {
+        const subtypeConfig = (toolConfig as Record<string, unknown>)[subtype];
+        if (subtypeConfig && typeof subtypeConfig === 'object') {
+            const entry = (subtypeConfig as Record<string, unknown>)[key];
+            if (entry !== undefined) return entry as RuleEntry;
+        }
+    }
+    if (tool !== WILDCARD_TOOL) {
+        const wildConfig = cfg[WILDCARD_TOOL];
+        if (wildConfig && typeof wildConfig === 'object') {
+            const subtypeConfig = (wildConfig as Record<string, unknown>)[subtype];
+            if (subtypeConfig && typeof subtypeConfig === 'object') {
+                const entry = (subtypeConfig as Record<string, unknown>)[key];
+                if (entry !== undefined) return entry as RuleEntry;
+            }
+        }
+    }
+    return undefined;
 }
 
 /**
@@ -263,8 +543,10 @@ export function getTargetDir(
 }
 
 export async function getCombinedProjectConfig(projectPath: string): Promise<ProjectConfig> {
-    const main = await readConfigFile<ProjectConfig>(path.join(projectPath, CONFIG_FILENAME));
-    const local = await readConfigFile<ProjectConfig>(path.join(projectPath, LOCAL_CONFIG_FILENAME));
+    const mainRaw = await readConfigFile<Record<string, unknown>>(path.join(projectPath, CONFIG_FILENAME));
+    const localRaw = await readConfigFile<Record<string, unknown>>(path.join(projectPath, LOCAL_CONFIG_FILENAME));
+    const main = normalizeConfig(mainRaw);
+    const local = normalizeConfig(localRaw);
     return mergeCombined(main, local);
 }
 
@@ -275,7 +557,8 @@ async function readNewConfigForWrite(projectPath: string, isLocal: boolean): Pro
 
 async function writeNewConfig(projectPath: string, isLocal: boolean, config: ProjectConfig): Promise<void> {
     const configPath = path.join(projectPath, isLocal ? LOCAL_CONFIG_FILENAME : CONFIG_FILENAME);
-    await fs.writeJson(configPath, config, { spaces: 2 });
+    const output = { version: CURRENT_CONFIG_VERSION, ...config };
+    await fs.writeJson(configPath, output, { spaces: 2 });
 }
 
 /**
@@ -284,7 +567,7 @@ async function writeNewConfig(projectPath: string, isLocal: boolean, config: Pro
  */
 export async function addDependencyGeneric(
     projectPath: string,
-    configPath: [string, string],
+    configPath: ConfigPath,
     name: string,
     repoUrl: string,
     alias?: string,
@@ -293,11 +576,7 @@ export async function addDependencyGeneric(
 ): Promise<void> {
     const config = await readNewConfigForWrite(projectPath, isLocal);
 
-    const [topLevel, subLevel] = configPath;
-
-    // Initialize nested structure if needed
-    (config as any)[topLevel] ??= {};
-    (config as any)[topLevel][subLevel] ??= {};
+    const section = ensureAtPath(config as Record<string, unknown>, configPath);
 
     const targetName = alias || name;
 
@@ -315,35 +594,44 @@ export async function addDependencyGeneric(
         entryValue = repoUrl;
     }
 
-    (config as any)[topLevel][subLevel][targetName] = entryValue;
+    section[targetName] = entryValue;
 
     await writeNewConfig(projectPath, isLocal, config);
 }
 
 /**
- * Generic function to remove a dependency from project config
+ * Try to delete a key from config at configPath; if not found and configPath is tool-specific,
+ * try deleting from wildcard path ['*', subtype].
+ */
+function deleteAtPathWithFallback(config: unknown, configPath: ConfigPath, key: string): boolean {
+    if (deleteAtPath(config, configPath, key)) return true;
+    if (configPath.length >= 2 && configPath[0] !== WILDCARD_TOOL) {
+        return deleteAtPath(config, [WILDCARD_TOOL, configPath[1]], key);
+    }
+    return false;
+}
+
+/**
+ * Generic function to remove a dependency from project config.
+ * Tries tool-specific path first, then falls back to * when entry is in wildcard config.
  */
 export async function removeDependencyGeneric(
     projectPath: string,
-    configPath: [string, string],
+    configPath: ConfigPath,
     alias: string
 ): Promise<{ removedFrom: string[] }> {
     const removedFrom: string[] = [];
 
-    const [topLevel, subLevel] = configPath;
-
     const mainPath = path.join(projectPath, CONFIG_FILENAME);
     const mainConfig = await readConfigFile<ProjectConfig>(mainPath);
-    if ((mainConfig as any)[topLevel]?.[subLevel]?.[alias]) {
-        delete (mainConfig as any)[topLevel][subLevel][alias];
+    if (deleteAtPathWithFallback(mainConfig, configPath, alias)) {
         await fs.writeJson(mainPath, mainConfig, { spaces: 2 });
         removedFrom.push(CONFIG_FILENAME);
     }
 
     const localPath = path.join(projectPath, LOCAL_CONFIG_FILENAME);
     const localConfig = await readConfigFile<ProjectConfig>(localPath);
-    if ((localConfig as any)[topLevel]?.[subLevel]?.[alias]) {
-        delete (localConfig as any)[topLevel][subLevel][alias];
+    if (deleteAtPathWithFallback(localConfig, configPath, alias)) {
         await fs.writeJson(localPath, localConfig, { spaces: 2 });
         removedFrom.push(LOCAL_CONFIG_FILENAME);
     }
@@ -356,17 +644,15 @@ export async function removeDependencyGeneric(
  * Used when --user flag is set.
  */
 export async function addUserDependency(
-    configPath: [string, string],
+    configPath: ConfigPath,
     name: string,
     repoUrl: string,
     alias?: string,
     targetDir?: string
 ): Promise<void> {
     const config = await getUserProjectConfig();
-    const [topLevel, subLevel] = configPath;
 
-    (config as any)[topLevel] ??= {};
-    (config as any)[topLevel][subLevel] ??= {};
+    const section = ensureAtPath(config as Record<string, unknown>, configPath);
 
     const targetName = alias || name;
 
@@ -381,25 +667,24 @@ export async function addUserDependency(
         entryValue = repoUrl;
     }
 
-    (config as any)[topLevel][subLevel][targetName] = entryValue;
+    section[targetName] = entryValue;
     await saveUserProjectConfig(config);
 }
 
 /**
  * Remove a dependency from the user project config (user.json).
  * Used when --user flag is set.
+ * Tries tool-specific path first, then falls back to * when entry is in wildcard config.
  */
 export async function removeUserDependency(
-    configPath: [string, string],
+    configPath: ConfigPath,
     alias: string
 ): Promise<{ removedFrom: string[] }> {
     const removedFrom: string[] = [];
     const userPath = await getUserConfigPath();
     const config = await getUserProjectConfig();
-    const [topLevel, subLevel] = configPath;
 
-    if ((config as any)[topLevel]?.[subLevel]?.[alias]) {
-        delete (config as any)[topLevel][subLevel][alias];
+    if (deleteAtPathWithFallback(config, configPath, alias)) {
         await saveUserProjectConfig(config);
         removedFrom.push(path.basename(userPath));
     }

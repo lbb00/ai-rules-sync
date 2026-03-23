@@ -4,10 +4,12 @@
 
 import path from 'path';
 import chalk from 'chalk';
+import fs from 'fs-extra';
 import { getConfig, setConfig, getReposBaseDir, getCurrentRepo, RepoConfig } from '../config.js';
-import { cloneOrUpdateRepo } from '../git.js';
+import { cloneOrUpdateRepo, getRemoteUrl } from '../git.js';
 import { getCombinedProjectConfig } from '../project-config.js';
 import { stripCopilotSuffix, adapterRegistry } from '../adapters/index.js';
+import { isLocalPath, resolveLocalPath } from '../utils.js';
 
 /**
  * Get the target repository based on CLI options
@@ -60,6 +62,76 @@ export async function getTargetRepo(options: { target?: string }): Promise<RepoC
       return newRepo;
     }
 
+    // 3. Try as local path
+    if (isLocalPath(target)) {
+      const resolvedPath = await resolveLocalPath(target, process.cwd());
+      if (!resolvedPath) {
+        throw new Error(`Path "${target}" does not exist or is not a directory.`);
+      }
+      const remoteUrl = await getRemoteUrl(resolvedPath);
+      const isGit = await fs.pathExists(path.join(resolvedPath, '.git'));
+
+      if (isGit && remoteUrl) {
+        // Git repo with remote: symlink to repos/ and use remote URL
+        let name = path.basename(resolvedPath) || 'local-repo';
+        const symlinkPath = path.join(getReposBaseDir(), name);
+
+        if (config.repos) {
+          for (const repo of Object.values(config.repos)) {
+            if (repo.url === remoteUrl) return repo;
+            if (path.resolve(repo.path) === path.resolve(resolvedPath)) return repo;
+            if (path.resolve(await fs.realpath(repo.path).catch(() => '')) === path.resolve(resolvedPath)) return repo;
+          }
+        }
+
+        if (await fs.pathExists(symlinkPath)) {
+          const stat = await fs.lstat(symlinkPath);
+          if (stat.isSymbolicLink()) {
+            const symTarget = await fs.realpath(symlinkPath);
+            if (path.resolve(symTarget) === path.resolve(resolvedPath)) {
+              const repo = config.repos?.[name] ?? { name, url: remoteUrl, path: symlinkPath };
+              await setConfig({ repos: { ...(config.repos || {}), [name]: repo } });
+              return repo;
+            }
+          }
+          throw new Error(
+            `Repository "${name}" already exists at ${symlinkPath}. ` +
+            `Use "ais use ${name}" or remove it first.`
+          );
+        }
+
+        for (const repo of Object.values(config.repos || {})) {
+          if (repo.url === remoteUrl) {
+            throw new Error(`Repository with remote "${remoteUrl}" is already configured. Use "ais use <name>".`);
+          }
+        }
+
+        await fs.ensureDir(getReposBaseDir());
+        await fs.symlink(resolvedPath, symlinkPath);
+        const newRepo: RepoConfig = { name, url: remoteUrl, path: symlinkPath };
+        await setConfig({ repos: { ...(config.repos || {}), [name]: newRepo } });
+        await cloneOrUpdateRepo(newRepo);
+        return newRepo;
+      }
+
+      // Non-git or no remote: use path directly
+      if (config.repos) {
+        for (const repo of Object.values(config.repos)) {
+          if (path.resolve(repo.path) === path.resolve(resolvedPath)) return repo;
+        }
+      }
+      console.log(chalk.blue(`Using local repository at ${resolvedPath}`));
+      let name = path.basename(resolvedPath) || 'local-repo';
+      if (config.repos && config.repos[name] && config.repos[name].path !== resolvedPath) {
+        name = `${name}-${Date.now()}`;
+      }
+      const url = remoteUrl || resolvedPath;
+      const newRepo: RepoConfig = { name, url, path: resolvedPath };
+      await setConfig({ repos: { ...(config.repos || {}), [name]: newRepo } });
+      await cloneOrUpdateRepo(newRepo);
+      return newRepo;
+    }
+
     throw new Error(`Repository "${target}" not found in configuration.`);
   }
 
@@ -89,13 +161,9 @@ export async function inferDefaultMode(projectPath: string): Promise<DefaultMode
 
   for (const adapter of adapterRegistry.all()) {
     const [topLevel, subLevel] = adapter.configPath;
-    // agentsMd is flat (no subLevel nesting)
-    const count = topLevel === 'agentsMd'
-      ? Object.keys((cfg as any).agentsMd || {}).length
-      : Object.keys((cfg as any)[topLevel]?.[subLevel] || {}).length;
+    const count = Object.keys((cfg as any)[topLevel]?.[subLevel] || {}).length;
 
-    // Map adapter tool name to CLI mode name (agentsMd → agents-md)
-    const modeName = topLevel === 'agentsMd' ? 'agents-md' : topLevel;
+    const modeName = topLevel;
     toolCounts[modeName] = (toolCounts[modeName] || 0) + count;
   }
 
@@ -115,7 +183,7 @@ export async function inferDefaultMode(projectPath: string): Promise<DefaultMode
 export function requireExplicitMode(mode: DefaultMode): never {
   // Build tool list from registry, deduplicated and mapped to CLI names
   const tools = [...new Set(
-    adapterRegistry.all().map(a => a.tool === 'agentsMd' ? 'agents-md' : a.tool)
+    adapterRegistry.all().map(a => a.tool)
   )];
   const toolCommands = tools.map(t => `"ais ${t} ..."`).join(', ');
   const explicitTools = toolCommands || '"ais <tool> ..."';

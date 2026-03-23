@@ -5,8 +5,8 @@ import path from 'path';
 import os from 'os';
 import fs from 'fs-extra';
 import { getConfig, setConfig, getReposBaseDir, getCurrentRepo, getUserConfigPath, getUserProjectConfig, RepoConfig } from './config.js';
-import { cloneOrUpdateRepo, runGitCommand } from './git.js';
-import { addIgnoreEntry } from './utils.js';
+import { cloneOrUpdateRepo, getRemoteUrl, runGitCommand } from './git.js';
+import { addIgnoreEntry, isLocalPath, resolveLocalPath } from './utils.js';
 import { getCombinedProjectConfig, getConfigSource, getRepoSourceConfig, getSourceDir, ProjectConfig } from './project-config.js';
 import { checkAndPromptCompletion, forceInstallCompletion } from './completion.js';
 import { getCompletionScript } from './completion/scripts.js';
@@ -52,9 +52,6 @@ function collect(value: string, previous: string[]): string[] {
 
 function getAdapterEntryCount(config: ProjectConfig, adapter: SyncAdapter): number {
   const [topLevel, subLevel] = adapter.configPath;
-  if (topLevel === 'agentsMd') {
-    return Object.keys(config.agentsMd || {}).length;
-  }
 
   const topConfig = (config as any)[topLevel];
   if (!topConfig || typeof topConfig !== 'object') {
@@ -120,14 +117,14 @@ function formatCheckStatus(status: string): string {
 program
   .name('ais')
   .description('AI Rules Sync - Sync agent rules from git repository')
-  .version('0.4.0', '-v, --version', 'Display version information')
+  .version('0.7.0', '-v, --version', 'Display version information')
   .option('-t, --target <repoName>', 'Specify target rule repository (name or URL)');
 
 // ============ Use command ============
 program
   .command('use')
-  .description('Config cursor rules git repository')
-  .argument('[urlOrName]', 'Git repository URL or response name')
+  .description('Configure rules repository (URL or local path)')
+  .argument('[urlOrName]', 'Git repository URL, local path, or configured repo name')
   .action(async (urlOrName) => {
     try {
       const config = await getConfig();
@@ -168,9 +165,72 @@ program
         console.log(chalk.green(`Configured repository: ${name} (${url})`));
         await cloneOrUpdateRepo(newRepo);
         console.log(chalk.green('Repository ready.'));
+      } else if (isLocalPath(urlOrName)) {
+        const resolvedPath = await resolveLocalPath(urlOrName, process.cwd());
+        if (!resolvedPath) {
+          console.error(chalk.red(`Error: Path "${urlOrName}" does not exist or is not a directory.`));
+          process.exit(1);
+        }
+        const remoteUrl = await getRemoteUrl(resolvedPath);
+        const isGit = await fs.pathExists(path.join(resolvedPath, '.git'));
+
+        if (isGit && remoteUrl) {
+          // Git repo with remote: symlink to repos/ and use remote URL for portable config
+          let name = path.basename(resolvedPath) || 'local-repo';
+          const symlinkPath = path.join(getReposBaseDir(), name);
+
+          if (await fs.pathExists(symlinkPath)) {
+            const stat = await fs.lstat(symlinkPath);
+            if (stat.isSymbolicLink()) {
+              const target = await fs.realpath(symlinkPath);
+              if (path.resolve(target) === path.resolve(resolvedPath)) {
+                const existingRepo = config.repos?.[name] ?? { name, url: remoteUrl, path: symlinkPath };
+                const newRepos = { ...(config.repos || {}), [name]: existingRepo };
+                await setConfig({ currentRepo: name, repos: newRepos });
+                console.log(chalk.green(`Switched to repository: ${name} (${resolvedPath})`));
+                await cloneOrUpdateRepo(existingRepo);
+                return;
+              }
+            }
+            console.error(chalk.red(`Error: Repository "${name}" already exists at ${symlinkPath}.`));
+            console.error(chalk.yellow(`  Use "ais use ${name}" to switch, or remove it first.`));
+            process.exit(1);
+          }
+
+          for (const repo of Object.values(config.repos || {})) {
+            if (repo.url === remoteUrl) {
+              console.error(chalk.red(`Error: Repository with remote "${remoteUrl}" is already configured.`));
+              console.error(chalk.yellow(`  Use "ais use <name>" to switch.`));
+              process.exit(1);
+            }
+          }
+
+          await fs.ensureDir(getReposBaseDir());
+          await fs.symlink(resolvedPath, symlinkPath);
+          const newRepo: RepoConfig = { name, url: remoteUrl, path: symlinkPath };
+          const newRepos = { ...(config.repos || {}), [name]: newRepo };
+          await setConfig({ currentRepo: name, repos: newRepos });
+          console.log(chalk.green(`Configured repository: ${name} (${remoteUrl})`));
+          console.log(chalk.gray(`  Symlinked: ${symlinkPath} -> ${resolvedPath}`));
+          await cloneOrUpdateRepo(newRepo);
+          console.log(chalk.green('Repository ready.'));
+        } else {
+          // Non-git or no remote: use path directly (legacy behavior)
+          let name = path.basename(resolvedPath) || 'local-repo';
+          if (config.repos && config.repos[name] && config.repos[name].path !== resolvedPath) {
+            name = `${name}-${Date.now()}`;
+          }
+          const url = remoteUrl || resolvedPath;
+          const newRepo: RepoConfig = { name, url, path: resolvedPath };
+          const newRepos = { ...(config.repos || {}), [name]: newRepo };
+          await setConfig({ currentRepo: name, repos: newRepos });
+          console.log(chalk.green(`Configured local repository: ${name} (${resolvedPath})`));
+          await cloneOrUpdateRepo(newRepo);
+          console.log(chalk.green('Repository ready.'));
+        }
       } else {
         console.error(chalk.red(`Error: Repository "${urlOrName}" not found in configuration.`));
-        console.log(chalk.yellow(`Use "ais use <url>" to add a new repository.`));
+        console.log(chalk.yellow(`Use "ais use <url>" or "ais use <local-path>" to add a repository.`));
         process.exit(1);
       }
     } catch (error: any) {
@@ -214,8 +274,10 @@ program
       const repo = repos[name];
       const isCurrent = name === config.currentRepo;
       const prefix = isCurrent ? chalk.green('* ') : '  ';
-      console.log(`${prefix}${chalk.cyan(name)} ${chalk.gray(`(${repo.url})`)}`);
-      if (isCurrent) {
+      const isLocal = !repo.url.includes('://') && !repo.url.includes('git@');
+      const repoLabel = isLocal ? repo.path : repo.url;
+      console.log(`${prefix}${chalk.cyan(name)} ${chalk.gray(`(${repoLabel})`)}`);
+      if (isCurrent && !isLocal) {
         console.log(`    Local path: ${repo.path}`);
       }
     }
@@ -533,14 +595,18 @@ program
   .description('Initialize an ai-rules-sync repository template')
   .option('-f, --force', 'Overwrite existing ai-rules-sync.json')
   .option('--no-dirs', 'Do not create default source directories')
+  .option('--only <tools...>', 'Only include specified tools (e.g. cursor copilot claude)')
+  .option('--exclude <tools...>', 'Exclude specified tools')
   .option('--json', 'Output results as JSON')
-  .action(async (name: string | undefined, cmdOptions: { force?: boolean; dirs?: boolean; json?: boolean }) => {
+  .action(async (name: string | undefined, cmdOptions: { force?: boolean; dirs?: boolean; only?: string[]; exclude?: string[]; json?: boolean }) => {
     try {
       const result = await initRulesRepository({
         cwd: process.cwd(),
         name,
         force: cmdOptions.force,
-        createDirs: cmdOptions.dirs
+        createDirs: cmdOptions.dirs,
+        only: cmdOptions.only,
+        exclude: cmdOptions.exclude
       });
 
       if (cmdOptions.json) {
@@ -646,7 +712,7 @@ program
           adapter = getAdapter('cursor', 'rules');
         } else if (mode === 'copilot') {
           // Try to resolve the alias with suffix
-          const resolved = resolveCopilotAliasFromConfig(alias, Object.keys(cfg.copilot?.instructions || {}));
+          const resolved = resolveCopilotAliasFromConfig(alias, Object.keys((cfg.copilot as Record<string, unknown>)?.instructions || {}));
           adapter = getAdapter('copilot', 'instructions');
           alias = resolved;
         } else if (mode === 'claude') {

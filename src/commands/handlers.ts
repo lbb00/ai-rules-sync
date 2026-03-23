@@ -9,7 +9,7 @@ import { RepoConfig, getUserConfigPath, getUserProjectConfig } from '../config.j
 import { SyncAdapter } from '../adapters/types.js';
 import { importEntry, ImportOptions } from '../sync-engine.js';
 import { addIgnoreEntry, removeIgnoreEntry } from '../utils.js';
-import { addUserDependency, removeUserDependency, getCombinedProjectConfig, getRepoSourceConfig, getSourceDir, getTargetDir } from '../project-config.js';
+import { addUserDependency, removeUserDependency, getCombinedProjectConfig, getRepoSourceConfig, getSourceDir, getTargetDir, getEntryConfig, WILDCARD_TOOL, type ProjectConfig } from '../project-config.js';
 
 /**
  * Context for command execution
@@ -203,7 +203,7 @@ async function getConfigHitsForAlias(
   if (isUser) {
     const userConfig = await getUserProjectConfig();
     const userPath = await getUserConfigPath();
-    if ((userConfig as any)[topLevel]?.[subLevel]?.[alias]) {
+    if (getEntryConfig(userConfig as ProjectConfig, topLevel, subLevel, alias)) {
       hits.push(path.basename(userPath));
     }
     return hits;
@@ -214,14 +214,18 @@ async function getConfigHitsForAlias(
 
   if (await fs.pathExists(mainPath)) {
     const mainConfig = await fs.readJson(mainPath);
-    if (mainConfig?.[topLevel]?.[subLevel]?.[alias]) {
+    const inTool = mainConfig?.[topLevel]?.[subLevel]?.[alias];
+    const inWild = topLevel !== WILDCARD_TOOL && mainConfig?.[WILDCARD_TOOL]?.[subLevel]?.[alias];
+    if (inTool !== undefined || inWild !== undefined) {
       hits.push('ai-rules-sync.json');
     }
   }
 
   if (await fs.pathExists(localPath)) {
     const localConfig = await fs.readJson(localPath);
-    if (localConfig?.[topLevel]?.[subLevel]?.[alias]) {
+    const inTool = localConfig?.[topLevel]?.[subLevel]?.[alias];
+    const inWild = topLevel !== WILDCARD_TOOL && localConfig?.[WILDCARD_TOOL]?.[subLevel]?.[alias];
+    if (inTool !== undefined || inWild !== undefined) {
       hits.push('ai-rules-sync.local.json');
     }
   }

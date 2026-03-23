@@ -4,8 +4,6 @@ import { SyncAdapter, ResolvedSource } from './types.js';
 import { createBaseAdapter } from './base.js';
 
 const SUFFIX = '.md';
-const CONFIG_FILENAME = 'ai-rules-sync.json';
-const LOCAL_CONFIG_FILENAME = 'ai-rules-sync.local.json';
 
 /**
  * Universal adapter for AGENTS.md files (agents.md standard)
@@ -32,34 +30,16 @@ async function findAgentsMdInDir(dirPath: string): Promise<string | null> {
   }
 }
 
-// Helper functions for config management
-async function readConfigFile<T>(filePath: string): Promise<T> {
-  if (await fs.pathExists(filePath)) {
-    try {
-      return await fs.readJson(filePath);
-    } catch (e) {
-      // ignore
-    }
-  }
-  return {} as T;
-}
-
-async function writeConfigFile(filePath: string, config: any): Promise<void> {
-  await fs.writeJson(filePath, config, { spaces: 2 });
-}
-
-// Create base adapter
-const baseAdapter = createBaseAdapter({
-  name: 'agents-md-file',  // Must match ${tool}-${subtype}
+export const agentsMdAdapter: SyncAdapter = createBaseAdapter({
+  name: 'agents-md-file',
   tool: 'agents-md',
   subtype: 'file',
-  configPath: ['agentsMd', 'file'],  // Used for source directory resolution only
-  defaultSourceDir: '.',  // Repository root, AGENTS.md can be anywhere
-  targetDir: '.',  // Project root
+  configPath: ['agentsMd', 'file'],
+  defaultSourceDir: '.',
+  targetDir: '.',
   mode: 'file',
   fileSuffixes: [SUFFIX],
 
-  // Custom resolver with flexible path resolution
   resolveSource: async (repoDir: string, rootPath: string, name: string): Promise<ResolvedSource> => {
     const basePath = path.join(repoDir, rootPath);
 
@@ -130,63 +110,7 @@ const baseAdapter = createBaseAdapter({
     throw new Error('AGENTS.md not found at repository root');
   },
 
-  // Always resolve to AGENTS.md in project root
   resolveTargetName: (name: string, alias?: string, sourceSuffix?: string): string => {
     return 'AGENTS.md';
   }
 });
-
-// Export adapter with custom dependency management
-// The config structure for agentsMd is flat (not nested like other tools)
-export const agentsMdAdapter: SyncAdapter = {
-  ...baseAdapter,
-
-  // Custom addDependency that writes to flat agentsMd structure
-  async addDependency(projectPath: string, name: string, repoUrl: string, alias?: string, isLocal: boolean = false, targetDir?: string): Promise<void> {
-    const configPath = path.join(projectPath, isLocal ? LOCAL_CONFIG_FILENAME : CONFIG_FILENAME);
-    const config = await readConfigFile<any>(configPath);
-
-    config.agentsMd ??= {};
-
-    const targetName = alias || name;
-
-    // Build entry value
-    let entryValue: any;
-    if (targetDir || (alias && alias !== name)) {
-      entryValue = {
-        url: repoUrl,
-        ...(alias && alias !== name ? { rule: name } : {}),
-        ...(targetDir ? { targetDir } : {})
-      };
-    } else {
-      entryValue = repoUrl;
-    }
-
-    config.agentsMd[targetName] = entryValue;
-
-    await writeConfigFile(configPath, config);
-  },
-
-  // Custom removeDependency that removes from flat agentsMd structure
-  async removeDependency(projectPath: string, alias: string): Promise<{ removedFrom: string[] }> {
-    const removedFrom: string[] = [];
-
-    const mainPath = path.join(projectPath, CONFIG_FILENAME);
-    const mainConfig = await readConfigFile<any>(mainPath);
-    if (mainConfig.agentsMd?.[alias]) {
-      delete mainConfig.agentsMd[alias];
-      await writeConfigFile(mainPath, mainConfig);
-      removedFrom.push(CONFIG_FILENAME);
-    }
-
-    const localPath = path.join(projectPath, LOCAL_CONFIG_FILENAME);
-    const localConfig = await readConfigFile<any>(localPath);
-    if (localConfig.agentsMd?.[alias]) {
-      delete localConfig.agentsMd[alias];
-      await writeConfigFile(localPath, localConfig);
-      removedFrom.push(LOCAL_CONFIG_FILENAME);
-    }
-
-    return { removedFrom };
-  }
-};

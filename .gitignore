@@ -7,3 +7,7 @@ node_modules
 cursor-rules.local.json
 dist
 .nwave
+
+# VitePress
+docs/.vitepress/dist
+docs/.vitepress/cache

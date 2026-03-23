@@ -25,6 +25,8 @@ export interface ResolvedSource {
     path: string;
     /** Detected suffix, if any */
     suffix?: string;
+    /** Override target filename (e.g. when sourceFile maps AGENTS.md -> CLAUDE.md) */
+    targetName?: string;
 }
 
 /** Pluggable manifest persistence interface */
