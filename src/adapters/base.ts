@@ -17,7 +17,7 @@ export interface AdapterConfig {
     name: string;
     tool: string;
     subtype: string;
-    configPath: [string, string];
+    configPath: string[];
     defaultSourceDir: string;
     targetDir: string;
     userTargetDir?: string;
@@ -25,7 +25,7 @@ export interface AdapterConfig {
     mode: 'directory' | 'file' | 'hybrid';
     fileSuffixes?: string[];
     hybridFileSuffixes?: string[];
-    resolveSource?: (repoDir: string, rootPath: string, name: string) => Promise<any>;
+    resolveSource?: (repoDir: string, rootPath: string, name: string, options?: { sourceFileOverride?: string; sourceDirOverride?: string }) => Promise<any>;
     resolveTargetName?: (name: string, alias?: string, sourceSuffix?: string) => string;
 }
 
@@ -129,34 +129,39 @@ export function createSingleSuffixResolver(suffix: string, entityName: string) {
 
 /**
  * Create a multi-suffix resolver for hybrid mode adapters
- * Supports both files (with multiple possible suffixes) and directories
+ * Supports both files (with multiple possible suffixes) and directories.
+ * When sourceDirOverride is set (from rules repo sourceDir), resolves to that directory.
  */
 export function createMultiSuffixResolver(suffixes: string[], entityName: string) {
-    return async (repoDir: string, rootPath: string, name: string): Promise<ResolvedSource> => {
-        const basePath = path.join(repoDir, rootPath, name);
+    return async (
+        repoDir: string,
+        rootPath: string,
+        name: string,
+        options?: { sourceDirOverride?: string }
+    ): Promise<ResolvedSource> => {
+        const effectiveName = options?.sourceDirOverride ?? name;
+        const basePath = path.join(repoDir, rootPath, effectiveName);
 
         // 1. Check exact name first - could be directory or file with suffix
         if (await fs.pathExists(basePath)) {
             const stats = await fs.stat(basePath);
             if (stats.isDirectory()) {
-                // Prefer directory match
-                return { sourceName: name, sourcePath: basePath, suffix: undefined };
+                return { sourceName: effectiveName, sourcePath: basePath, suffix: undefined };
             }
-            // It's a file with the exact name (probably has suffix already)
-            const matchedSuffix = suffixes.find(s => name.endsWith(s));
-            return { sourceName: name, sourcePath: basePath, suffix: matchedSuffix };
+            const matchedSuffix = suffixes.find(s => effectiveName.endsWith(s));
+            return { sourceName: effectiveName, sourcePath: basePath, suffix: matchedSuffix };
         }
 
         // 2. Name doesn't have suffix - try each suffix in order
         for (const suffix of suffixes) {
-            const candName = `${name}${suffix}`;
+            const candName = `${effectiveName}${suffix}`;
             const candPath = path.join(repoDir, rootPath, candName);
             if (await fs.pathExists(candPath)) {
                 return { sourceName: candName, sourcePath: candPath, suffix };
             }
         }
 
-        throw new Error(`${entityName} "${name}" not found in repository.`);
+        throw new Error(`${entityName} "${effectiveName}" not found in repository.`);
     };
 }
 

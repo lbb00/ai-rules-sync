@@ -1,5 +1,5 @@
 import { ManifestStore, ManifestEntry } from '../dotany/types.js';
-import { getCombinedProjectConfig, addDependencyGeneric, removeDependencyGeneric } from '../project-config.js';
+import { getCombinedProjectConfig, getConfigSectionWithFallback, addDependencyGeneric, removeDependencyGeneric } from '../project-config.js';
 import type { RuleEntry } from '../project-config.js';
 
 /**
@@ -9,20 +9,16 @@ import type { RuleEntry } from '../project-config.js';
 export class AiRulesSyncManifest implements ManifestStore {
     constructor(
         private projectPath: string,
-        private configPath: [string, string],
+        private configPath: string[],
         private isLocal: boolean = false
     ) {}
 
     async readAll(): Promise<Record<string, ManifestEntry>> {
         const config = await getCombinedProjectConfig(this.projectPath);
         const [topLevel, subLevel] = this.configPath;
+        const section = getConfigSectionWithFallback(config, topLevel, subLevel);
 
-        // agentsMd is flat (no subLevel nesting)
-        const section: Record<string, RuleEntry> | undefined = topLevel === 'agentsMd'
-            ? (config as any)[topLevel]
-            : (config as any)[topLevel]?.[subLevel];
-
-        if (!section) return {};
+        if (Object.keys(section).length === 0) return {};
 
         const result: Record<string, ManifestEntry> = {};
         for (const [key, value] of Object.entries(section)) {

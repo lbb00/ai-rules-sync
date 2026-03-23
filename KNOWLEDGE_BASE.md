@@ -193,7 +193,7 @@ async function installEntriesForTool(adapters[], projectPath): Promise<void>
 **Repository Lifecycle Commands (`src/commands/lifecycle.ts`):**
 - `checkRepositories(options)`: collects repo URLs from project/user config and compares local HEAD vs upstream (`ahead/behind`) using `git fetch` + `git rev-list`.
 - `updateRepositories(options)`: updates repos (`git pull` via `cloneOrUpdateRepo`) and reapplies links from config.
-- `initRulesRepository(options)`: scaffolds `ai-rules-sync.json` with adapter-driven `sourceDir` defaults and creates default source directories.
+- `initRulesRepository(options)`: scaffolds `ai-rules-sync.json` with adapter-driven `sourceDir` defaults and creates default source directories. Supports `--only <tools...>` and `--exclude <tools...>` to selectively initialize specific tools.
 
 **Helper Functions (`src/commands/helpers.ts`):**
 - `getTargetRepo(options)`: Resolve target repository from options or config
@@ -397,6 +397,11 @@ interface ProjectConfig {
 - File-based synchronization for CLAUDE.md-style configuration files.
 - Supports `.md` suffix; resolves `CLAUDE` → `CLAUDE.md` automatically.
 - **User Mode**: `ais claude md add CLAUDE --user` links to `~/.claude/CLAUDE.md`.
+- **sourceDir object format**: Use `common/AGENTS.md` as CLAUDE.md source (one file, multiple targets):
+  ```json
+  { "sourceDir": { "claude": { "md": { "dir": "common", "sourceFile": "AGENTS.md", "targetFile": "CLAUDE.md" } } } }
+  ```
+  Enables syncing the same file to both AGENTS.md (via agentsMd) and CLAUDE.md (via claude-md).
 
 ### 9. Trae Rule Synchronization
 - **Syntax**: `ais trae rules add <ruleName> [alias]`
@@ -686,6 +691,17 @@ ais config repo list
   }
 }
 ```
+
+**sourceDir value formats:**
+- **String** (legacy): `"claude": { "md": ".claude" }` — source directory path
+- **Object (file mode)**: `"claude": { "md": { "dir": "common", "sourceFile": "AGENTS.md", "targetFile": "CLAUDE.md" } }` — use a different source file and target filename (e.g. map `common/AGENTS.md` → `.claude/CLAUDE.md`)
+- **Object (directory mode)**: `"cursor": { "rules": { "dir": "common", "sourceDir": "shared-rules", "targetName": "cursor-rules" } }` — use a different source subdirectory and target symlink name (e.g. map `common/shared-rules` → `.cursor/rules/cursor-rules`)
+
+**Wildcard (`*`) fallback:**
+- Use `*` as tool key to define shared config when tool-specific config is missing
+- Example: `"*": { "skills": "common/skills" }` — cursor.skills, copilot.skills, etc. all resolve to `common/skills` when not explicitly defined
+- Applies to both `sourceDir` (rules repo) and dependency records (project config)
+- Tool-specific config takes precedence; remove falls back to `*` when entry is in wildcard config
 
 **Priority Resolution in `getSourceDir()`:**
 
@@ -988,6 +1004,43 @@ ais user install
 
 ## Recent Changes
 
+### sourceDir Object Format for One-Source-Multi-Target (2026-03)
+
+**Enables using the same file (e.g. `common/AGENTS.md`) for both AGENTS.md and CLAUDE.md sync.**
+
+**Problem Solved:**
+- Rules repo had `common/AGENTS.md` that should sync to project root as `AGENTS.md` (via agentsMd) and to `.claude/CLAUDE.md` (via claude-md)
+- Previously required duplicate files or manual symlinks
+
+**New sourceDir Object Format (file mode):**
+```json
+"claude": {
+  "md": { "dir": "common", "sourceFile": "AGENTS.md", "targetFile": "CLAUDE.md" }
+}
+```
+- `dir`: Source directory (replaces default `.claude`)
+- `sourceFile`: Filename to use as source (e.g. `AGENTS.md` instead of `CLAUDE.md`)
+- `targetFile`: Symlink filename in target (e.g. `CLAUDE.md`)
+
+**Extended for directory/hybrid mode (2026-03):**
+```json
+"cursor": {
+  "rules": { "dir": "common", "sourceDir": "shared-rules", "targetName": "cursor-rules" }
+}
+```
+- `sourceDir`: Source subdirectory to use (e.g. `common/shared-rules` instead of `common/<name>`)
+- `targetName`: Symlink directory name in target (e.g. `cursor-rules`)
+
+**Implementation:**
+- `src/project-config.ts` - Added `SourceDirValue` type, `getSourceFileOverride()`, `getTargetFileOverride()`, `getSourceDirOverride()`, `getTargetNameOverride()`, extended `buildRepoSourceFromNestedStrings` and `getSourceDir()` for object format
+- `src/adapters/claude-md.ts` - Custom `resolveSource` that uses `sourceFileOverride` when set
+- `src/adapters/base.ts` - `createMultiSuffixResolver` accepts `sourceDirOverride` for hybrid/directory mode
+- `src/adapters/types.ts` - Extended `resolveSource` signature with optional `options.sourceFileOverride` and `options.sourceDirOverride`
+- `src/dotany/types.ts` - Added `targetName` to `ResolvedSource` for target override
+- `src/plugin/git-repo-source.ts` - Pass overrides to resolveSource, support sourceDirOverride/targetNameOverride for directory-only adapters
+- `src/sync-engine.ts` - Pass overrides to adapter.resolveSource, use targetFileOverride/targetNameOverride for target name
+- `src/dotany/manager.ts` - Use `resolved.targetName` when present
+
 ### Command UX Enhancements (2026-03)
 
 - Added Linux-style aliases while keeping backward compatibility:
@@ -1285,6 +1338,34 @@ CLI Parameters > Global Config > Repository Config > Adapter Defaults
 - `src/config.ts` - Updated `CONFIG_DIR` constant
 - `tests/config.test.ts` - Updated test fixtures
 - Documentation updated to reflect new paths
+
+### Init Command Tool Filtering (2026-03)
+
+**Added `--only` and `--exclude` options to `ais init` for selective tool initialization:**
+
+**Problem Solved:**
+- `ais init` generated config and directories for all 14+ supported tools, which is overwhelming for users who only use a few tools.
+
+**Features Implemented:**
+
+1. **`--only <tools...>`**: Only include specified tools in the generated config and directories.
+   - Example: `ais init --only cursor claude` — only initializes Cursor and Claude sections.
+
+2. **`--exclude <tools...>`**: Exclude specified tools from initialization.
+   - Example: `ais init --exclude trae opencode gemini` — initializes everything except those tools.
+
+3. **Mutual exclusivity**: `--only` takes precedence if both are provided.
+
+4. **Scope**: Both options affect `sourceDir` config generation and source directory creation.
+
+**Implementation:**
+- `src/commands/lifecycle.ts` — Added `only`/`exclude` to `InitOptions`; added `getFilteredAdapters()` helper; updated `initRulesRepository()` and `buildTemplateSourceDirConfig()` to use filtered adapters.
+- `src/index.ts` — Added `--only` and `--exclude` CLI options to the `init` command.
+- `src/__tests__/lifecycle-init.test.ts` — Added 3 new tests for `--only`, `--exclude`, and directory filtering.
+
+**Files Changed:** 3 modified, all tests passing
+
+---
 
 ### Automated Release Pipeline (npm + Homebrew) (2026-03)
 

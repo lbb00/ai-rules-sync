@@ -7,10 +7,11 @@ import os from 'os';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 import { SyncAdapter } from '../adapters/types.js';
-import { RuleEntry } from '../project-config.js';
+import { RuleEntry, ProjectConfig, getConfigSectionWithFallback } from '../project-config.js';
 import { getConfig, setConfig, getReposBaseDir, getUserProjectConfig, getUserConfigPath, RepoConfig } from '../config.js';
 import { cloneOrUpdateRepo } from '../git.js';
 import { parseConfigEntry } from './helpers.js';
+import { isLocalPath, resolveLocalPath } from '../utils.js';
 import type { RepoResolverFn } from '../dotany/types.js';
 
 /**
@@ -21,7 +22,7 @@ async function findOrCreateRepo(
     repoUrl: string,
     entryName: string
 ): Promise<RepoConfig> {
-    // Check if repo already exists
+    // Check if repo already exists (by url or by path for local repos)
     for (const k in repos) {
         if (repos[k].url === repoUrl) {
             const repo = repos[k];
@@ -30,9 +31,29 @@ async function findOrCreateRepo(
             }
             return repo;
         }
+        if (path.resolve(repos[k].path) === path.resolve(repoUrl)) {
+            return repos[k];
+        }
     }
 
-    // Create new repo config
+    // Local path: use directly if it exists
+    if (isLocalPath(repoUrl)) {
+        const resolvedPath = await resolveLocalPath(repoUrl, process.cwd());
+        if (resolvedPath) {
+            let name = path.basename(resolvedPath) || `repo-${Date.now()}`;
+            if (repos[name]) name = `${name}-${Date.now()}`;
+            const repoConfig: RepoConfig = { name, url: resolvedPath, path: resolvedPath };
+            await setConfig({ repos: { ...repos, [name]: repoConfig } });
+            repos[name] = repoConfig;
+            return repoConfig;
+        }
+        throw new Error(
+            `Local repository path "${repoUrl}" does not exist. ` +
+            `Run "ais use <path>" first if this is a shared project.`
+        );
+    }
+
+    // Create new repo config (remote URL)
     console.log(chalk.yellow(`Repository for ${entryName} not found locally. Configuring...`));
 
     let name = path.basename(repoUrl, '.git');
@@ -94,9 +115,9 @@ export async function installUserEntriesForAdapter(
 ): Promise<void> {
     const userConfig = await getUserProjectConfig();
     const [topLevel, subLevel] = adapter.configPath;
-    const entries = (userConfig as any)?.[topLevel]?.[subLevel] as Record<string, RuleEntry> | undefined;
+    const entries = getConfigSectionWithFallback(userConfig as ProjectConfig, topLevel, subLevel);
 
-    if (!entries || Object.keys(entries).length === 0) {
+    if (Object.keys(entries).length === 0) {
         console.log(chalk.yellow(`No user ${adapter.tool} ${adapter.subtype} found in user config.`));
         return;
     }
@@ -141,8 +162,8 @@ export async function installAllUserEntries(
 
     for (const adapter of adapters) {
         const [topLevel, subLevel] = adapter.configPath;
-        const entries = (userConfig as any)?.[topLevel]?.[subLevel] as Record<string, RuleEntry> | undefined;
-        if (entries && Object.keys(entries).length > 0) {
+        const entries = getConfigSectionWithFallback(userConfig as ProjectConfig, topLevel, subLevel);
+        if (Object.keys(entries).length > 0) {
             await installUserEntriesForAdapter(adapter);
             total += Object.keys(entries).length;
         }

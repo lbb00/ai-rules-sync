@@ -32,10 +32,11 @@ export class DotfileManager {
         // Resolve source
         const resolved = await this.opts.source.resolve(name, { repoUrl, targetDir });
 
-        // Resolve target name (suffix-aware if resolver provided)
-        const targetName = this.opts.resolveTargetName
-            ? this.opts.resolveTargetName(name, alias, resolved.suffix)
-            : (alias || resolved.name);
+        // Resolve target name: use override from source, or suffix-aware resolver, or alias/name
+        const targetName = resolved.targetName
+            ?? (this.opts.resolveTargetName
+                ? this.opts.resolveTargetName(name, alias, resolved.suffix)
+                : (alias || resolved.name));
 
         // Determine target directory
         const targetDirPath = targetDir ? path.normalize(targetDir) : this.opts.targetDir;
@@ -128,9 +129,10 @@ export class DotfileManager {
                 if (this.opts.source.resolveFromManifest) {
                     // Use manifest-aware resolution (supports multi-repo)
                     const resolved = await this.opts.source.resolveFromManifest(entry);
-                    const targetName = this.opts.resolveTargetName
-                        ? this.opts.resolveTargetName(entry.sourceName, alias !== entry.sourceName ? alias : undefined, resolved.suffix)
-                        : (alias !== entry.sourceName ? alias : resolved.name);
+                    const targetName = resolved.targetName
+                        ?? (this.opts.resolveTargetName
+                            ? this.opts.resolveTargetName(entry.sourceName, alias !== entry.sourceName ? alias : undefined, resolved.suffix)
+                            : (alias !== entry.sourceName ? alias : resolved.name));
                     const targetDirPath = entry.meta?.targetDir
                         ? path.normalize(entry.meta.targetDir as string)
                         : this.opts.targetDir;

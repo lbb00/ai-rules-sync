@@ -5,7 +5,7 @@ import { execa } from 'execa';
 import { RepoConfig } from './config.js';
 import { SyncAdapter, LinkResult, SyncOptions } from './adapters/types.js';
 import { addIgnoreEntry, removeIgnoreEntry } from './utils.js';
-import { getRepoSourceConfig, getSourceDir, getCombinedProjectConfig, getTargetDir } from './project-config.js';
+import { getRepoSourceConfig, getSourceDir, getSourceFileOverride, getSourceDirOverride, getTargetFileOverride, getTargetNameOverride, getCombinedProjectConfig, getTargetDir } from './project-config.js';
 
 /**
  * Generic sync engine that works with any SyncAdapter
@@ -24,6 +24,10 @@ export async function linkEntry(
     // Get source directory from repo config
     const repoConfig = await getRepoSourceConfig(repoDir);
     const sourceDir = getSourceDir(repoConfig, adapter.tool, adapter.subtype, adapter.defaultSourceDir);
+    const sourceFileOverride = getSourceFileOverride(repoConfig, adapter.tool, adapter.subtype);
+    const sourceDirOverride = getSourceDirOverride(repoConfig, adapter.tool, adapter.subtype);
+    const targetFileOverride = getTargetFileOverride(repoConfig, adapter.tool, adapter.subtype);
+    const targetNameOverride = getTargetNameOverride(repoConfig, adapter.tool, adapter.subtype);
 
     // Resolve source
     let sourceName: string;
@@ -31,22 +35,28 @@ export async function linkEntry(
     let suffix: string | undefined;
 
     if (adapter.resolveSource) {
-        const resolved = await adapter.resolveSource(repoDir, sourceDir, name);
+        const resolved = await adapter.resolveSource(repoDir, sourceDir, name, {
+            sourceFileOverride,
+            sourceDirOverride,
+        });
         sourceName = resolved.sourceName;
         sourcePath = resolved.sourcePath;
         suffix = resolved.suffix;
     } else {
-        // Default resolution
-        sourcePath = path.join(repoDir, sourceDir, name);
+        // Default resolution (directory-only adapters)
+        const effectiveName = sourceDirOverride ?? name;
+        sourcePath = path.join(repoDir, sourceDir, effectiveName);
         if (!await fs.pathExists(sourcePath)) {
-            throw new Error(`Entry "${name}" not found in repository.`);
+            throw new Error(`Entry "${effectiveName}" not found in repository.`);
         }
-        sourceName = name;
+        sourceName = effectiveName;
     }
 
-    // Resolve target name
+    // Resolve target name (repo config overrides take precedence)
     let targetName: string;
-    if (adapter.resolveTargetName) {
+    if (targetFileOverride || targetNameOverride) {
+        targetName = targetFileOverride ?? targetNameOverride!;
+    } else if (adapter.resolveTargetName) {
         targetName = adapter.resolveTargetName(name, alias, suffix);
     } else {
         targetName = alias || name;

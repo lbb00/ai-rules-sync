@@ -31,4 +31,50 @@ describe('initRulesRepository', () => {
 
     await expect(initRulesRepository({ cwd: projectPath })).rejects.toThrow('already exists');
   });
+
+  it('should only include specified tools when --only is used', async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-init-only-'));
+    const result = await initRulesRepository({
+      cwd,
+      name: 'only-test',
+      only: ['cursor', 'claude']
+    });
+
+    const config = await fs.readJson(result.configPath);
+    const tools = Object.keys(config.sourceDir);
+    expect(tools).toContain('cursor');
+    expect(tools).toContain('claude');
+    expect(tools).not.toContain('copilot');
+    expect(tools).not.toContain('trae');
+    expect(tools).not.toContain('gemini');
+  });
+
+  it('should exclude specified tools when --exclude is used', async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-init-exclude-'));
+    const result = await initRulesRepository({
+      cwd,
+      name: 'exclude-test',
+      exclude: ['cursor', 'copilot']
+    });
+
+    const config = await fs.readJson(result.configPath);
+    const tools = Object.keys(config.sourceDir);
+    expect(tools).not.toContain('cursor');
+    expect(tools).not.toContain('copilot');
+    expect(tools).toContain('claude');
+  });
+
+  it('should only create directories for filtered tools', async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-init-dirs-'));
+    const result = await initRulesRepository({
+      cwd,
+      name: 'dirs-test',
+      only: ['cursor']
+    });
+
+    expect(result.createdDirectories.length).toBeGreaterThan(0);
+    for (const dir of result.createdDirectories) {
+      expect(dir).toContain('.cursor');
+    }
+  });
 });

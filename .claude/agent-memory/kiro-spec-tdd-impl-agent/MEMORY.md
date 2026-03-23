@@ -7,7 +7,9 @@
 - Test runner: `pnpm exec vitest run` (NOT `npx vitest`)
 - TypeScript check: `pnpm tsc --noEmit`
 - Coverage: `@vitest/coverage-v8` installed; no vitest.config file; text reporter must be specified explicitly via `--coverage.provider=v8 --coverage.reporter=text`
-- Pre-existing failing tests (not caused by this feature): `debug-mock.test.ts` (empty placeholder), `agents-md.test.ts` (2 case-sensitivity failures)
+- Pre-existing failing tests: resolved as of upstream-merge (agents-md tests updated for nested config)
+- Vitest+Vitepress conflict: vitepress pulls vite 5.x, vitest needs vite >=6. Fix: add `"vite": "^7.0.0"` as explicit devDependency
+- agents-md configPath is now `['agentsMd', 'file']` (nested), not flat `agentsMd`
 - Import paths use `.js` extension even for `.ts` source files (ESM NodeNext)
 
 ### Patterns
