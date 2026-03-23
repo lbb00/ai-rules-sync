@@ -28,6 +28,7 @@ import {
 import { handleAdd, handleRemove, handleImport } from './commands/handlers.js';
 import { installEntriesForAdapter, installEntriesForTool, installAllUserEntries } from './commands/install.js';
 import { discoverAllEntries, handleAddAll } from './commands/add-all.js';
+import { handleClaudeList, ListResult, ListOptions } from './commands/list.js';
 import { parseSourceDirParams } from './cli/source-dir-parser.js';
 import { setRepoSourceDir, clearRepoSourceDir, showRepoConfig, listRepos, handleUserConfigShow, handleUserConfigSet, handleUserConfigReset } from './commands/config.js';
 import { getFormattedVersion } from './commands/version.js';
@@ -1176,6 +1177,91 @@ claude
       }
     } catch (error: any) {
       console.error(chalk.red('Error in claude add-all:'), error.message);
+      process.exit(1);
+    }
+  });
+
+/**
+ * Print a ListResult to stdout.
+ * In quiet mode: entry names only, one per line.
+ * Otherwise: grouped by subtype with ASCII markers for repo mode.
+ */
+function printListResult(result: ListResult, options: ListOptions): void {
+  if (result.totalCount === 0) {
+    console.log(chalk.gray('No entries found.'));
+    return;
+  }
+
+  if (options.quiet) {
+    for (const entry of result.entries) {
+      console.log(entry.name);
+    }
+    return;
+  }
+
+  // Group by subtype
+  const grouped = new Map<string, typeof result.entries>();
+  for (const entry of result.entries) {
+    if (!grouped.has(entry.subtype)) {
+      grouped.set(entry.subtype, []);
+    }
+    grouped.get(entry.subtype)!.push(entry);
+  }
+
+  const STATUS_MARKERS: Record<string, (s: string) => string> = {
+    i: chalk.green,
+    a: chalk.cyan,
+    l: chalk.magenta,
+  };
+
+  for (const [subtype, entries] of grouped) {
+    console.log(chalk.bold(`\n${subtype}:`));
+    for (const entry of entries) {
+      if (entry.status) {
+        const color = STATUS_MARKERS[entry.status];
+        console.log(`  ${color(entry.status)} ${entry.name}`);
+      } else {
+        console.log(`    ${entry.name}`);
+      }
+    }
+  }
+
+  const summary = `\n${result.totalCount} ${result.totalCount === 1 ? 'entry' : 'entries'} across ${result.subtypeCount} ${result.subtypeCount === 1 ? 'type' : 'types'}`;
+  console.log(chalk.gray(summary));
+
+  const source = options.repo
+    ? options.user ? '--repo [--user]' : '--repo'
+    : options.user ? 'local [--user]' : 'local';
+  const legend = `Legend: ${chalk.green('i')}=installed  ${chalk.cyan('a')}=available  ${chalk.magenta('l')}=local-only  |  source: ${source}`;
+  console.log(chalk.gray(legend));
+}
+
+// claude list
+claude
+  .command('list [type]')
+  .description('List installed or available Claude entries across all subtypes')
+  .option('-r, --repo', 'List entries available in the rules repository source directories')
+  .option('-u, --user', 'List entries from user config (~/.config/ai-rules-sync/user.json)')
+  .option('--quiet', 'Output entry names only, one per line')
+  .action(async (type: string | undefined, cmdOptions: { repo?: boolean; user?: boolean; quiet?: boolean }) => {
+    try {
+      const projectPath = process.cwd();
+      const opts = program.opts();
+      const currentRepo = await getTargetRepo(opts).catch(() => null);
+      const repoPath = currentRepo?.path;
+
+      const claudeAdapters = adapterRegistry.getForTool('claude');
+      const listOptions: ListOptions = {
+        type,
+        repo: cmdOptions.repo,
+        user: cmdOptions.user,
+        quiet: cmdOptions.quiet,
+      };
+
+      const result = await handleClaudeList(claudeAdapters, projectPath, repoPath, listOptions);
+      printListResult(result, listOptions);
+    } catch (error: any) {
+      console.error(chalk.red('Error:'), error.message);
       process.exit(1);
     }
   });

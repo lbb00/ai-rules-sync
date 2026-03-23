@@ -8,5 +8,6 @@ export const claudeStatusLinesAdapter = createBaseAdapter({
   defaultSourceDir: '.claude/status-lines',
   targetDir: '.claude/status-lines',
   userTargetDir: '.claude/status_lines',
+  userDefaultSourceDir: '.claude/user/status-lines',
   mode: 'directory',
 });

@@ -28,6 +28,12 @@ export interface SyncAdapter {
     /** Optional override target directory for user-level (global) mode, relative to home dir */
     userTargetDir?: string;
 
+    /** Optional source directory in the rules repo for user-level imports.
+     *  Distinct from defaultSourceDir to prevent path collisions with project imports.
+     *  e.g. '.claude/user' for settings, '.claude/user/status-lines' for status-lines
+     */
+    userDefaultSourceDir?: string;
+
     /** Sync mode: 'directory' for linking folders, 'file' for linking individual files, 'hybrid' for both */
     mode: 'directory' | 'file' | 'hybrid';
 

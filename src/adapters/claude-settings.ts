@@ -11,6 +11,7 @@ export const claudeSettingsAdapter: SyncAdapter = createBaseAdapter({
   defaultSourceDir: '.claude',
   targetDir: '.claude',
   userTargetDir: '.claude',
+  userDefaultSourceDir: '.claude/user',
   mode: 'file',
   fileSuffixes: [SUFFIX],
   resolveSource: createSingleSuffixResolver(SUFFIX, 'Settings'),

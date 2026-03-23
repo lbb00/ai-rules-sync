@@ -460,7 +460,8 @@ export async function handleImport(
     isLocal: ctx.isLocal,
     commitMessage: options.message,
     force: options.force,
-    push: options.push
+    push: options.push,
+    skipIgnore: ctx.skipIgnore
   };
 
   const result = await importEntry(adapter, importOpts);

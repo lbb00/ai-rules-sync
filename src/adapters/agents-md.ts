@@ -21,6 +21,17 @@ const LOCAL_CONFIG_FILENAME = 'ai-rules-sync.local.json';
  * - Nested path: "docs/team" → docs/team/AGENTS.md
  * - Explicit file: "frontend/AGENTS.md"
  */
+// Scan actual directory listing to find AGENTS.md with correct case.
+// fs.pathExists is unreliable on case-insensitive filesystems (e.g. macOS).
+async function findAgentsMdInDir(dirPath: string): Promise<string | null> {
+  try {
+    const entries = await fs.readdir(dirPath);
+    return entries.find(e => e === 'agents.md') ?? entries.find(e => e === 'AGENTS.md') ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // Helper functions for config management
 async function readConfigFile<T>(filePath: string): Promise<T> {
   if (await fs.pathExists(filePath)) {
@@ -74,13 +85,10 @@ const baseAdapter = createBaseAdapter({
 
     // Pattern 2: Name contains path separator - treat as directory
     if (normalizedName.includes('/')) {
-      // Try directory/AGENTS.md (case variations)
-      for (const variant of ['AGENTS.md', 'agents.md']) {
-        const candidatePath = path.join(basePath, normalizedName, variant);
-        if (await fs.pathExists(candidatePath)) {
-          const sourceName = path.join(normalizedName, variant);
-          return { sourceName, sourcePath: candidatePath, suffix: SUFFIX };
-        }
+      const found = await findAgentsMdInDir(path.join(basePath, normalizedName));
+      if (found) {
+        const sourceName = path.join(normalizedName, found);
+        return { sourceName, sourcePath: path.join(basePath, normalizedName, found), suffix: SUFFIX };
       }
 
       throw new Error(`AGENTS.md not found in directory: ${normalizedName}`);
@@ -91,41 +99,32 @@ const baseAdapter = createBaseAdapter({
       // First, check if it's exactly "AGENTS" or "agents" (case-insensitive)
       const upperName = normalizedName.toUpperCase();
       if (upperName === 'AGENTS') {
-        // Try root-level AGENTS.md variants
-        for (const variant of ['AGENTS.md', 'agents.md']) {
-          const candidatePath = path.join(basePath, variant);
-          if (await fs.pathExists(candidatePath)) {
-            return { sourceName: variant, sourcePath: candidatePath, suffix: SUFFIX };
-          }
+        const found = await findAgentsMdInDir(basePath);
+        if (found) {
+          return { sourceName: found, sourcePath: path.join(basePath, found), suffix: SUFFIX };
         }
       }
 
       // Try as directory name (name/AGENTS.md)
-      for (const variant of ['AGENTS.md', 'agents.md']) {
-        const candidatePath = path.join(basePath, normalizedName, variant);
-        if (await fs.pathExists(candidatePath)) {
-          const sourceName = path.join(normalizedName, variant);
-          return { sourceName, sourcePath: candidatePath, suffix: SUFFIX };
-        }
+      const foundInSubdir = await findAgentsMdInDir(path.join(basePath, normalizedName));
+      if (foundInSubdir) {
+        const sourceName = path.join(normalizedName, foundInSubdir);
+        return { sourceName, sourcePath: path.join(basePath, normalizedName, foundInSubdir), suffix: SUFFIX };
       }
 
       // Fallback: try root-level AGENTS.md
-      for (const variant of ['AGENTS.md', 'agents.md']) {
-        const candidatePath = path.join(basePath, variant);
-        if (await fs.pathExists(candidatePath)) {
-          return { sourceName: variant, sourcePath: candidatePath, suffix: SUFFIX };
-        }
+      const foundAtRoot = await findAgentsMdInDir(basePath);
+      if (foundAtRoot) {
+        return { sourceName: foundAtRoot, sourcePath: path.join(basePath, foundAtRoot), suffix: SUFFIX };
       }
 
       throw new Error(`AGENTS.md not found for: ${normalizedName} (tried as directory and at root)`);
     }
 
     // Pattern 4: Empty or "." - root level only
-    for (const variant of ['AGENTS.md', 'agents.md']) {
-      const candidatePath = path.join(basePath, variant);
-      if (await fs.pathExists(candidatePath)) {
-        return { sourceName: variant, sourcePath: candidatePath, suffix: SUFFIX };
-      }
+    const found = await findAgentsMdInDir(basePath);
+    if (found) {
+      return { sourceName: found, sourcePath: path.join(basePath, found), suffix: SUFFIX };
     }
 
     throw new Error('AGENTS.md not found at repository root');
