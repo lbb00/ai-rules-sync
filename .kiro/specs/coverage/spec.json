@@ -1,0 +1,28 @@
+{
+  "featureName": "coverage",
+  "description": "Improve test coverage to 80%+ overall on all dimensions (statements, branches, functions, lines) and ensure every source file has at least 50% coverage on all dimensions. Current baseline: 67% statements, 55% branches, 69% functions, 67% lines.",
+  "createdAt": "2026-03-23T21:20:00Z",
+  "updatedAt": "2026-03-23T22:25:00Z",
+  "language": "en",
+  "status": "tasks-generated",
+  "phases": {
+    "requirements": "generated",
+    "design": "generated",
+    "tasks": "generated",
+    "implementation": "pending"
+  },
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": false
+    }
+  }
+}
