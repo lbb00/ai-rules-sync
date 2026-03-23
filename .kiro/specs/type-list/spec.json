@@ -1,0 +1,24 @@
+{
+  "feature": "type-list",
+  "title": "Claude Type List Command & User-Level Repo Storage",
+  "status": "tasks",
+  "language": "en",
+  "created": "2026-03-19T00:00:00.000Z",
+  "updated_at": "2026-03-20T00:00:00.000Z",
+  "description": "type-list",
+  "phase": "implementation-complete",
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": false
+    }
+  }
+}
