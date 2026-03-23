@@ -30,26 +30,33 @@ src/
 ├── git.ts             # Git subprocess helpers (clone, pull, fetch, rev-list)
 ├── utils.ts           # Shared utilities (gitignore management, etc.)
 ├── completion.ts      # Shell completion bootstrap
+├── completion/        # Shell completion scripts
+│   └── scripts.ts     # getCompletionScript — bash/zsh/fish completion output
 ├── adapters/          # One file per AI tool/subtype adapter
 │   ├── types.ts       # SyncAdapter interface, LinkResult, SyncOptions, etc.
 │   ├── base.ts        # createBaseAdapter factory + resolver helpers
 │   ├── index.ts       # Adapter registry (register, get, getForTool, findAdapterForAlias)
 │   └── <tool>-<subtype>.ts  # e.g. cursor-rules.ts, claude-md.ts, agents-md.ts
 ├── cli/
-│   └── register.ts    # registerAdapterCommands — declarative CLI wiring
+│   ├── register.ts    # registerAdapterCommands — declarative CLI wiring
+│   └── source-dir-parser.ts  # Parse --source-dir CLI options into adapter overrides
 ├── commands/
 │   ├── handlers.ts    # handleAdd, handleRemove, handleImport (generic, adapter-driven)
 │   ├── helpers.ts     # getTargetRepo, parseConfigEntry, inferDefaultMode
 │   ├── install.ts     # installEntriesForAdapter, installEntriesForTool
 │   ├── add-all.ts     # Discover and bulk-install all entries from a repo
+│   ├── import-all.ts  # Discover and bulk-import all entries into a repo
+│   ├── list.ts        # handleClaudeList — multi-mode list (installed/available/user/repo)
+│   ├── config.ts      # Repo source-dir config, user config show/set/reset
+│   ├── version.ts     # getFormattedVersion for detailed -v output
 │   ├── lifecycle.ts   # check, update, init commands
-│   └── index.ts       # Re-exports
+│   └── index.ts       # Re-exports (handlers, helpers, install, lifecycle, list)
 ├── dotany/            # Tool-agnostic dotfile/symlink abstraction library
 │   ├── types.ts       # SourceResolver, ManifestStore, DotfileManagerOptions
 │   ├── manager.ts     # DotfileManager — add/remove/apply/diff/status via linkany
 │   ├── composer.ts    # DotfileComposer — multi-manager orchestration
 │   ├── index.ts       # dotfile.create() / dotfile.compose() entry points
-│   ├── sources/       # filesystem.ts — FileSystemSource (local directory)
+│   ├── sources/       # filesystem.ts (local directory), git.ts (git repo source)
 │   └── manifest/      # json.ts — JsonManifest with optional namespace
 ├── plugin/
 │   ├── git-repo-source.ts      # GitRepoSource: resolves repo → local cache path
