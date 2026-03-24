@@ -2,7 +2,7 @@
   "mode": "pre",
   "tag": "beta",
   "initialVersions": {
-    "ai-rules-sync": "0.8.0-beta.3"
+    "ai-rules-sync": "0.8.2-beta.1"
   },
   "changesets": []
 }
