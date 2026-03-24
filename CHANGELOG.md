@@ -1,5 +1,12 @@
 # ai-rules-sync
 
+## 0.8.2-beta.2
+
+### Patch Changes
+
+- 2ecaffd: Improve test coverage from 67% to 91% statements, 80% branches, 92% functions. Add vitest coverage configuration with enforced thresholds. Add 18 new test files covering git, plugins, commands, adapters, dotany, and utilities (802 total tests).
+- 2ecaffd: Merge upstream lbb00/ai-rules-sync (aa53caac..6b562a3) bringing sourceDir object format, init --only/--exclude, wildcard config fallback, and VitePress documentation site. All fork features preserved.
+
 ## 0.7.0
 
 ### Minor Changes
