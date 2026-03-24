@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { SyncAdapter } from '../adapters/types.js';
+import type { DiffResult, ListResult } from '../commands/list.js';
 
 // Mock project-config for config reads
 vi.mock('../project-config.js', async (importOriginal) => {
@@ -80,7 +81,7 @@ describe('handleClaudeList', () => {
 
       const { handleClaudeList } = await import('../commands/list.js');
       const adapters = makeAllAdapters();
-      const result = await handleClaudeList(adapters, '/project', undefined, {});
+      const result = await handleClaudeList(adapters, '/project', undefined, {}) as ListResult;
 
       const rulesEntries = result.entries.filter(e => e.subtype === 'rules');
       const settingsEntries = result.entries.filter(e => e.subtype === 'settings');
@@ -98,7 +99,7 @@ describe('handleClaudeList', () => {
 
       const { handleClaudeList } = await import('../commands/list.js');
       const adapters = makeAllAdapters();
-      const result = await handleClaudeList(adapters, '/project', undefined, {});
+      const result = await handleClaudeList(adapters, '/project', undefined, {}) as ListResult;
 
       expect(result.totalCount).toBe(0);
       expect(result.entries).toHaveLength(0);
@@ -115,7 +116,7 @@ describe('handleClaudeList', () => {
 
       const { handleClaudeList } = await import('../commands/list.js');
       const adapters = makeAllAdapters();
-      const result = await handleClaudeList(adapters, '/project', undefined, { type: 'rules' });
+      const result = await handleClaudeList(adapters, '/project', undefined, { type: 'rules' }) as ListResult;
 
       expect(result.entries.every(e => e.subtype === 'rules')).toBe(true);
       expect(result.totalCount).toBe(1);
@@ -143,7 +144,7 @@ describe('handleClaudeList', () => {
 
       const { handleClaudeList } = await import('../commands/list.js');
       const adapters = makeAllAdapters();
-      const result = await handleClaudeList(adapters, '/project', undefined, { user: true });
+      const result = await handleClaudeList(adapters, '/project', undefined, { user: true }) as ListResult;
 
       const settingsEntries = result.entries.filter(e => e.subtype === 'settings');
       expect(settingsEntries).toHaveLength(1);
@@ -157,7 +158,7 @@ describe('handleClaudeList', () => {
 
       const { handleClaudeList } = await import('../commands/list.js');
       const adapters = makeAllAdapters();
-      const result = await handleClaudeList(adapters, '/project', undefined, { user: true });
+      const result = await handleClaudeList(adapters, '/project', undefined, { user: true }) as ListResult;
 
       expect(result.totalCount).toBe(0);
       expect(result.entries).toHaveLength(0);
@@ -174,7 +175,7 @@ describe('handleClaudeList', () => {
 
       const { handleClaudeList } = await import('../commands/list.js');
       const adapters = makeAllAdapters();
-      const result = await handleClaudeList(adapters, '/project', undefined, { user: true, type: 'settings' });
+      const result = await handleClaudeList(adapters, '/project', undefined, { user: true, type: 'settings' }) as ListResult;
 
       expect(result.entries.every(e => e.subtype === 'settings')).toBe(true);
       expect(result.totalCount).toBe(1);
@@ -201,7 +202,7 @@ describe('handleClaudeList', () => {
 
       const { handleClaudeList } = await import('../commands/list.js');
       const adapters = makeAllAdapters();
-      const result = await handleClaudeList(adapters, '/project', '/repo', { repo: true });
+      const result = await handleClaudeList(adapters, '/project', '/repo', { repo: true }) as ListResult;
 
       const installed = result.entries.find(e => e.subtype === 'rules' && e.name === 'my-rule');
       expect(installed).toBeDefined();
@@ -241,7 +242,7 @@ describe('handleClaudeList', () => {
       const adapters = [
         makeAdapter('status-lines', { userDefaultSourceDir: '.claude/user/status-lines' }),
       ];
-      const result = await handleClaudeList(adapters, '/project', '/repo', { repo: true, user: true });
+      const result = await handleClaudeList(adapters, '/project', '/repo', { repo: true, user: true }) as ListResult;
 
       expect(result.totalCount).toBe(1);
       expect(result.entries[0].name).toBe('my-status');
@@ -252,7 +253,7 @@ describe('handleClaudeList', () => {
       const { handleClaudeList } = await import('../commands/list.js');
       const adapters = [makeAdapter('rules')]; // no userDefaultSourceDir
 
-      const result = await handleClaudeList(adapters, '/project', '/repo', { repo: true, user: true });
+      const result = await handleClaudeList(adapters, '/project', '/repo', { repo: true, user: true }) as ListResult;
 
       expect(result.totalCount).toBe(0);
       expect(result.entries).toHaveLength(0);
@@ -269,7 +270,7 @@ describe('handleClaudeList', () => {
       const { handleClaudeList } = await import('../commands/list.js');
       const adapters = [makeAdapter('settings', { userDefaultSourceDir: '.claude/user' })];
 
-      const result = await handleClaudeList(adapters, '/project', '/repo', { repo: true, user: true });
+      const result = await handleClaudeList(adapters, '/project', '/repo', { repo: true, user: true }) as ListResult;
 
       expect(result.totalCount).toBe(0);
       expect(result.entries).toHaveLength(0);
@@ -299,7 +300,7 @@ describe('handleClaudeList', () => {
 
       const { handleClaudeList } = await import('../commands/list.js');
       const adapters = makeAllAdapters();
-      const result = await handleClaudeList(adapters, '/project', undefined, { local: true });
+      const result = await handleClaudeList(adapters, '/project', undefined, { local: true }) as ListResult;
 
       expect(result.totalCount).toBe(2);
       expect(result.subtypeCount).toBe(2);
@@ -330,7 +331,7 @@ describe('handleClaudeList', () => {
 
       const { handleClaudeList } = await import('../commands/list.js');
       const adapters = makeAllAdapters();
-      const result = await handleClaudeList(adapters, '/project', undefined, { local: true, type: 'rules' });
+      const result = await handleClaudeList(adapters, '/project', undefined, { local: true, type: 'rules' }) as ListResult;
 
       expect(result.totalCount).toBe(1);
       expect(result.entries.every(e => e.subtype === 'rules')).toBe(true);
@@ -357,7 +358,7 @@ describe('handleClaudeList', () => {
 
       const { handleClaudeList } = await import('../commands/list.js');
       const adapters = makeAllAdapters();
-      const result = await handleClaudeList(adapters, '/project', undefined, { local: true, type: 'rules' });
+      const result = await handleClaudeList(adapters, '/project', undefined, { local: true, type: 'rules' }) as ListResult;
 
       const managed = result.entries.find(e => e.name === 'managed-rule');
       expect(managed!.status).toBe('i');
@@ -395,7 +396,7 @@ describe('handleClaudeList', () => {
 
       const { handleClaudeList } = await import('../commands/list.js');
       const adapters = makeAllAdapters();
-      const result = await handleClaudeList(adapters, '/project', undefined, { local: true, user: true });
+      const result = await handleClaudeList(adapters, '/project', undefined, { local: true, user: true }) as ListResult;
 
       expect(getUserProjectConfig).toHaveBeenCalled();
       expect(getCombinedProjectConfig).not.toHaveBeenCalled();
@@ -413,7 +414,7 @@ describe('handleClaudeList', () => {
 
       const { handleClaudeList } = await import('../commands/list.js');
       const adapters = makeAllAdapters();
-      const result = await handleClaudeList(adapters, '/project', undefined, { local: true });
+      const result = await handleClaudeList(adapters, '/project', undefined, { local: true }) as ListResult;
 
       expect(result.totalCount).toBe(0);
       expect(result.entries).toHaveLength(0);
@@ -437,5 +438,472 @@ describe('handleClaudeList', () => {
         true
       );
     });
+  });
+
+  // Mode Diff tests
+  describe('Mode Diff (--diff)', () => {
+    describe('isDiffResult type guard', () => {
+      it('returns true for DiffResult objects (has rows property)', async () => {
+        const { isDiffResult } = await import('../commands/list.js');
+        const diffResult: DiffResult = { rows: [], totalCount: 0, subtypeCount: 0 };
+        expect(isDiffResult(diffResult)).toBe(true);
+      });
+
+      it('returns false for ListResult objects (has entries property)', async () => {
+        const { isDiffResult } = await import('../commands/list.js');
+        const listResult = { entries: [], totalCount: 0, subtypeCount: 0 };
+        expect(isDiffResult(listResult)).toBe(false);
+      });
+    });
+
+    describe('mergeIntoDiffRows', () => {
+      it('entry in all three sources produces one row with correct statuses', async () => {
+        const { mergeIntoDiffRows } = await import('../commands/list.js');
+        const local = [{ subtype: 'rules', name: 'my-rule', status: 'i' as const }];
+        const repo = [{ subtype: 'rules', name: 'my-rule', status: 'a' as const }];
+        const user = [{ subtype: 'rules', name: 'my-rule' }];
+
+        const rows = mergeIntoDiffRows(local, repo, user);
+
+        expect(rows).toHaveLength(1);
+        expect(rows[0]).toEqual({
+          subtype: 'rules',
+          name: 'my-rule',
+          local: 'i',
+          repo: 'a',
+          user: 'i',
+        });
+      });
+
+      it('entry in local only produces row with l, -, -', async () => {
+        const { mergeIntoDiffRows } = await import('../commands/list.js');
+        const local = [{ subtype: 'rules', name: 'local-only', status: 'l' as const }];
+
+        const rows = mergeIntoDiffRows(local, [], []);
+
+        expect(rows).toHaveLength(1);
+        expect(rows[0]).toEqual({
+          subtype: 'rules',
+          name: 'local-only',
+          local: 'l',
+          repo: '-',
+          user: '-',
+        });
+      });
+
+      it('entry in repo only produces row with -, a, -', async () => {
+        const { mergeIntoDiffRows } = await import('../commands/list.js');
+        const repo = [{ subtype: 'skills', name: 'repo-skill', status: 'a' as const }];
+
+        const rows = mergeIntoDiffRows([], repo, []);
+
+        expect(rows).toHaveLength(1);
+        expect(rows[0]).toEqual({
+          subtype: 'skills',
+          name: 'repo-skill',
+          local: '-',
+          repo: 'a',
+          user: '-',
+        });
+      });
+
+      it('entry in user only produces row with -, -, i', async () => {
+        const { mergeIntoDiffRows } = await import('../commands/list.js');
+        const user = [{ subtype: 'settings', name: 'user-setting' }];
+
+        const rows = mergeIntoDiffRows([], [], user);
+
+        expect(rows).toHaveLength(1);
+        expect(rows[0]).toEqual({
+          subtype: 'settings',
+          name: 'user-setting',
+          local: '-',
+          repo: '-',
+          user: 'i',
+        });
+      });
+
+      it('managed local entry shows i in local column', async () => {
+        const { mergeIntoDiffRows } = await import('../commands/list.js');
+        const local = [{ subtype: 'rules', name: 'managed', status: 'i' as const }];
+
+        const rows = mergeIntoDiffRows(local, [], []);
+
+        expect(rows[0].local).toBe('i');
+      });
+
+      it('repo entry with status i still shows a in repo column', async () => {
+        const { mergeIntoDiffRows } = await import('../commands/list.js');
+        // Mode C marks installed entries with 'i', but diff repo column always shows 'a'
+        const repo = [{ subtype: 'rules', name: 'installed-repo', status: 'i' as const }];
+
+        const rows = mergeIntoDiffRows([], repo, []);
+
+        expect(rows[0].repo).toBe('a');
+      });
+
+      it('multiple entries across subtypes are all included', async () => {
+        const { mergeIntoDiffRows } = await import('../commands/list.js');
+        const local = [
+          { subtype: 'rules', name: 'rule-a', status: 'l' as const },
+          { subtype: 'skills', name: 'skill-a', status: 'l' as const },
+        ];
+        const repo = [
+          { subtype: 'rules', name: 'rule-b', status: 'a' as const },
+        ];
+
+        const rows = mergeIntoDiffRows(local, repo, []);
+
+        expect(rows).toHaveLength(3);
+      });
+
+      it('returns empty array when all inputs are empty', async () => {
+        const { mergeIntoDiffRows } = await import('../commands/list.js');
+
+        const rows = mergeIntoDiffRows([], [], []);
+
+        expect(rows).toEqual([]);
+      });
+    });
+
+    describe('handleModeDiff dispatch and behavior', () => {
+      it('--diff returns DiffResult with rows sorted by subtype then name', async () => {
+        // Set up local entries (via scanAdapterTargetDir)
+        const { scanAdapterTargetDir } = await import('../commands/import-all.js');
+        vi.mocked(scanAdapterTargetDir).mockImplementation(async (adapter) => {
+          if (adapter.subtype === 'skills') {
+            return [{ sourceName: 'beta-skill', entryName: 'beta-skill', isDirectory: true }];
+          }
+          if (adapter.subtype === 'rules') {
+            return [{ sourceName: 'alpha-rule', entryName: 'alpha-rule', isDirectory: true }];
+          }
+          return [];
+        });
+
+        // Project config for cross-referencing local status
+        const { getCombinedProjectConfig } = await import('../project-config.js');
+        vi.mocked(getCombinedProjectConfig).mockResolvedValue({} as any);
+
+        // User config
+        const { getUserProjectConfig } = await import('../config.js');
+        vi.mocked(getUserProjectConfig).mockResolvedValue({} as any);
+
+        const { handleClaudeList, isDiffResult } = await import('../commands/list.js');
+        const adapters = makeAllAdapters();
+        const result = await handleClaudeList(adapters, '/project', undefined, { diff: true });
+
+        expect(isDiffResult(result)).toBe(true);
+        if (isDiffResult(result)) {
+          // Sorted: rules before skills (alphabetical by subtype)
+          expect(result.rows[0].subtype).toBe('rules');
+          expect(result.rows[0].name).toBe('alpha-rule');
+          expect(result.rows[1].subtype).toBe('skills');
+          expect(result.rows[1].name).toBe('beta-skill');
+          expect(result.totalCount).toBe(2);
+          expect(result.subtypeCount).toBe(2);
+        }
+      });
+
+      it('--diff --local throws mutual exclusivity error', async () => {
+        const { handleClaudeList } = await import('../commands/list.js');
+        const adapters = makeAllAdapters();
+
+        await expect(
+          handleClaudeList(adapters, '/project', undefined, { diff: true, local: true })
+        ).rejects.toThrow(/mutually exclusive/i);
+      });
+
+      it('--diff --repo throws mutual exclusivity error', async () => {
+        const { handleClaudeList } = await import('../commands/list.js');
+        const adapters = makeAllAdapters();
+
+        await expect(
+          handleClaudeList(adapters, '/project', undefined, { diff: true, repo: true })
+        ).rejects.toThrow(/mutually exclusive/i);
+      });
+
+      it('--diff --user throws mutual exclusivity error', async () => {
+        const { handleClaudeList } = await import('../commands/list.js');
+        const adapters = makeAllAdapters();
+
+        await expect(
+          handleClaudeList(adapters, '/project', undefined, { diff: true, user: true })
+        ).rejects.toThrow(/mutually exclusive/i);
+      });
+
+      it('--diff --local --repo throws mutual exclusivity error', async () => {
+        const { handleClaudeList } = await import('../commands/list.js');
+        const adapters = makeAllAdapters();
+
+        await expect(
+          handleClaudeList(adapters, '/project', undefined, { diff: true, local: true, repo: true })
+        ).rejects.toThrow(/mutually exclusive/i);
+      });
+
+      it('--diff with type filter returns only matching subtype', async () => {
+        const { scanAdapterTargetDir } = await import('../commands/import-all.js');
+        vi.mocked(scanAdapterTargetDir).mockImplementation(async (adapter) => {
+          if (adapter.subtype === 'rules') {
+            return [{ sourceName: 'my-rule', entryName: 'my-rule', isDirectory: true }];
+          }
+          if (adapter.subtype === 'skills') {
+            return [{ sourceName: 'my-skill', entryName: 'my-skill', isDirectory: true }];
+          }
+          return [];
+        });
+
+        const { getCombinedProjectConfig } = await import('../project-config.js');
+        vi.mocked(getCombinedProjectConfig).mockResolvedValue({} as any);
+        const { getUserProjectConfig } = await import('../config.js');
+        vi.mocked(getUserProjectConfig).mockResolvedValue({} as any);
+
+        const { handleClaudeList, isDiffResult } = await import('../commands/list.js');
+        const adapters = makeAllAdapters();
+        const result = await handleClaudeList(adapters, '/project', undefined, { diff: true, type: 'rules' });
+
+        expect(isDiffResult(result)).toBe(true);
+        if (isDiffResult(result)) {
+          expect(result.rows.every(r => r.subtype === 'rules')).toBe(true);
+          expect(result.totalCount).toBe(1);
+        }
+      });
+
+      it('--diff with invalid type throws error', async () => {
+        const { handleClaudeList } = await import('../commands/list.js');
+        const adapters = makeAllAdapters();
+
+        await expect(
+          handleClaudeList(adapters, '/project', undefined, { diff: true, type: 'bogus' })
+        ).rejects.toThrow(/valid.*type|rules|settings/i);
+      });
+
+      it('--diff with no repo path: repo column all -', async () => {
+        const { scanAdapterTargetDir } = await import('../commands/import-all.js');
+        vi.mocked(scanAdapterTargetDir).mockImplementation(async (adapter) => {
+          if (adapter.subtype === 'rules') {
+            return [{ sourceName: 'my-rule', entryName: 'my-rule', isDirectory: true }];
+          }
+          return [];
+        });
+
+        const { getCombinedProjectConfig } = await import('../project-config.js');
+        vi.mocked(getCombinedProjectConfig).mockResolvedValue({} as any);
+        const { getUserProjectConfig } = await import('../config.js');
+        vi.mocked(getUserProjectConfig).mockResolvedValue({} as any);
+
+        const { handleClaudeList, isDiffResult } = await import('../commands/list.js');
+        const adapters = makeAllAdapters();
+        const result = await handleClaudeList(adapters, '/project', undefined, { diff: true });
+
+        expect(isDiffResult(result)).toBe(true);
+        if (isDiffResult(result)) {
+          expect(result.rows.every(r => r.repo === '-')).toBe(true);
+        }
+      });
+
+      it('--diff with repo path populates repo column for matching entries', async () => {
+        const fsp = await import('node:fs/promises');
+        vi.mocked(fsp.readdir as any).mockImplementation(async (dirPath: any) => {
+          const p = String(dirPath);
+          if (p.includes('rules')) {
+            return ['shared-rule' as any];
+          }
+          return [];
+        });
+
+        const { scanAdapterTargetDir } = await import('../commands/import-all.js');
+        vi.mocked(scanAdapterTargetDir).mockImplementation(async (adapter) => {
+          if (adapter.subtype === 'rules') {
+            return [{ sourceName: 'shared-rule', entryName: 'shared-rule', isDirectory: true }];
+          }
+          return [];
+        });
+
+        const { getCombinedProjectConfig, getRepoSourceConfig } = await import('../project-config.js');
+        vi.mocked(getCombinedProjectConfig).mockResolvedValue({
+          claude: { rules: { 'shared-rule': 'https://example.com' } }
+        } as any);
+        vi.mocked(getRepoSourceConfig).mockResolvedValue({} as any);
+
+        const { getUserProjectConfig } = await import('../config.js');
+        vi.mocked(getUserProjectConfig).mockResolvedValue({} as any);
+
+        const { handleClaudeList, isDiffResult } = await import('../commands/list.js');
+        const adapters = makeAllAdapters();
+        const result = await handleClaudeList(adapters, '/project', '/repo', { diff: true });
+
+        expect(isDiffResult(result)).toBe(true);
+        if (isDiffResult(result)) {
+          const ruleRow = result.rows.find(r => r.name === 'shared-rule');
+          expect(ruleRow).toBeDefined();
+          expect(ruleRow!.local).toBe('i');
+          expect(ruleRow!.repo).toBe('a');
+        }
+      });
+
+      it('--diff with empty result returns totalCount 0', async () => {
+        const { scanAdapterTargetDir } = await import('../commands/import-all.js');
+        vi.mocked(scanAdapterTargetDir).mockResolvedValue([]);
+
+        const { getCombinedProjectConfig } = await import('../project-config.js');
+        vi.mocked(getCombinedProjectConfig).mockResolvedValue({} as any);
+        const { getUserProjectConfig } = await import('../config.js');
+        vi.mocked(getUserProjectConfig).mockResolvedValue({} as any);
+
+        const { handleClaudeList, isDiffResult } = await import('../commands/list.js');
+        const adapters = makeAllAdapters();
+        const result = await handleClaudeList(adapters, '/project', undefined, { diff: true });
+
+        expect(isDiffResult(result)).toBe(true);
+        if (isDiffResult(result)) {
+          expect(result.rows).toHaveLength(0);
+          expect(result.totalCount).toBe(0);
+          expect(result.subtypeCount).toBe(0);
+        }
+      });
+
+      it('--diff includes user config entries in user column', async () => {
+        const { scanAdapterTargetDir } = await import('../commands/import-all.js');
+        vi.mocked(scanAdapterTargetDir).mockResolvedValue([]);
+
+        const { getCombinedProjectConfig } = await import('../project-config.js');
+        vi.mocked(getCombinedProjectConfig).mockResolvedValue({} as any);
+
+        const { getUserProjectConfig } = await import('../config.js');
+        vi.mocked(getUserProjectConfig).mockResolvedValue({
+          claude: { settings: { 'my-setting': 'https://example.com' } }
+        } as any);
+
+        const { handleClaudeList, isDiffResult } = await import('../commands/list.js');
+        const adapters = makeAllAdapters();
+        const result = await handleClaudeList(adapters, '/project', undefined, { diff: true });
+
+        expect(isDiffResult(result)).toBe(true);
+        if (isDiffResult(result)) {
+          const settingRow = result.rows.find(r => r.name === 'my-setting');
+          expect(settingRow).toBeDefined();
+          expect(settingRow!.user).toBe('i');
+          expect(settingRow!.local).toBe('-');
+        }
+      });
+    });
+  });
+});
+
+describe('printDiffResult', () => {
+  let logSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logSpy.mockRestore();
+  });
+
+  it('prints "No entries found." for empty result', async () => {
+    const { printDiffResult } = await import('../commands/list.js');
+    printDiffResult({ rows: [], totalCount: 0, subtypeCount: 0 }, false);
+
+    expect(logSpy).toHaveBeenCalledTimes(1);
+    expect(logSpy.mock.calls[0][0]).toContain('No entries found.');
+  });
+
+  it('normal mode prints header, separator, rows, summary, and legend', async () => {
+    const { printDiffResult } = await import('../commands/list.js');
+    const result: DiffResult = {
+      rows: [
+        { subtype: 'rules', name: 'my-rule', local: 'i', repo: 'a', user: '-' },
+      ],
+      totalCount: 1,
+      subtypeCount: 1,
+    };
+    printDiffResult(result, false);
+
+    // header + separator + 1 row + summary + legend = 5 calls
+    expect(logSpy).toHaveBeenCalledTimes(5);
+
+    // Header should contain column names
+    const headerCall = logSpy.mock.calls[0][0] as string;
+    expect(headerCall).toContain('Type');
+    expect(headerCall).toContain('Name');
+    expect(headerCall).toContain('Local');
+    expect(headerCall).toContain('Repo');
+    expect(headerCall).toContain('User');
+
+    // Separator should contain dashes
+    const separatorCall = logSpy.mock.calls[1][0] as string;
+    expect(separatorCall).toMatch(/^[-\s]+$/);
+
+    // Row should contain the entry data
+    const rowCall = logSpy.mock.calls[2][0] as string;
+    expect(rowCall).toContain('rules');
+    expect(rowCall).toContain('my-rule');
+
+    // Summary
+    const summaryCall = logSpy.mock.calls[3][0] as string;
+    expect(summaryCall).toContain('1 entry');
+    expect(summaryCall).toContain('1 type');
+
+    // Legend
+    const legendCall = logSpy.mock.calls[4][0] as string;
+    expect(legendCall).toContain('Legend');
+    expect(legendCall).toContain('local-only');
+    expect(legendCall).toContain('installed');
+    expect(legendCall).toContain('available');
+    expect(legendCall).toContain('absent');
+  });
+
+  it('quiet mode prints tab-separated values without headers or color', async () => {
+    const { printDiffResult } = await import('../commands/list.js');
+    const result: DiffResult = {
+      rows: [
+        { subtype: 'rules', name: 'my-rule', local: 'i', repo: 'a', user: '-' },
+        { subtype: 'skills', name: 'my-skill', local: 'l', repo: '-', user: 'i' },
+      ],
+      totalCount: 2,
+      subtypeCount: 2,
+    };
+    printDiffResult(result, true);
+
+    // 2 rows, no header, no separator, no summary, no legend
+    expect(logSpy).toHaveBeenCalledTimes(2);
+
+    const line1 = logSpy.mock.calls[0][0] as string;
+    expect(line1).toBe('rules\tmy-rule\ti\ta\t-');
+
+    const line2 = logSpy.mock.calls[1][0] as string;
+    expect(line2).toBe('skills\tmy-skill\tl\t-\ti');
+  });
+
+  it('normal mode with multiple rows includes correct summary', async () => {
+    const { printDiffResult } = await import('../commands/list.js');
+    const result: DiffResult = {
+      rows: [
+        { subtype: 'rules', name: 'rule-a', local: 'l', repo: '-', user: '-' },
+        { subtype: 'skills', name: 'skill-a', local: '-', repo: 'a', user: '-' },
+        { subtype: 'skills', name: 'skill-b', local: 'i', repo: 'a', user: 'i' },
+      ],
+      totalCount: 3,
+      subtypeCount: 2,
+    };
+    printDiffResult(result, false);
+
+    // header + separator + 3 rows + summary + legend = 7 calls
+    expect(logSpy).toHaveBeenCalledTimes(7);
+
+    const summaryCall = logSpy.mock.calls[5][0] as string;
+    expect(summaryCall).toContain('3 entries');
+    expect(summaryCall).toContain('2 types');
+  });
+
+  it('empty result in quiet mode produces no output', async () => {
+    const { printDiffResult } = await import('../commands/list.js');
+    printDiffResult({ rows: [], totalCount: 0, subtypeCount: 0 }, true);
+
+    // Even in quiet mode, empty result prints "No entries found."
+    // Actually, empty result check happens first regardless of mode
+    expect(logSpy).toHaveBeenCalledTimes(1);
+    expect(logSpy.mock.calls[0][0]).toContain('No entries found.');
   });
 });

@@ -28,7 +28,7 @@ import {
 import { handleAdd, handleRemove, handleImport } from './commands/handlers.js';
 import { installEntriesForAdapter, installEntriesForTool, installAllUserEntries } from './commands/install.js';
 import { discoverAllEntries, handleAddAll } from './commands/add-all.js';
-import { handleClaudeList, ListResult, ListOptions } from './commands/list.js';
+import { handleClaudeList, ListResult, ListOptions, DiffResult, isDiffResult, printDiffResult } from './commands/list.js';
 import { parseSourceDirParams } from './cli/source-dir-parser.js';
 import { setRepoSourceDir, clearRepoSourceDir, showRepoConfig, listRepos, handleUserConfigShow, handleUserConfigSet, handleUserConfigReset } from './commands/config.js';
 import { getFormattedVersion } from './commands/version.js';
@@ -1311,8 +1311,9 @@ claude
   .option('-r, --repo', 'List entries available in the rules repository source directories')
   .option('-u, --user', 'List entries from user config (~/.config/ai-rules-sync/user.json)')
   .option('-l, --local', 'Scan project directory for Claude files on disk')
+  .option('-d, --diff', 'Show unified diff table combining local, repo, and user views')
   .option('--quiet', 'Output entry names only, one per line')
-  .action(async (type: string | undefined, cmdOptions: { repo?: boolean; user?: boolean; local?: boolean; quiet?: boolean }) => {
+  .action(async (type: string | undefined, cmdOptions: { repo?: boolean; user?: boolean; local?: boolean; diff?: boolean; quiet?: boolean }) => {
     try {
       const projectPath = process.cwd();
       const opts = program.opts();
@@ -1325,11 +1326,16 @@ claude
         repo: cmdOptions.repo,
         user: cmdOptions.user,
         local: cmdOptions.local,
+        diff: cmdOptions.diff,
         quiet: cmdOptions.quiet,
       };
 
       const result = await handleClaudeList(claudeAdapters, projectPath, repoPath, listOptions);
-      printListResult(result, listOptions);
+      if (isDiffResult(result)) {
+        printDiffResult(result, listOptions.quiet ?? false);
+      } else {
+        printListResult(result, listOptions);
+      }
     } catch (error: any) {
       console.error(chalk.red('Error:'), error.message);
       process.exit(1);

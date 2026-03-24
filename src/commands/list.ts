@@ -1,5 +1,6 @@
 import path from 'path';
 import fs from 'fs-extra';
+import chalk from 'chalk';
 import { readdir } from 'node:fs/promises';
 import { SyncAdapter } from '../adapters/types.js';
 import { getCombinedProjectConfig, getRepoSourceConfig, getSourceDir } from '../project-config.js';
@@ -20,6 +21,8 @@ export interface ListOptions {
   quiet?: boolean;
   /** When true, scan project target dirs on disk for Claude files */
   local?: boolean;
+  /** When true, show unified diff table combining local, repo, and user views */
+  diff?: boolean;
 }
 
 /**
@@ -46,6 +49,34 @@ export interface ListResult {
 }
 
 /**
+ * A single row in the unified diff table.
+ * Maps to one unique (subtype, name) pair across all data sources.
+ */
+export interface DiffRow {
+  subtype: string;
+  name: string;
+  local: 'l' | 'i' | '-';
+  repo: 'a' | '-';
+  user: 'i' | '-';
+}
+
+/**
+ * Result of a diff list operation.
+ */
+export interface DiffResult {
+  rows: DiffRow[];
+  totalCount: number;
+  subtypeCount: number;
+}
+
+/**
+ * Type guard to distinguish DiffResult from ListResult.
+ */
+export function isDiffResult(result: ListResult | DiffResult): result is DiffResult {
+  return 'rows' in result;
+}
+
+/**
  * Read a directory and return its entries as a Set. Returns empty Set on ENOENT.
  */
 async function readDirSet(dirPath: string): Promise<Set<string>> {
@@ -55,6 +86,50 @@ async function readDirSet(dirPath: string): Promise<Set<string>> {
     if (e.code === 'ENOENT') return new Set();
     throw e;
   }
+}
+
+/**
+ * Merge entries from local disk, repo, and user config into unified DiffRows.
+ * Pure function: no I/O, no side effects.
+ *
+ * - Local status is taken from the entry's status value ('i' or 'l').
+ * - Repo status is always 'a' (available) for any entry present in repo.
+ * - User status is always 'i' (tracked) for any entry present in user config.
+ * - Missing sources get '-'.
+ */
+export function mergeIntoDiffRows(
+  localEntries: ListEntry[],
+  repoEntries: ListEntry[],
+  userEntries: ListEntry[]
+): DiffRow[] {
+  const map = new Map<string, DiffRow>();
+
+  function getOrCreate(subtype: string, name: string): DiffRow {
+    const key = `${subtype}:${name}`;
+    let row = map.get(key);
+    if (!row) {
+      row = { subtype, name, local: '-', repo: '-', user: '-' };
+      map.set(key, row);
+    }
+    return row;
+  }
+
+  for (const entry of localEntries) {
+    const row = getOrCreate(entry.subtype, entry.name);
+    row.local = (entry.status === 'i' || entry.status === 'l') ? entry.status : 'l';
+  }
+
+  for (const entry of repoEntries) {
+    const row = getOrCreate(entry.subtype, entry.name);
+    row.repo = 'a';
+  }
+
+  for (const entry of userEntries) {
+    const row = getOrCreate(entry.subtype, entry.name);
+    row.user = 'i';
+  }
+
+  return Array.from(map.values());
 }
 
 /**
@@ -98,7 +173,7 @@ export async function handleClaudeList(
   projectPath: string,
   repoPath: string | undefined,
   options: ListOptions
-): Promise<ListResult> {
+): Promise<ListResult | DiffResult> {
   // Validate type argument if provided
   if (options.type !== undefined) {
     const validSubtypes = claudeAdapters.map(a => a.subtype);
@@ -113,6 +188,16 @@ export async function handleClaudeList(
   const adapters = options.type
     ? claudeAdapters.filter(a => a.subtype === options.type)
     : claudeAdapters;
+
+  // Mutual exclusivity: --diff with --local, --repo, --user
+  if (options.diff && (options.local || options.repo || options.user)) {
+    throw new Error('--diff is mutually exclusive with --local, --repo, and --user');
+  }
+
+  // Mode Diff: --diff
+  if (options.diff) {
+    return handleModeDiff(adapters, projectPath, repoPath);
+  }
 
   // Mutual exclusivity: --local + --repo
   if (options.local && options.repo) {
@@ -349,4 +434,104 @@ async function handleModeE(
     totalCount: entries.length,
     subtypeCount: computeSubtypeCount(entries),
   };
+}
+
+/**
+ * Mode Diff: Produce a unified table combining local disk, repo, and user config views.
+ * Each unique (subtype, name) pair appears once with per-source status indicators.
+ */
+async function handleModeDiff(
+  adapters: SyncAdapter[],
+  projectPath: string,
+  repoPath: string | undefined
+): Promise<DiffResult> {
+  // 1. Local disk entries (Mode E without user flag)
+  const localResult = await handleModeE(adapters, projectPath, false);
+
+  // 2. Repo entries (Mode C) -- skip when no repoPath
+  let repoEntries: ListEntry[] = [];
+  if (repoPath) {
+    try {
+      const repoResult = await handleModeC(adapters, repoPath, projectPath);
+      repoEntries = repoResult.entries;
+    } catch {
+      // If repo is inaccessible, treat repo column as all '-'
+      repoEntries = [];
+    }
+  }
+
+  // 3. User config entries
+  const userConfig = await getUserProjectConfig();
+  const userEntries = extractConfigEntries(userConfig as Record<string, any>, adapters);
+
+  // 4. Merge
+  const rows = mergeIntoDiffRows(localResult.entries, repoEntries, userEntries);
+
+  // 5. Sort by subtype then name
+  rows.sort((a, b) => {
+    const subtypeCmp = a.subtype.localeCompare(b.subtype);
+    if (subtypeCmp !== 0) return subtypeCmp;
+    return a.name.localeCompare(b.name);
+  });
+
+  // 6. Return DiffResult
+  return {
+    rows,
+    totalCount: rows.length,
+    subtypeCount: new Set(rows.map(r => r.subtype)).size,
+  };
+}
+
+/**
+ * Print a DiffResult to stdout.
+ * In quiet mode: tab-separated values, no headers, no color.
+ * Otherwise: aligned table with colored status indicators.
+ */
+export function printDiffResult(result: DiffResult, quiet: boolean): void {
+  if (result.totalCount === 0) {
+    console.log(chalk.gray('No entries found.'));
+    return;
+  }
+
+  if (quiet) {
+    for (const row of result.rows) {
+      console.log(`${row.subtype}\t${row.name}\t${row.local}\t${row.repo}\t${row.user}`);
+    }
+    return;
+  }
+
+  // Calculate column widths
+  const typeWidth = Math.max('Type'.length, ...result.rows.map(r => r.subtype.length));
+  const nameWidth = Math.max('Name'.length, ...result.rows.map(r => r.name.length));
+
+  // Color helper
+  const colorize = (status: string): string => {
+    switch (status) {
+      case 'i': return chalk.green(status);
+      case 'a': return chalk.cyan(status);
+      case 'l': return chalk.magenta(status);
+      default: return chalk.gray(status);
+    }
+  };
+
+  // Header
+  const header = `${'Type'.padEnd(typeWidth)}  ${'Name'.padEnd(nameWidth)}  ${'Local'.padEnd(5)}  ${'Repo'.padEnd(4)}  ${'User'}`;
+  console.log(chalk.bold(header));
+
+  // Separator
+  const sep = `${'-'.repeat(typeWidth)}  ${'-'.repeat(nameWidth)}  ${'-'.repeat(5)}  ${'-'.repeat(4)}  ${'-'.repeat(4)}`;
+  console.log(sep);
+
+  // Rows
+  for (const row of result.rows) {
+    const line = `${row.subtype.padEnd(typeWidth)}  ${row.name.padEnd(nameWidth)}  ${colorize(row.local).padEnd(5 + (colorize(row.local).length - 1))}  ${colorize(row.repo).padEnd(4 + (colorize(row.repo).length - 1))}  ${colorize(row.user)}`;
+    console.log(line);
+  }
+
+  // Summary
+  const summary = `\n${result.totalCount} ${result.totalCount === 1 ? 'entry' : 'entries'} across ${result.subtypeCount} ${result.subtypeCount === 1 ? 'type' : 'types'}`;
+  console.log(chalk.gray(summary));
+
+  // Legend
+  console.log(chalk.gray('Legend: l=local-only  i=installed  a=available  -=absent'));
 }
