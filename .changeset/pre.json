@@ -4,5 +4,8 @@
   "initialVersions": {
     "ai-rules-sync": "0.8.2-beta.1"
   },
-  "changesets": []
+  "changesets": [
+    "test-coverage",
+    "upstream-merge"
+  ]
 }
