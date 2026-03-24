@@ -1,5 +1,11 @@
 # ai-rules-sync
 
+## 0.8.2-beta.3
+
+### Patch Changes
+
+- 5d98907: Add CI workflow for PRs and coverage reporting
+
 ## 0.8.2-beta.2
 
 ### Patch Changes

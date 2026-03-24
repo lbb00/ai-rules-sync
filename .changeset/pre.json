@@ -5,6 +5,7 @@
     "ai-rules-sync": "0.8.2-beta.1"
   },
   "changesets": [
+    "ci-improvements",
     "test-coverage",
     "upstream-merge"
   ]
