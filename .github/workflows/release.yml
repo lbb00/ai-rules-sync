@@ -6,13 +6,6 @@ on:
       - main
     paths-ignore:
       - Formula/ais.rb
-  workflow_dispatch:
-    inputs:
-      publish_test:
-        description: Publish a prerelease package to npm "test" tag
-        required: false
-        default: true
-        type: boolean
 
 permissions:
   contents: write
@@ -21,9 +14,6 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    outputs:
-      published: ${{ steps.changesets.outputs.published }}
-      published_version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,7 +28,6 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
-          registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -49,48 +38,11 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Set unique prerelease version for test publish
-        id: test_version
-        if: github.event_name == 'workflow_dispatch' && inputs.publish_test
-        run: |
-          VERSION=$(node -e 'const fs=require("fs");const pkg=JSON.parse(fs.readFileSync("package.json","utf8"));const [major,minor,patch]=pkg.version.split("-")[0].split(".").map(Number);console.log([major,minor,patch+1].join(".")+"-test."+process.env.GITHUB_RUN_NUMBER+"."+process.env.GITHUB_RUN_ATTEMPT);')
-          npm version "$VERSION" --no-git-tag-version
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Publish npm test tag
-        if: github.event_name == 'workflow_dispatch' && inputs.publish_test
-        run: pnpm publish --tag test --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Create release PR or publish
-        id: changesets
-        if: github.event_name != 'workflow_dispatch' || inputs.publish_test != true
+      - name: Create release PR
         uses: changesets/action@v1.7.0
         with:
           version: pnpm changeset version
-          publish: pnpm changeset publish
           title: "chore: release versions"
           commit: "chore: release versions"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Resolve published version
-        id: version
-        if: steps.changesets.outputs.published == 'true'
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Summary for test publish
-        if: github.event_name == 'workflow_dispatch' && inputs.publish_test
-        run: echo "Published ai-rules-sync@${{ steps.test_version.outputs.version }} to npm tag 'test'."
-
-  update-homebrew:
-    needs: release
-    if: needs.release.outputs.published == 'true'
-    uses: ./.github/workflows/update-homebrew.yml
-    with:
-      version: ${{ needs.release.outputs.published_version }}
