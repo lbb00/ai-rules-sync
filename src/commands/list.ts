@@ -58,6 +58,7 @@ export interface DiffRow {
   local: 'l' | 'i' | '-';
   repo: 'a' | '-';
   user: 'i' | '-';
+  repoUser: 'a' | '-';
 }
 
 /**
@@ -100,7 +101,8 @@ async function readDirSet(dirPath: string): Promise<Set<string>> {
 export function mergeIntoDiffRows(
   localEntries: ListEntry[],
   repoEntries: ListEntry[],
-  userEntries: ListEntry[]
+  userEntries: ListEntry[],
+  repoUserEntries: ListEntry[] = []
 ): DiffRow[] {
   const map = new Map<string, DiffRow>();
 
@@ -108,7 +110,7 @@ export function mergeIntoDiffRows(
     const key = `${subtype}:${name}`;
     let row = map.get(key);
     if (!row) {
-      row = { subtype, name, local: '-', repo: '-', user: '-' };
+      row = { subtype, name, local: '-', repo: '-', user: '-', repoUser: '-' };
       map.set(key, row);
     }
     return row;
@@ -127,6 +129,11 @@ export function mergeIntoDiffRows(
   for (const entry of userEntries) {
     const row = getOrCreate(entry.subtype, entry.name);
     row.user = 'i';
+  }
+
+  for (const entry of repoUserEntries) {
+    const row = getOrCreate(entry.subtype, entry.name);
+    row.repoUser = 'a';
   }
 
   return Array.from(map.values());
@@ -448,14 +455,13 @@ async function handleModeDiff(
   // 1. Local disk entries (Mode E without user flag)
   const localResult = await handleModeE(adapters, projectPath, false);
 
-  // 2. Repo entries (Mode C) -- skip when no repoPath
+  // 2. Repo project entries (Mode C) -- skip when no repoPath
   let repoEntries: ListEntry[] = [];
   if (repoPath) {
     try {
       const repoResult = await handleModeC(adapters, repoPath, projectPath);
       repoEntries = repoResult.entries;
     } catch {
-      // If repo is inaccessible, treat repo column as all '-'
       repoEntries = [];
     }
   }
@@ -464,8 +470,19 @@ async function handleModeDiff(
   const userConfig = await getUserProjectConfig();
   const userEntries = extractConfigEntries(userConfig as Record<string, any>, adapters);
 
-  // 4. Merge
-  const rows = mergeIntoDiffRows(localResult.entries, repoEntries, userEntries);
+  // 4. Repo user entries (Mode D) -- skip when no repoPath
+  let repoUserEntries: ListEntry[] = [];
+  if (repoPath) {
+    try {
+      const repoUserResult = await handleModeD(adapters, repoPath, projectPath);
+      repoUserEntries = repoUserResult.entries;
+    } catch {
+      repoUserEntries = [];
+    }
+  }
+
+  // 5. Merge
+  const rows = mergeIntoDiffRows(localResult.entries, repoEntries, userEntries, repoUserEntries);
 
   // 5. Sort by subtype then name
   rows.sort((a, b) => {
@@ -493,12 +510,16 @@ export function printDiffResult(result: DiffResult, quiet: boolean): void {
     return;
   }
 
+  const lp = 'Local(P)';
+  const rp = 'Repo(P)';
+  const us = 'User';
+  const ru = 'Repo(U)';
+
   if (quiet) {
-    // Fixed-width columns without headers/legend/color
     const typeWidth = Math.max(...result.rows.map(r => r.subtype.length));
     const nameWidth = Math.max(...result.rows.map(r => r.name.length));
     for (const row of result.rows) {
-      console.log(`${row.subtype.padEnd(typeWidth)}  ${row.name.padEnd(nameWidth)}  ${row.local.padEnd(5)}  ${row.repo.padEnd(4)}  ${row.user}`);
+      console.log(`${row.subtype.padEnd(typeWidth)}  ${row.name.padEnd(nameWidth)}  ${row.local.padEnd(lp.length)}  ${row.repo.padEnd(rp.length)}  ${row.user.padEnd(us.length)}  ${row.repoUser}`);
     }
     return;
   }
@@ -518,17 +539,20 @@ export function printDiffResult(result: DiffResult, quiet: boolean): void {
   };
 
   // Header
-  const header = `${'Type'.padEnd(typeWidth)}  ${'Name'.padEnd(nameWidth)}  ${'Local'.padEnd(5)}  ${'Repo'.padEnd(4)}  ${'User'}`;
+  const header = `${'Type'.padEnd(typeWidth)}  ${'Name'.padEnd(nameWidth)}  ${lp}  ${rp}  ${us.padEnd(us.length)}  ${ru}`;
   console.log(chalk.bold(header));
 
   // Separator
-  const sep = `${'-'.repeat(typeWidth)}  ${'-'.repeat(nameWidth)}  ${'-'.repeat(5)}  ${'-'.repeat(4)}  ${'-'.repeat(4)}`;
+  const sep = `${'-'.repeat(typeWidth)}  ${'-'.repeat(nameWidth)}  ${'-'.repeat(lp.length)}  ${'-'.repeat(rp.length)}  ${'-'.repeat(us.length)}  ${'-'.repeat(ru.length)}`;
   console.log(sep);
 
   // Rows
   for (const row of result.rows) {
-    const line = `${row.subtype.padEnd(typeWidth)}  ${row.name.padEnd(nameWidth)}  ${colorize(row.local).padEnd(5 + (colorize(row.local).length - 1))}  ${colorize(row.repo).padEnd(4 + (colorize(row.repo).length - 1))}  ${colorize(row.user)}`;
-    console.log(line);
+    const colLocal = colorize(row.local).padEnd(lp.length + (colorize(row.local).length - 1));
+    const colRepo = colorize(row.repo).padEnd(rp.length + (colorize(row.repo).length - 1));
+    const colUser = colorize(row.user).padEnd(us.length + (colorize(row.user).length - 1));
+    const colRepoUser = colorize(row.repoUser);
+    console.log(`${row.subtype.padEnd(typeWidth)}  ${row.name.padEnd(nameWidth)}  ${colLocal}  ${colRepo}  ${colUser}  ${colRepoUser}`);
   }
 
   // Summary

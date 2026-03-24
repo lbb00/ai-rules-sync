@@ -472,6 +472,7 @@ describe('handleClaudeList', () => {
           local: 'i',
           repo: 'a',
           user: 'i',
+          repoUser: '-',
         });
       });
 
@@ -488,6 +489,7 @@ describe('handleClaudeList', () => {
           local: 'l',
           repo: '-',
           user: '-',
+          repoUser: '-',
         });
       });
 
@@ -504,6 +506,7 @@ describe('handleClaudeList', () => {
           local: '-',
           repo: 'a',
           user: '-',
+          repoUser: '-',
         });
       });
 
@@ -520,6 +523,7 @@ describe('handleClaudeList', () => {
           local: '-',
           repo: '-',
           user: 'i',
+          repoUser: '-',
         });
       });
 
@@ -813,7 +817,7 @@ describe('printDiffResult', () => {
     const { printDiffResult } = await import('../commands/list.js');
     const result: DiffResult = {
       rows: [
-        { subtype: 'rules', name: 'my-rule', local: 'i', repo: 'a', user: '-' },
+        { subtype: 'rules', name: 'my-rule', local: 'i', repo: 'a', user: '-', repoUser: '-' },
       ],
       totalCount: 1,
       subtypeCount: 1,
@@ -858,8 +862,8 @@ describe('printDiffResult', () => {
     const { printDiffResult } = await import('../commands/list.js');
     const result: DiffResult = {
       rows: [
-        { subtype: 'rules', name: 'my-rule', local: 'i', repo: 'a', user: '-' },
-        { subtype: 'skills', name: 'my-skill', local: 'l', repo: '-', user: 'i' },
+        { subtype: 'rules', name: 'my-rule', local: 'i', repo: 'a', user: '-', repoUser: '-' },
+        { subtype: 'skills', name: 'my-skill', local: 'l', repo: '-', user: 'i', repoUser: '-' },
       ],
       totalCount: 2,
       subtypeCount: 2,
@@ -870,19 +874,19 @@ describe('printDiffResult', () => {
     expect(logSpy).toHaveBeenCalledTimes(2);
 
     const line1 = logSpy.mock.calls[0][0] as string;
-    expect(line1).toMatch(/^rules\s+my-rule\s+i\s+a\s+-$/);
+    expect(line1).toMatch(/^rules\s+my-rule\s+i\s+a\s+-\s+-$/);
 
     const line2 = logSpy.mock.calls[1][0] as string;
-    expect(line2).toMatch(/^skills\s+my-skill\s+l\s+-\s+i$/);
+    expect(line2).toMatch(/^skills\s+my-skill\s+l\s+-\s+i\s+-$/);
   });
 
   it('normal mode with multiple rows includes correct summary', async () => {
     const { printDiffResult } = await import('../commands/list.js');
     const result: DiffResult = {
       rows: [
-        { subtype: 'rules', name: 'rule-a', local: 'l', repo: '-', user: '-' },
-        { subtype: 'skills', name: 'skill-a', local: '-', repo: 'a', user: '-' },
-        { subtype: 'skills', name: 'skill-b', local: 'i', repo: 'a', user: 'i' },
+        { subtype: 'rules', name: 'rule-a', local: 'l', repo: '-', user: '-', repoUser: '-' },
+        { subtype: 'skills', name: 'skill-a', local: '-', repo: 'a', user: '-', repoUser: '-' },
+        { subtype: 'skills', name: 'skill-b', local: 'i', repo: 'a', user: 'i', repoUser: '-' },
       ],
       totalCount: 3,
       subtypeCount: 2,
