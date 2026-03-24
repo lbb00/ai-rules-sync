@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SyncAdapter } from '../adapters/types.js';
-import { CommandContext, ImportCommandOptions } from '../commands/handlers.js';
+import { CommandContext, ImportCommandOptions, previewImport } from '../commands/handlers.js';
 
 // Mock importEntry so we can assert on its arguments
 vi.mock('../sync-engine.js', () => ({
@@ -139,6 +139,28 @@ describe('handleImport skipIgnore propagation', () => {
       adapter,
       expect.objectContaining({ skipIgnore: undefined })
     );
+  });
+
+  it('BUG: previewImport with user mode should use userTargetDir for source path', async () => {
+    const fs = await import('fs-extra');
+    const mockedPathExists = vi.mocked(fs.pathExists);
+    mockedPathExists.mockResolvedValue(true as never);
+
+    const adapter = makeAdapter();
+    const ctx: CommandContext = {
+      projectPath: '/tmp/home',
+      repo: makeRepo(),
+      isLocal: false,
+      user: true,
+      skipIgnore: true,
+    };
+
+    const result = await previewImport(adapter, ctx, 'settings.json', {} as ImportCommandOptions);
+
+    // Source should come from userTargetDir (.claude), resolved against projectPath
+    expect(result.sourcePath).toContain('.claude/settings.json');
+    // Destination should go to userDefaultSourceDir (.claude/user) in the repo
+    expect(result.destinationPath).toContain('.claude/user/settings.json');
   });
 
   it('9.4: ctx.skipIgnore=true without ctx.user is propagated unchanged', async () => {

@@ -386,14 +386,20 @@ export async function previewImport(
   options: ImportCommandOptions
 ): Promise<ImportPreviewResult> {
   const absoluteProjectPath = path.resolve(ctx.projectPath);
-  const projectConfig = await getCombinedProjectConfig(ctx.projectPath);
-  const targetDirPath = getTargetDir(
-    projectConfig,
-    adapter.tool,
-    adapter.subtype,
-    name,
-    adapter.targetDir
-  );
+
+  let targetDirPath: string;
+  if (ctx.skipIgnore && adapter.userTargetDir) {
+    targetDirPath = adapter.userTargetDir;
+  } else {
+    const projectConfig = await getCombinedProjectConfig(ctx.projectPath);
+    targetDirPath = getTargetDir(
+      projectConfig,
+      adapter.tool,
+      adapter.subtype,
+      name,
+      adapter.targetDir
+    );
+  }
 
   const sourcePath = path.join(absoluteProjectPath, targetDirPath, name);
   let sourceExists = false;
@@ -405,8 +411,13 @@ export async function previewImport(
     sourceIsSymlink = stats.isSymbolicLink();
   }
 
-  const repoConfig = await getRepoSourceConfig(ctx.repo.path);
-  const sourceDir = getSourceDir(repoConfig, adapter.tool, adapter.subtype, adapter.defaultSourceDir);
+  let sourceDir: string;
+  if (ctx.skipIgnore && adapter.userDefaultSourceDir) {
+    sourceDir = adapter.userDefaultSourceDir;
+  } else {
+    const repoConfig = await getRepoSourceConfig(ctx.repo.path);
+    sourceDir = getSourceDir(repoConfig, adapter.tool, adapter.subtype, adapter.defaultSourceDir);
+  }
   const destinationPath = path.join(ctx.repo.path, sourceDir, name);
   const destinationExists = await fs.pathExists(destinationPath);
 
