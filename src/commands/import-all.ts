@@ -33,6 +33,146 @@ async function prompt(question: string, defaultAnswer: boolean = true): Promise<
 }
 
 /**
+ * Represents a scanned filesystem entry from an adapter's target directory.
+ * Pure filesystem result with no repo dependency.
+ */
+export interface ScannedEntry {
+    /** Filename or dirname on disk */
+    sourceName: string;
+    /** Normalized name (suffix stripped for file/hybrid modes) */
+    entryName: string;
+    /** Whether the entry is a directory */
+    isDirectory: boolean;
+    /** Matched suffix, if applicable */
+    suffix?: string;
+}
+
+/**
+ * Scan an adapter's target directory for matching filesystem entries.
+ * Handles target directory resolution, ENOENT tolerance, hidden file filtering,
+ * symlink exclusion, and mode-aware entry matching (file/directory/hybrid).
+ */
+export async function scanAdapterTargetDir(
+    adapter: SyncAdapter,
+    projectPath: string,
+    isUser: boolean
+): Promise<ScannedEntry[]> {
+    const entries: ScannedEntry[] = [];
+
+    // Determine which target directory to scan
+    const targetDirPath = isUser
+        ? (adapter.userTargetDir || adapter.targetDir)
+        : adapter.targetDir;
+
+    const absoluteProjectPath = path.resolve(projectPath);
+    const scanDir = path.join(absoluteProjectPath, targetDirPath);
+
+    // Check if target directory exists
+    if (!await fs.pathExists(scanDir)) {
+        return entries;
+    }
+
+    // Read directory contents
+    let items: string[];
+    try {
+        items = await fs.readdir(scanDir);
+    } catch (e: any) {
+        return entries;
+    }
+
+    // Filter out hidden files/directories
+    items = items.filter(item => !item.startsWith('.'));
+
+    for (const item of items) {
+        const itemPath = path.join(scanDir, item);
+        let stats;
+
+        try {
+            stats = await fs.lstat(itemPath);
+        } catch (e) {
+            continue;
+        }
+
+        // Skip symlinks - they're already managed by ais
+        if (stats.isSymbolicLink()) {
+            continue;
+        }
+
+        const isDirectory = stats.isDirectory();
+
+        // Apply adapter mode filters
+        if (adapter.mode === 'file') {
+            if (isDirectory) continue;
+
+            const suffixes = adapter.fileSuffixes || [];
+            let matched = false;
+            let matchedSuffix: string | undefined;
+
+            for (const suffix of suffixes) {
+                if (item.endsWith(suffix)) {
+                    matched = true;
+                    matchedSuffix = suffix;
+                    break;
+                }
+            }
+
+            if (!matched) continue;
+
+            const entryName = matchedSuffix ? item.slice(0, -matchedSuffix.length) : item;
+
+            entries.push({
+                sourceName: item,
+                entryName,
+                isDirectory: false,
+                suffix: matchedSuffix,
+            });
+        } else if (adapter.mode === 'directory') {
+            if (!isDirectory) continue;
+
+            entries.push({
+                sourceName: item,
+                entryName: item,
+                isDirectory: true,
+            });
+        } else if (adapter.mode === 'hybrid') {
+            const hybridSuffixes = adapter.hybridFileSuffixes || [];
+
+            if (isDirectory) {
+                entries.push({
+                    sourceName: item,
+                    entryName: item,
+                    isDirectory: true,
+                });
+            } else {
+                let matched = false;
+                let matchedSuffix: string | undefined;
+
+                for (const suffix of hybridSuffixes) {
+                    if (item.endsWith(suffix)) {
+                        matched = true;
+                        matchedSuffix = suffix;
+                        break;
+                    }
+                }
+
+                if (!matched) continue;
+
+                const entryName = matchedSuffix ? item.slice(0, -matchedSuffix.length) : item;
+
+                entries.push({
+                    sourceName: item,
+                    entryName,
+                    isDirectory: false,
+                    suffix: matchedSuffix,
+                });
+            }
+        }
+    }
+
+    return entries;
+}
+
+/**
  * Represents a discovered entry in the project's target directory
  */
 export interface DiscoveredProjectEntry {
@@ -69,7 +209,9 @@ export interface ImportAllResult {
 }
 
 /**
- * Discover entries in the project's target directory for a single adapter
+ * Discover entries in the project's target directory for a single adapter.
+ * Delegates filesystem scanning to scanAdapterTargetDir() and layers on
+ * the alreadyInRepo check against the rules repository.
  */
 export async function discoverProjectEntriesForAdapter(
     adapter: SyncAdapter,
@@ -77,19 +219,10 @@ export async function discoverProjectEntriesForAdapter(
     projectPath: string,
     isUser: boolean
 ): Promise<DiscoveredProjectEntry[]> {
-    const entries: DiscoveredProjectEntry[] = [];
+    const scanned = await scanAdapterTargetDir(adapter, projectPath, isUser);
 
-    // Determine which target directory to scan
-    const targetDirPath = isUser
-        ? (adapter.userTargetDir || adapter.targetDir)
-        : adapter.targetDir;
-
-    const absoluteProjectPath = path.resolve(projectPath);
-    const scanDir = path.join(absoluteProjectPath, targetDirPath);
-
-    // Check if target directory exists
-    if (!await fs.pathExists(scanDir)) {
-        return entries;
+    if (scanned.length === 0) {
+        return [];
     }
 
     // Determine repo destination directory for "already exists" checks
@@ -98,122 +231,21 @@ export async function discoverProjectEntriesForAdapter(
     const sourceDir = getSourceDir(repoConfig, adapter.tool, adapter.subtype, adapter.defaultSourceDir);
     const repoSourcePath = path.join(repoDir, sourceDir);
 
-    // Read directory contents
-    let items: string[];
-    try {
-        items = await fs.readdir(scanDir);
-    } catch (e: any) {
-        return entries;
-    }
+    // Resolve scan directory for sourcePath construction
+    const targetDirPath = isUser
+        ? (adapter.userTargetDir || adapter.targetDir)
+        : adapter.targetDir;
+    const scanDir = path.join(path.resolve(projectPath), targetDirPath);
 
-    // Filter out hidden files/directories
-    items = items.filter(item => !item.startsWith('.'));
-
-    for (const item of items) {
-        const itemPath = path.join(scanDir, item);
-        let stats;
-
-        try {
-            stats = await fs.lstat(itemPath);
-        } catch (e) {
-            continue;
-        }
-
-        // Skip symlinks - they're already managed by ais
-        if (stats.isSymbolicLink()) {
-            continue;
-        }
-
-        const isDirectory = stats.isDirectory();
-
-        // Apply adapter mode filters (same logic as add-all but scanning project dir)
-        if (adapter.mode === 'file') {
-            if (isDirectory) continue;
-
-            const suffixes = adapter.fileSuffixes || [];
-            let matched = false;
-            let matchedSuffix: string | undefined;
-
-            for (const suffix of suffixes) {
-                if (item.endsWith(suffix)) {
-                    matched = true;
-                    matchedSuffix = suffix;
-                    break;
-                }
-            }
-
-            if (!matched) continue;
-
-            const entryName = matchedSuffix ? item.slice(0, -matchedSuffix.length) : item;
-            const alreadyInRepo = await fs.pathExists(path.join(repoSourcePath, item));
-
-            entries.push({
-                adapter,
-                sourceName: item,
-                entryName,
-                sourcePath: itemPath,
-                isDirectory: false,
-                suffix: matchedSuffix,
-                alreadyInRepo
-            });
-        } else if (adapter.mode === 'directory') {
-            if (!isDirectory) continue;
-
-            const alreadyInRepo = await fs.pathExists(path.join(repoSourcePath, item));
-
-            entries.push({
-                adapter,
-                sourceName: item,
-                entryName: item,
-                sourcePath: itemPath,
-                isDirectory: true,
-                alreadyInRepo
-            });
-        } else if (adapter.mode === 'hybrid') {
-            const hybridSuffixes = adapter.hybridFileSuffixes || [];
-
-            if (isDirectory) {
-                const alreadyInRepo = await fs.pathExists(path.join(repoSourcePath, item));
-
-                entries.push({
-                    adapter,
-                    sourceName: item,
-                    entryName: item,
-                    sourcePath: itemPath,
-                    isDirectory: true,
-                    alreadyInRepo
-                });
-            } else {
-                let matched = false;
-                let matchedSuffix: string | undefined;
-
-                for (const suffix of hybridSuffixes) {
-                    if (item.endsWith(suffix)) {
-                        matched = true;
-                        matchedSuffix = suffix;
-                        break;
-                    }
-                }
-
-                if (!matched) continue;
-
-                const entryName = matchedSuffix ? item.slice(0, -matchedSuffix.length) : item;
-                const alreadyInRepo = await fs.pathExists(path.join(repoSourcePath, item));
-
-                entries.push({
-                    adapter,
-                    sourceName: item,
-                    entryName,
-                    sourcePath: itemPath,
-                    isDirectory: false,
-                    suffix: matchedSuffix,
-                    alreadyInRepo
-                });
-            }
-        }
-    }
-
-    return entries;
+    return Promise.all(scanned.map(async (entry) => ({
+        adapter,
+        sourceName: entry.sourceName,
+        entryName: entry.entryName,
+        sourcePath: path.join(scanDir, entry.sourceName),
+        isDirectory: entry.isDirectory,
+        suffix: entry.suffix,
+        alreadyInRepo: await fs.pathExists(path.join(repoSourcePath, entry.sourceName)),
+    })));
 }
 
 /**

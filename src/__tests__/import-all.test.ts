@@ -74,6 +74,7 @@ import {
   discoverAllProjectEntries,
   importDiscoveredEntries,
   handleImportAll,
+  scanAdapterTargetDir,
   DiscoveredProjectEntry,
 } from '../commands/import-all.js';
 
@@ -719,5 +720,243 @@ describe('handleImportAll', () => {
 
     expect(consoleSpy).not.toHaveBeenCalled();
     consoleSpy.mockRestore();
+  });
+});
+
+// ----- scanAdapterTargetDir -----
+
+describe('scanAdapterTargetDir', () => {
+  it('returns empty array when target directory does not exist', async () => {
+    const adapter = makeAdapter();
+    mockedPathExists.mockResolvedValue(false as never);
+
+    const result = await scanAdapterTargetDir(adapter, '/project', false);
+    expect(result).toEqual([]);
+  });
+
+  it('returns empty array when readdir throws', async () => {
+    const adapter = makeAdapter();
+    mockedPathExists.mockResolvedValue(true as never);
+    mockedReaddir.mockRejectedValue(new Error('EACCES'));
+
+    const result = await scanAdapterTargetDir(adapter, '/project', false);
+    expect(result).toEqual([]);
+  });
+
+  describe('file mode filtering', () => {
+    it('includes files matching fileSuffixes and strips suffix for entryName', async () => {
+      const adapter = makeAdapter({ mode: 'file', fileSuffixes: ['.mdc'] });
+
+      mockedPathExists.mockResolvedValue(true as never);
+      mockedReaddir.mockResolvedValue(['rule1.mdc', 'readme.txt'] as never);
+      mockedLstat.mockResolvedValue({
+        isDirectory: () => false,
+        isSymbolicLink: () => false,
+      } as never);
+
+      const result = await scanAdapterTargetDir(adapter, '/project', false);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].sourceName).toBe('rule1.mdc');
+      expect(result[0].entryName).toBe('rule1');
+      expect(result[0].isDirectory).toBe(false);
+      expect(result[0].suffix).toBe('.mdc');
+    });
+
+    it('excludes directories in file mode', async () => {
+      const adapter = makeAdapter({ mode: 'file', fileSuffixes: ['.mdc'] });
+
+      mockedPathExists.mockResolvedValue(true as never);
+      mockedReaddir.mockResolvedValue(['a-directory'] as never);
+      mockedLstat.mockResolvedValue({
+        isDirectory: () => true,
+        isSymbolicLink: () => false,
+      } as never);
+
+      const result = await scanAdapterTargetDir(adapter, '/project', false);
+      expect(result).toHaveLength(0);
+    });
+
+    it('excludes files with non-matching suffixes', async () => {
+      const adapter = makeAdapter({ mode: 'file', fileSuffixes: ['.mdc'] });
+
+      mockedPathExists.mockResolvedValue(true as never);
+      mockedReaddir.mockResolvedValue(['readme.txt', 'notes.md'] as never);
+      mockedLstat.mockResolvedValue({
+        isDirectory: () => false,
+        isSymbolicLink: () => false,
+      } as never);
+
+      const result = await scanAdapterTargetDir(adapter, '/project', false);
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('directory mode filtering', () => {
+    it('includes only directories', async () => {
+      const adapter = makeAdapter({ mode: 'directory' });
+
+      mockedPathExists.mockResolvedValue(true as never);
+      mockedReaddir.mockResolvedValue(['my-dir', 'some-file.txt'] as never);
+      mockedLstat.mockImplementation(async (p) => {
+        const name = String(p).split('/').pop();
+        return {
+          isDirectory: () => name === 'my-dir',
+          isSymbolicLink: () => false,
+        } as never;
+      });
+
+      const result = await scanAdapterTargetDir(adapter, '/project', false);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].sourceName).toBe('my-dir');
+      expect(result[0].entryName).toBe('my-dir');
+      expect(result[0].isDirectory).toBe(true);
+    });
+
+    it('excludes files in directory mode', async () => {
+      const adapter = makeAdapter({ mode: 'directory' });
+
+      mockedPathExists.mockResolvedValue(true as never);
+      mockedReaddir.mockResolvedValue(['some-file.txt'] as never);
+      mockedLstat.mockResolvedValue({
+        isDirectory: () => false,
+        isSymbolicLink: () => false,
+      } as never);
+
+      const result = await scanAdapterTargetDir(adapter, '/project', false);
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('hybrid mode filtering', () => {
+    it('includes directories and files matching hybridFileSuffixes', async () => {
+      const adapter = makeAdapter({
+        mode: 'hybrid',
+        hybridFileSuffixes: ['.md'],
+      });
+
+      mockedPathExists.mockResolvedValue(true as never);
+      mockedReaddir.mockResolvedValue(['docs-dir', 'readme.md', 'skip.txt'] as never);
+      mockedLstat.mockImplementation(async (p) => {
+        const name = String(p).split('/').pop();
+        return {
+          isDirectory: () => name === 'docs-dir',
+          isSymbolicLink: () => false,
+        } as never;
+      });
+
+      const result = await scanAdapterTargetDir(adapter, '/project', false);
+
+      expect(result).toHaveLength(2);
+
+      const dirEntry = result.find(e => e.sourceName === 'docs-dir');
+      expect(dirEntry).toBeDefined();
+      expect(dirEntry!.isDirectory).toBe(true);
+      expect(dirEntry!.entryName).toBe('docs-dir');
+
+      const fileEntry = result.find(e => e.sourceName === 'readme.md');
+      expect(fileEntry).toBeDefined();
+      expect(fileEntry!.isDirectory).toBe(false);
+      expect(fileEntry!.entryName).toBe('readme');
+      expect(fileEntry!.suffix).toBe('.md');
+    });
+
+    it('excludes files that do not match hybridFileSuffixes', async () => {
+      const adapter = makeAdapter({
+        mode: 'hybrid',
+        hybridFileSuffixes: ['.md'],
+      });
+
+      mockedPathExists.mockResolvedValue(true as never);
+      mockedReaddir.mockResolvedValue(['skip.txt'] as never);
+      mockedLstat.mockResolvedValue({
+        isDirectory: () => false,
+        isSymbolicLink: () => false,
+      } as never);
+
+      const result = await scanAdapterTargetDir(adapter, '/project', false);
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('hidden file and symlink exclusion', () => {
+    it('excludes hidden files (names starting with .)', async () => {
+      const adapter = makeAdapter({ mode: 'file', fileSuffixes: ['.mdc'] });
+
+      mockedPathExists.mockResolvedValue(true as never);
+      mockedReaddir.mockResolvedValue(['.hidden.mdc', 'visible.mdc'] as never);
+      mockedLstat.mockResolvedValue({
+        isDirectory: () => false,
+        isSymbolicLink: () => false,
+      } as never);
+
+      const result = await scanAdapterTargetDir(adapter, '/project', false);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].sourceName).toBe('visible.mdc');
+    });
+
+    it('excludes symbolic links', async () => {
+      const adapter = makeAdapter({ mode: 'file', fileSuffixes: ['.mdc'] });
+
+      mockedPathExists.mockResolvedValue(true as never);
+      mockedReaddir.mockResolvedValue(['linked.mdc'] as never);
+      mockedLstat.mockResolvedValue({
+        isDirectory: () => false,
+        isSymbolicLink: () => true,
+      } as never);
+
+      const result = await scanAdapterTargetDir(adapter, '/project', false);
+      expect(result).toHaveLength(0);
+    });
+
+    it('skips items that fail lstat', async () => {
+      const adapter = makeAdapter({ mode: 'file', fileSuffixes: ['.mdc'] });
+
+      mockedPathExists.mockResolvedValue(true as never);
+      mockedReaddir.mockResolvedValue(['good.mdc', 'bad.mdc'] as never);
+
+      let callCount = 0;
+      mockedLstat.mockImplementation(async () => {
+        callCount++;
+        if (callCount === 2) throw new Error('ENOENT');
+        return {
+          isDirectory: () => false,
+          isSymbolicLink: () => false,
+        } as never;
+      });
+
+      const result = await scanAdapterTargetDir(adapter, '/project', false);
+      expect(result).toHaveLength(1);
+      expect(result[0].sourceName).toBe('good.mdc');
+    });
+  });
+
+  describe('user-mode target directory resolution', () => {
+    it('uses userTargetDir when isUser is true and userTargetDir is set', async () => {
+      const adapter = makeAdapter({ targetDir: '.cursor/rules', userTargetDir: '.config/cursor' });
+
+      mockedPathExists.mockResolvedValue(false as never);
+
+      await scanAdapterTargetDir(adapter, '/project', true);
+
+      // pathExists should be called with the user target dir
+      expect(mockedPathExists).toHaveBeenCalledWith(
+        expect.stringContaining('.config/cursor')
+      );
+    });
+
+    it('falls back to targetDir when isUser is true but userTargetDir is not set', async () => {
+      const adapter = makeAdapter({ targetDir: '.cursor/rules' });
+
+      mockedPathExists.mockResolvedValue(false as never);
+
+      await scanAdapterTargetDir(adapter, '/project', true);
+
+      expect(mockedPathExists).toHaveBeenCalledWith(
+        expect.stringContaining('.cursor/rules')
+      );
+    });
   });
 });

@@ -1,0 +1,28 @@
+{
+  "featureName": "list-local",
+  "description": "Add --local flag to ais claude list that scans the project directory for Claude files on disk (commands, skills, agents, rules, md, settings, status-lines, agent-memory) regardless of whether they are managed by ais. Reuse existing discovery logic from import-all. Update legend to include l=local indicator.",
+  "createdAt": "2026-03-24T15:30:00Z",
+  "updatedAt": "2026-03-24T18:00:00Z",
+  "language": "en",
+  "status": "tasks-generated",
+  "phases": {
+    "requirements": "requirements-generated",
+    "design": "design-generated",
+    "tasks": "tasks-generated",
+    "implementation": "pending"
+  },
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": false
+    }
+  }
+}

@@ -26,6 +26,15 @@ vi.mock('node:fs/promises', () => ({
   readdir: vi.fn(async () => [] as string[]),
 }));
 
+// Mock import-all.js for scanAdapterTargetDir (used by Mode E)
+vi.mock('../commands/import-all.js', async (importOriginal) => {
+  const actual = await importOriginal() as Record<string, unknown>;
+  return {
+    ...actual,
+    scanAdapterTargetDir: vi.fn(async () => []),
+  };
+});
+
 function makeAdapter(subtype: string, overrides: Partial<SyncAdapter> = {}): SyncAdapter {
   return {
     name: `claude-${subtype}`,
@@ -264,6 +273,169 @@ describe('handleClaudeList', () => {
 
       expect(result.totalCount).toBe(0);
       expect(result.entries).toHaveLength(0);
+    });
+  });
+
+  // Mode E tests
+  describe('Mode E: --local flag (local disk scan)', () => {
+    it('returns entries across all subtypes with correct status', async () => {
+      const { scanAdapterTargetDir } = await import('../commands/import-all.js');
+      vi.mocked(scanAdapterTargetDir).mockImplementation(async (adapter) => {
+        if (adapter.subtype === 'rules') {
+          return [{ sourceName: 'my-rule', entryName: 'my-rule', isDirectory: true }];
+        }
+        if (adapter.subtype === 'settings') {
+          return [{ sourceName: 'settings.json', entryName: 'settings', isDirectory: false, suffix: '.json' }];
+        }
+        return [];
+      });
+
+      const { getCombinedProjectConfig } = await import('../project-config.js');
+      vi.mocked(getCombinedProjectConfig).mockResolvedValueOnce({
+        claude: {
+          rules: { 'my-rule': 'https://example.com' },
+        }
+      } as any);
+
+      const { handleClaudeList } = await import('../commands/list.js');
+      const adapters = makeAllAdapters();
+      const result = await handleClaudeList(adapters, '/project', undefined, { local: true });
+
+      expect(result.totalCount).toBe(2);
+      expect(result.subtypeCount).toBe(2);
+
+      const rulesEntry = result.entries.find(e => e.subtype === 'rules' && e.name === 'my-rule');
+      expect(rulesEntry).toBeDefined();
+      expect(rulesEntry!.status).toBe('i'); // in config = installed
+
+      const settingsEntry = result.entries.find(e => e.subtype === 'settings' && e.name === 'settings');
+      expect(settingsEntry).toBeDefined();
+      expect(settingsEntry!.status).toBe('l'); // not in config = local-only
+    });
+
+    it('type-filtered local scan returns only matching subtype', async () => {
+      const { scanAdapterTargetDir } = await import('../commands/import-all.js');
+      vi.mocked(scanAdapterTargetDir).mockImplementation(async (adapter) => {
+        if (adapter.subtype === 'rules') {
+          return [{ sourceName: 'my-rule', entryName: 'my-rule', isDirectory: true }];
+        }
+        if (adapter.subtype === 'settings') {
+          return [{ sourceName: 'settings.json', entryName: 'settings', isDirectory: false, suffix: '.json' }];
+        }
+        return [];
+      });
+
+      const { getCombinedProjectConfig } = await import('../project-config.js');
+      vi.mocked(getCombinedProjectConfig).mockResolvedValueOnce({} as any);
+
+      const { handleClaudeList } = await import('../commands/list.js');
+      const adapters = makeAllAdapters();
+      const result = await handleClaudeList(adapters, '/project', undefined, { local: true, type: 'rules' });
+
+      expect(result.totalCount).toBe(1);
+      expect(result.entries.every(e => e.subtype === 'rules')).toBe(true);
+    });
+
+    it('entry in config gets status i, entry not in config gets status l', async () => {
+      const { scanAdapterTargetDir } = await import('../commands/import-all.js');
+      vi.mocked(scanAdapterTargetDir).mockImplementation(async (adapter) => {
+        if (adapter.subtype === 'rules') {
+          return [
+            { sourceName: 'managed-rule', entryName: 'managed-rule', isDirectory: true },
+            { sourceName: 'local-rule', entryName: 'local-rule', isDirectory: true },
+          ];
+        }
+        return [];
+      });
+
+      const { getCombinedProjectConfig } = await import('../project-config.js');
+      vi.mocked(getCombinedProjectConfig).mockResolvedValueOnce({
+        claude: {
+          rules: { 'managed-rule': 'https://example.com' },
+        }
+      } as any);
+
+      const { handleClaudeList } = await import('../commands/list.js');
+      const adapters = makeAllAdapters();
+      const result = await handleClaudeList(adapters, '/project', undefined, { local: true, type: 'rules' });
+
+      const managed = result.entries.find(e => e.name === 'managed-rule');
+      expect(managed!.status).toBe('i');
+
+      const local = result.entries.find(e => e.name === 'local-rule');
+      expect(local!.status).toBe('l');
+    });
+
+    it('--local --repo throws mutual exclusivity error', async () => {
+      const { handleClaudeList } = await import('../commands/list.js');
+      const adapters = makeAllAdapters();
+
+      await expect(
+        handleClaudeList(adapters, '/project', '/repo', { local: true, repo: true })
+      ).rejects.toThrow(/mutually exclusive/i);
+    });
+
+    it('--local --user uses getUserProjectConfig instead of getCombinedProjectConfig', async () => {
+      const { scanAdapterTargetDir } = await import('../commands/import-all.js');
+      vi.mocked(scanAdapterTargetDir).mockImplementation(async (adapter) => {
+        if (adapter.subtype === 'rules') {
+          return [{ sourceName: 'user-rule', entryName: 'user-rule', isDirectory: true }];
+        }
+        return [];
+      });
+
+      const { getUserProjectConfig } = await import('../config.js');
+      vi.mocked(getUserProjectConfig).mockResolvedValueOnce({
+        claude: {
+          rules: { 'user-rule': 'https://example.com' },
+        }
+      } as any);
+
+      const { getCombinedProjectConfig } = await import('../project-config.js');
+
+      const { handleClaudeList } = await import('../commands/list.js');
+      const adapters = makeAllAdapters();
+      const result = await handleClaudeList(adapters, '/project', undefined, { local: true, user: true });
+
+      expect(getUserProjectConfig).toHaveBeenCalled();
+      expect(getCombinedProjectConfig).not.toHaveBeenCalled();
+
+      const entry = result.entries.find(e => e.name === 'user-rule');
+      expect(entry!.status).toBe('i');
+    });
+
+    it('empty target directories return totalCount=0 without error', async () => {
+      const { scanAdapterTargetDir } = await import('../commands/import-all.js');
+      vi.mocked(scanAdapterTargetDir).mockResolvedValue([]);
+
+      const { getCombinedProjectConfig } = await import('../project-config.js');
+      vi.mocked(getCombinedProjectConfig).mockResolvedValueOnce({} as any);
+
+      const { handleClaudeList } = await import('../commands/list.js');
+      const adapters = makeAllAdapters();
+      const result = await handleClaudeList(adapters, '/project', undefined, { local: true });
+
+      expect(result.totalCount).toBe(0);
+      expect(result.entries).toHaveLength(0);
+      expect(result.subtypeCount).toBe(0);
+    });
+
+    it('scanAdapterTargetDir receives isUser=true when --user is set', async () => {
+      const { scanAdapterTargetDir } = await import('../commands/import-all.js');
+      vi.mocked(scanAdapterTargetDir).mockResolvedValue([]);
+
+      const { getUserProjectConfig } = await import('../config.js');
+      vi.mocked(getUserProjectConfig).mockResolvedValueOnce({} as any);
+
+      const { handleClaudeList } = await import('../commands/list.js');
+      const adapters = [makeAdapter('rules')];
+      await handleClaudeList(adapters, '/project', undefined, { local: true, user: true });
+
+      expect(scanAdapterTargetDir).toHaveBeenCalledWith(
+        expect.objectContaining({ subtype: 'rules' }),
+        '/project',
+        true
+      );
     });
   });
 });

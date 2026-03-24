@@ -1295,9 +1295,11 @@ function printListResult(result: ListResult, options: ListOptions): void {
   const summary = `\n${result.totalCount} ${result.totalCount === 1 ? 'entry' : 'entries'} across ${result.subtypeCount} ${result.subtypeCount === 1 ? 'type' : 'types'}`;
   console.log(chalk.gray(summary));
 
-  const source = options.repo
-    ? options.user ? '--repo [--user]' : '--repo'
-    : options.user ? 'local [--user]' : 'local';
+  const source = options.local
+    ? options.user ? 'disk [--user]' : 'disk [--local]'
+    : options.repo
+      ? options.user ? '--repo [--user]' : '--repo'
+      : options.user ? 'local [--user]' : 'local';
   const legend = `Legend: ${chalk.green('i')}=installed  ${chalk.cyan('a')}=available  ${chalk.magenta('l')}=local-only  |  source: ${source}`;
   console.log(chalk.gray(legend));
 }
@@ -1308,8 +1310,9 @@ claude
   .description('List installed or available Claude entries across all subtypes')
   .option('-r, --repo', 'List entries available in the rules repository source directories')
   .option('-u, --user', 'List entries from user config (~/.config/ai-rules-sync/user.json)')
+  .option('-l, --local', 'Scan project directory for Claude files on disk')
   .option('--quiet', 'Output entry names only, one per line')
-  .action(async (type: string | undefined, cmdOptions: { repo?: boolean; user?: boolean; quiet?: boolean }) => {
+  .action(async (type: string | undefined, cmdOptions: { repo?: boolean; user?: boolean; local?: boolean; quiet?: boolean }) => {
     try {
       const projectPath = process.cwd();
       const opts = program.opts();
@@ -1321,6 +1324,7 @@ claude
         type,
         repo: cmdOptions.repo,
         user: cmdOptions.user,
+        local: cmdOptions.local,
         quiet: cmdOptions.quiet,
       };
 

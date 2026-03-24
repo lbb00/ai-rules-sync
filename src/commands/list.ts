@@ -4,6 +4,7 @@ import { readdir } from 'node:fs/promises';
 import { SyncAdapter } from '../adapters/types.js';
 import { getCombinedProjectConfig, getRepoSourceConfig, getSourceDir } from '../project-config.js';
 import { getUserProjectConfig } from '../config.js';
+import { scanAdapterTargetDir } from './import-all.js';
 
 /**
  * Options for the list command
@@ -17,6 +18,8 @@ export interface ListOptions {
   repo?: boolean;
   /** When true, output entry names only, one per line (no decoration) */
   quiet?: boolean;
+  /** When true, scan project target dirs on disk for Claude files */
+  local?: boolean;
 }
 
 /**
@@ -110,6 +113,16 @@ export async function handleClaudeList(
   const adapters = options.type
     ? claudeAdapters.filter(a => a.subtype === options.type)
     : claudeAdapters;
+
+  // Mutual exclusivity: --local + --repo
+  if (options.local && options.repo) {
+    throw new Error('--local and --repo are mutually exclusive. Use --local to scan project files on disk, or --repo to list entries in the rules repository.');
+  }
+
+  // Mode E: --local (with or without --user)
+  if (options.local) {
+    return handleModeE(adapters, projectPath, options.user ?? false);
+  }
 
   // Mode D: --repo --user
   if (options.repo && options.user) {
@@ -285,6 +298,48 @@ async function handleModeD(
         subtype: adapter.subtype,
         name,
         status: Object.prototype.hasOwnProperty.call(subtypeConfig, name) ? 'i' : 'a',
+      });
+    }
+  }
+
+  return {
+    entries,
+    totalCount: entries.length,
+    subtypeCount: computeSubtypeCount(entries),
+  };
+}
+
+/**
+ * Mode E: Scan project target directories for Claude files on disk.
+ * Cross-references with project config (or user config when --user) to assign status:
+ *   'i' = entry exists on disk AND in config (managed)
+ *   'l' = entry exists on disk but NOT in config (local-only)
+ */
+async function handleModeE(
+  adapters: SyncAdapter[],
+  projectPath: string,
+  isUser: boolean
+): Promise<ListResult> {
+  const entries: ListEntry[] = [];
+
+  // Load config for cross-referencing
+  const config = isUser
+    ? await getUserProjectConfig() as Record<string, any>
+    : await getCombinedProjectConfig(projectPath);
+
+  for (const adapter of adapters) {
+    const scanned = await scanAdapterTargetDir(adapter, projectPath, isUser);
+
+    const subtypeConfig = config?.[adapter.tool]?.[adapter.subtype];
+
+    for (const entry of scanned) {
+      const inConfig = subtypeConfig && typeof subtypeConfig === 'object'
+        && Object.prototype.hasOwnProperty.call(subtypeConfig, entry.entryName);
+
+      entries.push({
+        subtype: adapter.subtype,
+        name: entry.entryName,
+        status: inConfig ? 'i' : 'l',
       });
     }
   }
