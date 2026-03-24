@@ -854,7 +854,7 @@ describe('printDiffResult', () => {
     expect(legendCall).toContain('absent');
   });
 
-  it('quiet mode prints tab-separated values without headers or color', async () => {
+  it('quiet mode prints fixed-width columns without headers or color', async () => {
     const { printDiffResult } = await import('../commands/list.js');
     const result: DiffResult = {
       rows: [
@@ -870,10 +870,10 @@ describe('printDiffResult', () => {
     expect(logSpy).toHaveBeenCalledTimes(2);
 
     const line1 = logSpy.mock.calls[0][0] as string;
-    expect(line1).toBe('rules\tmy-rule\ti\ta\t-');
+    expect(line1).toMatch(/^rules\s+my-rule\s+i\s+a\s+-$/);
 
     const line2 = logSpy.mock.calls[1][0] as string;
-    expect(line2).toBe('skills\tmy-skill\tl\t-\ti');
+    expect(line2).toMatch(/^skills\s+my-skill\s+l\s+-\s+i$/);
   });
 
   it('normal mode with multiple rows includes correct summary', async () => {

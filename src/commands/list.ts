@@ -494,8 +494,11 @@ export function printDiffResult(result: DiffResult, quiet: boolean): void {
   }
 
   if (quiet) {
+    // Fixed-width columns without headers/legend/color
+    const typeWidth = Math.max(...result.rows.map(r => r.subtype.length));
+    const nameWidth = Math.max(...result.rows.map(r => r.name.length));
     for (const row of result.rows) {
-      console.log(`${row.subtype}\t${row.name}\t${row.local}\t${row.repo}\t${row.user}`);
+      console.log(`${row.subtype.padEnd(typeWidth)}  ${row.name.padEnd(nameWidth)}  ${row.local.padEnd(5)}  ${row.repo.padEnd(4)}  ${row.user}`);
     }
     return;
   }
