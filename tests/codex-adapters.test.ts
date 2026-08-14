@@ -83,12 +83,20 @@ describe('Codex Adapters', () => {
       expect(adapter?.name).toBe('codex-md');
     });
 
+    it('should register codex agents adapter', () => {
+      const adapter = adapterRegistry.get('codex', 'agents');
+      expect(adapter).toBeDefined();
+      expect(adapter?.name).toBe('codex-agents');
+    });
+
     it('should return codex adapters for tool', () => {
       const adapters = adapterRegistry.getForTool('codex');
-      expect(adapters).toHaveLength(3);
-      expect(adapters.map(a => a.name)).toContain('codex-rules');
-      expect(adapters.map(a => a.name)).toContain('codex-skills');
-      expect(adapters.map(a => a.name)).toContain('codex-md');
+      expect(adapters.map(a => a.name).sort()).toEqual([
+        'codex-agents',
+        'codex-md',
+        'codex-rules',
+        'codex-skills',
+      ]);
     });
   });
 });
