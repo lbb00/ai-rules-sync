@@ -1349,6 +1349,12 @@ registerAdapterCommands({ adapter: getAdapter('trae', 'rules'), parentCommand: t
 const traeSkills = trae.command('skills').description('Manage Trae skills');
 registerAdapterCommands({ adapter: getAdapter('trae', 'skills'), parentCommand: traeSkills, programOpts: () => program.opts() });
 
+const traeAgentsCmd = trae.command('agents').description('Manage Trae agents');
+registerAdapterCommands({ adapter: getAdapter('trae', 'agents'), parentCommand: traeAgentsCmd, programOpts: () => program.opts() });
+
+const traeCommandsCmd = trae.command('commands').description('Manage Trae commands');
+registerAdapterCommands({ adapter: getAdapter('trae', 'commands'), parentCommand: traeCommandsCmd, programOpts: () => program.opts() });
+
 // ============ AGENTS.md command group ============
 const agentsMd = program
   .command('agents-md')
@@ -1750,6 +1756,318 @@ registerAdapterCommands({ adapter: getAdapter('gemini', 'agents'), parentCommand
 // gemini md subgroup (for GEMINI.md files)
 const geminiMd = gemini.command('md').description('Manage Gemini GEMINI.md files (.gemini/GEMINI.md)');
 registerAdapterCommands({ adapter: getAdapter('gemini', 'md'), parentCommand: geminiMd, programOpts: () => program.opts() });
+
+// ============ CodeBuddy command group ============
+const codebuddy = program
+  .command('codebuddy')
+  .description('Manage CodeBuddy assets in a project');
+
+codebuddy
+  .command('install')
+  .description('Install all CodeBuddy entries from config')
+  .action(async () => {
+    try {
+      await installEntriesForTool(adapterRegistry.getForTool('codebuddy'), process.cwd());
+    } catch (error: any) {
+      console.error(chalk.red('Error installing CodeBuddy entries:'), error.message);
+      process.exit(1);
+    }
+  });
+
+const codebuddyRules = codebuddy.command('rules').description('Manage CodeBuddy rules (.codebuddy/rules/)');
+registerAdapterCommands({ adapter: getAdapter('codebuddy', 'rules'), parentCommand: codebuddyRules, programOpts: () => program.opts() });
+
+const codebuddySkills = codebuddy.command('skills').description('Manage CodeBuddy skills');
+registerAdapterCommands({ adapter: getAdapter('codebuddy', 'skills'), parentCommand: codebuddySkills, programOpts: () => program.opts() });
+
+const codebuddyCommands = codebuddy.command('commands').description('Manage CodeBuddy commands');
+registerAdapterCommands({ adapter: getAdapter('codebuddy', 'commands'), parentCommand: codebuddyCommands, programOpts: () => program.opts() });
+
+const codebuddyMd = codebuddy.command('md').description('Manage CodeBuddy CODEBUDDY.md files');
+registerAdapterCommands({ adapter: getAdapter('codebuddy', 'md'), parentCommand: codebuddyMd, programOpts: () => program.opts() });
+
+// ============ Pi command group ============
+const pi = program
+  .command('pi')
+  .description('Manage Pi Coding Agent assets in a project');
+
+pi
+  .command('install')
+  .description('Install all Pi entries from config')
+  .action(async () => {
+    try {
+      await installEntriesForTool(adapterRegistry.getForTool('pi'), process.cwd());
+    } catch (error: any) {
+      console.error(chalk.red('Error installing Pi entries:'), error.message);
+      process.exit(1);
+    }
+  });
+
+const piSkills = pi.command('skills').description('Manage Pi skills (.pi/skills/)');
+registerAdapterCommands({ adapter: getAdapter('pi', 'skills'), parentCommand: piSkills, programOpts: () => program.opts() });
+
+const piPrompts = pi.command('prompts').description('Manage Pi prompts (.pi/prompts/)');
+registerAdapterCommands({ adapter: getAdapter('pi', 'prompts'), parentCommand: piPrompts, programOpts: () => program.opts() });
+
+// ============ Antigravity CLI command group ============
+const agy = program
+  .command('agy')
+  .description('Manage Antigravity CLI assets in a project');
+
+agy
+  .command('install')
+  .description('Install all Antigravity CLI entries from config')
+  .action(async () => {
+    try {
+      await installEntriesForTool(adapterRegistry.getForTool('antigravity-cli'), process.cwd());
+    } catch (error: any) {
+      console.error(chalk.red('Error installing Antigravity CLI entries:'), error.message);
+      process.exit(1);
+    }
+  });
+
+const agySkills = agy.command('skills').description('Manage Antigravity CLI skills (.agents/skills/)');
+registerAdapterCommands({ adapter: getAdapter('antigravity-cli', 'skills'), parentCommand: agySkills, programOpts: () => program.opts() });
+
+const agyWorkflows = agy.command('workflows').description('Manage Antigravity CLI workflows (.agents/workflows/)');
+registerAdapterCommands({ adapter: getAdapter('antigravity-cli', 'workflows'), parentCommand: agyWorkflows, programOpts: () => program.opts() });
+
+// ============ WorkBuddy command group ============
+const workbuddy = program
+  .command('workbuddy')
+  .description('Manage WorkBuddy assets in a project');
+
+workbuddy
+  .command('install')
+  .description('Install all WorkBuddy entries from config')
+  .action(async () => {
+    try {
+      await installEntriesForTool(adapterRegistry.getForTool('workbuddy'), process.cwd());
+    } catch (error: any) {
+      console.error(chalk.red('Error installing WorkBuddy entries:'), error.message);
+      process.exit(1);
+    }
+  });
+
+const workbuddySkills = workbuddy.command('skills').description('Manage WorkBuddy skills (.workbuddy/skills/)');
+registerAdapterCommands({ adapter: getAdapter('workbuddy', 'skills'), parentCommand: workbuddySkills, programOpts: () => program.opts() });
+
+// ============ DeepSeek command group ============
+const deepseek = program
+  .command('deepseek')
+  .description('Manage DeepSeek Harness assets in a project');
+
+deepseek
+  .command('install')
+  .description('Install all DeepSeek entries from config')
+  .action(async () => {
+    try {
+      await installEntriesForTool(adapterRegistry.getForTool('deepseek'), process.cwd());
+    } catch (error: any) {
+      console.error(chalk.red('Error installing DeepSeek entries:'), error.message);
+      process.exit(1);
+    }
+  });
+
+const deepseekSkills = deepseek.command('skills').description('Manage DeepSeek skills (.agents/skills/)');
+registerAdapterCommands({ adapter: getAdapter('deepseek', 'skills'), parentCommand: deepseekSkills, programOpts: () => program.opts() });
+
+// ============ Factory Droid command group ============
+const factorydroid = program
+  .command('droid')
+  .description('Manage Factory Droid assets in a project');
+
+factorydroid
+  .command('install')
+  .description('Install all Factory Droid entries from config')
+  .action(async () => {
+    try {
+      await installEntriesForTool(adapterRegistry.getForTool('factorydroid'), process.cwd());
+    } catch (error: any) {
+      console.error(chalk.red('Error installing Factory Droid entries:'), error.message);
+      process.exit(1);
+    }
+  });
+
+const factorydroidSkills = factorydroid.command('skills').description('Manage Factory Droid skills (.factory/skills/)');
+registerAdapterCommands({ adapter: getAdapter('factorydroid', 'skills'), parentCommand: factorydroidSkills, programOpts: () => program.opts() });
+
+const factorydroidCommands = factorydroid.command('commands').description('Manage Factory Droid commands (.factory/commands/)');
+registerAdapterCommands({ adapter: getAdapter('factorydroid', 'commands'), parentCommand: factorydroidCommands, programOpts: () => program.opts() });
+
+const factorydroidAgents = factorydroid.command('agents').description('Manage Factory Droid droids (.factory/droids/)');
+registerAdapterCommands({ adapter: getAdapter('factorydroid', 'agents'), parentCommand: factorydroidAgents, programOpts: () => program.opts() });
+
+// ============ Kimi command group ============
+const kimi = program
+  .command('kimi')
+  .description('Manage Kimi Code assets in a project');
+
+kimi
+  .command('install')
+  .description('Install all Kimi Code entries from config')
+  .action(async () => {
+    try {
+      await installEntriesForTool(adapterRegistry.getForTool('kimi'), process.cwd());
+    } catch (error: any) {
+      console.error(chalk.red('Error installing Kimi Code entries:'), error.message);
+      process.exit(1);
+    }
+  });
+
+const kimiSkills = kimi.command('skills').description('Manage Kimi Code skills (.kimi-code/skills/)');
+registerAdapterCommands({ adapter: getAdapter('kimi', 'skills'), parentCommand: kimiSkills, programOpts: () => program.opts() });
+
+const kimiAgents = kimi.command('agents').description('Manage Kimi Code agents (.kimi-code/agents/)');
+registerAdapterCommands({ adapter: getAdapter('kimi', 'agents'), parentCommand: kimiAgents, programOpts: () => program.opts() });
+
+// ============ Kilo command group ============
+const kilo = program
+  .command('kilo')
+  .description('Manage Kilo Code assets in a project');
+
+kilo
+  .command('install')
+  .description('Install all Kilo Code entries from config')
+  .action(async () => {
+    try {
+      await installEntriesForTool(adapterRegistry.getForTool('kilo'), process.cwd());
+    } catch (error: any) {
+      console.error(chalk.red('Error installing Kilo Code entries:'), error.message);
+      process.exit(1);
+    }
+  });
+
+const kiloSkills = kilo.command('skills').description('Manage Kilo Code skills (.kilo/skills/)');
+registerAdapterCommands({ adapter: getAdapter('kilo', 'skills'), parentCommand: kiloSkills, programOpts: () => program.opts() });
+
+const kiloCommands = kilo.command('commands').description('Manage Kilo Code commands (.kilo/commands/)');
+registerAdapterCommands({ adapter: getAdapter('kilo', 'commands'), parentCommand: kiloCommands, programOpts: () => program.opts() });
+
+const kiloAgents = kilo.command('agents').description('Manage Kilo Code agents (.kilo/agents/)');
+registerAdapterCommands({ adapter: getAdapter('kilo', 'agents'), parentCommand: kiloAgents, programOpts: () => program.opts() });
+
+// ============ Hermes command group ============
+const hermes = program
+  .command('hermes')
+  .description('Manage Hermes Agent assets in a project');
+
+hermes
+  .command('install')
+  .description('Install all Hermes entries from config')
+  .action(async () => {
+    try {
+      await installEntriesForTool(adapterRegistry.getForTool('hermes'), process.cwd());
+    } catch (error: any) {
+      console.error(chalk.red('Error installing Hermes entries:'), error.message);
+      process.exit(1);
+    }
+  });
+
+const hermesSkills = hermes.command('skills').description('Manage Hermes skills (.hermes/skills/)');
+registerAdapterCommands({ adapter: getAdapter('hermes', 'skills'), parentCommand: hermesSkills, programOpts: () => program.opts() });
+
+// ============ Junie command group ============
+const junie = program.command('junie').description('Manage JetBrains Junie assets');
+junie.command('install').description('Install all Junie entries').action(async () => {
+  try { await installEntriesForTool(adapterRegistry.getForTool('junie'), process.cwd()); }
+  catch (e: any) { console.error(chalk.red('Error:'), e.message); process.exit(1); }
+});
+['skills','agents','commands','rules'].forEach(s => {
+  const c = junie.command(s).description(`Manage Junie ${s}`);
+  registerAdapterCommands({ adapter: getAdapter('junie', s), parentCommand: c, programOpts: () => program.opts() });
+});
+
+// ============ Kiro command group ============
+const kiroCli = program.command('kiro').description('Manage Kiro assets');
+kiroCli.command('install').description('Install all Kiro entries').action(async () => {
+  try { await installEntriesForTool(adapterRegistry.getForTool('kiro'), process.cwd()); }
+  catch (e: any) { console.error(chalk.red('Error:'), e.message); process.exit(1); }
+});
+['skills','agents','rules'].forEach(s => {
+  const c = kiroCli.command(s).description(`Manage Kiro ${s}`);
+  registerAdapterCommands({ adapter: getAdapter('kiro', s), parentCommand: c, programOpts: () => program.opts() });
+});
+
+// ============ Qwen command group ============
+const qwen = program.command('qwen').description('Manage Qwen Code assets');
+qwen.command('install').description('Install all Qwen entries').action(async () => {
+  try { await installEntriesForTool(adapterRegistry.getForTool('qwen'), process.cwd()); }
+  catch (e: any) { console.error(chalk.red('Error:'), e.message); process.exit(1); }
+});
+['skills','agents','commands','rules'].forEach(s => {
+  const c = qwen.command(s).description(`Manage Qwen ${s}`);
+  registerAdapterCommands({ adapter: getAdapter('qwen', s), parentCommand: c, programOpts: () => program.opts() });
+});
+
+// ============ Augment command group ============
+const augment = program.command('augment').description('Manage Augment Code assets');
+augment.command('install').description('Install all Augment entries').action(async () => {
+  try { await installEntriesForTool(adapterRegistry.getForTool('augment'), process.cwd()); }
+  catch (e: any) { console.error(chalk.red('Error:'), e.message); process.exit(1); }
+});
+['skills','agents','commands','rules'].forEach(s => {
+  const c = augment.command(s).description(`Manage Augment ${s}`);
+  registerAdapterCommands({ adapter: getAdapter('augment', s), parentCommand: c, programOpts: () => program.opts() });
+});
+
+// ============ DeepAgents command group ============
+const deepagents = program.command('deepagents').description('Manage DeepAgents CLI assets');
+deepagents.command('install').description('Install all DeepAgents entries').action(async () => {
+  try { await installEntriesForTool(adapterRegistry.getForTool('deepagents'), process.cwd()); }
+  catch (e: any) { console.error(chalk.red('Error:'), e.message); process.exit(1); }
+});
+['skills','agents'].forEach(s => {
+  const c = deepagents.command(s).description(`Manage DeepAgents ${s}`);
+  registerAdapterCommands({ adapter: getAdapter('deepagents', s), parentCommand: c, programOpts: () => program.opts() });
+});
+
+// ============ Continue command group ============
+const continueCli = program.command('continue').description('Manage Continue assets');
+continueCli.command('install').description('Install all Continue entries').action(async () => {
+  try { await installEntriesForTool(adapterRegistry.getForTool('continue'), process.cwd()); }
+  catch (e: any) { console.error(chalk.red('Error:'), e.message); process.exit(1); }
+});
+['skills','rules','prompts'].forEach(s => {
+  const c = continueCli.command(s).description(`Manage Continue ${s}`);
+  registerAdapterCommands({ adapter: getAdapter('continue', s), parentCommand: c, programOpts: () => program.opts() });
+});
+
+// ============ Aider command group ============
+const aider = program.command('aider').description('Manage Aider assets');
+aider.command('install').description('Install all Aider entries').action(async () => {
+  try { await installEntriesForTool(adapterRegistry.getForTool('aider'), process.cwd()); }
+  catch (e: any) { console.error(chalk.red('Error:'), e.message); process.exit(1); }
+});
+const aiderSkillsCmd = aider.command('skills').description('Manage Aider skills');
+registerAdapterCommands({ adapter: getAdapter('aider', 'skills'), parentCommand: aiderSkillsCmd, programOpts: () => program.opts() });
+
+// ============ Zed command group ============
+const zed = program.command('zed').description('Manage Zed editor assets');
+zed.command('install').description('Install all Zed entries').action(async () => {
+  try { await installEntriesForTool(adapterRegistry.getForTool('zed'), process.cwd()); }
+  catch (e: any) { console.error(chalk.red('Error:'), e.message); process.exit(1); }
+});
+const zedSkillsCmd = zed.command('skills').description('Manage Zed skills');
+registerAdapterCommands({ adapter: getAdapter('zed', 'skills'), parentCommand: zedSkillsCmd, programOpts: () => program.opts() });
+
+// ============ Goose command group ============
+const goose = program.command('goose').description('Manage Goose (Block) assets');
+goose.command('install').description('Install all Goose entries').action(async () => {
+  try { await installEntriesForTool(adapterRegistry.getForTool('goose'), process.cwd()); }
+  catch (e: any) { console.error(chalk.red('Error:'), e.message); process.exit(1); }
+});
+const gooseSkillsCmd = goose.command('skills').description('Manage Goose skills');
+registerAdapterCommands({ adapter: getAdapter('goose', 'skills'), parentCommand: gooseSkillsCmd, programOpts: () => program.opts() });
+
+// ============ Amp command group ============
+const amp = program.command('amp').description('Manage Amp assets');
+amp.command('install').description('Install all Amp entries').action(async () => {
+  try { await installEntriesForTool(adapterRegistry.getForTool('amp'), process.cwd()); }
+  catch (e: any) { console.error(chalk.red('Error:'), e.message); process.exit(1); }
+});
+const ampSkillsCmd = amp.command('skills').description('Manage Amp skills');
+registerAdapterCommands({ adapter: getAdapter('amp', 'skills'), parentCommand: ampSkillsCmd, programOpts: () => program.opts() });
 
 // ============ Warp command group ============
 const warp = program

@@ -1,7 +1,7 @@
 # Project Knowledge Base
 
 ## Project Overview
-**AI Rules Sync (ais)** is a CLI tool designed to synchronize agent rules from a centralized Git repository to local projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor subagents**, **Copilot instructions**, **Claude Code rules/skills/subagents/CLAUDE.md**, **Trae rules/skills**, **OpenCode agents/skills/commands/tools**, **Codex rules/skills/AGENTS.md**, **Gemini CLI commands/skills/agents/GEMINI.md**, **Windsurf rules/skills**, **Cline rules/skills**, and **universal AGENTS.md support**, keeping projects up-to-date across teams.
+**AI Rules Sync (ais)** is an Agent Assets Federation Toolkit — install, compose, update, and publish native agent assets from multiple Git repositories across all your projects using symbolic links. It supports **Cursor rules**, **Cursor commands**, **Cursor skills**, **Cursor subagents**, **Copilot instructions**, **Claude Code rules/skills/subagents/CLAUDE.md**, **Trae rules/skills**, **OpenCode agents/skills/commands/tools**, **Codex rules/skills/AGENTS.md**, **Gemini CLI commands/skills/agents/GEMINI.md**, **Windsurf rules/skills**, **Cline rules/skills**, and **universal AGENTS.md support**, keeping projects up-to-date across teams.
 
 A key feature is **User Mode** (`--user` / `-u`): use `$HOME` as project root to manage AI config files in `~/.claude/`, `~/.gemini/`, `~/.codex/`, `~/.config/opencode/`, etc. Entries are tracked in `~/.config/ai-rules-sync/user.json` (or a user-configured custom path for dotfiles integration) and gitignore management is skipped automatically.
 
