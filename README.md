@@ -4,42 +4,28 @@
 [![License](https://img.shields.io/github/license/lbb00/ai-rules-sync.svg)](https://github.com/lbb00/ai-rules-sync/blob/master/LICENSE)
 [![Npm download](https://img.shields.io/npm/dw/ai-rules-sync.svg)](https://www.npmjs.com/package/ai-rules-sync)
 
-[English](./README.md) | [中文](./README_ZH.md)
+[English](./README.md) | [中文](./README_ZH.md) | [📖 Documentation](https://lbb00.github.io/ai-rules-sync/)
 
-**AI Rules Sync (AIS)** - Synchronize, manage, and share your AI agent rules across projects and teams.
+**AI Rules Sync (AIS)** — Install, compose, update, and publish native agent assets from multiple Git repositories across all your projects.
 
-Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links.
-
-**Supports:** Cursor (rules, commands, skills, subagents), GitHub Copilot (instructions, prompts, skills, agents), Claude Code (rules, skills, subagents, CLAUDE.md), Trae (rules, skills), OpenCode (commands, skills, agents, tools), Codex (rules, skills, AGENTS.md), Gemini CLI (commands, skills, agents, GEMINI.md), Windsurf (rules, skills), Cline (rules, skills), Warp (rules via AGENTS.md, skills), and universal AGENTS.md. Also supports **User Mode** for personal AI config files (`~/.claude/CLAUDE.md`, `~/.gemini/GEMINI.md`, `~/.codex/AGENTS.md`, `~/.config/opencode/`, etc.).
+> **AIS is an asset federation toolkit, not a format converter.** It keeps your files exactly as they are — skills, rules, commands, agents — and syncs them via symbolic links across every project you work on. Edit once, update everywhere.
 
 ---
 
-## Table of Contents
+## How AIS is Different
 
-- [Why AIS?](#why-ais)
-- [Installation](#installation)
-- [Supported Tools](#supported-tools)
-- [Quick Start](#quick-start)
-- [Core Concepts](#core-concepts)
-- [Recommended Command Style](#recommended-command-style)
-- [Basic Usage](#basic-usage)
-- [Tool-Specific Guides](#tool-specific-guides)
-- [Advanced Features](#advanced-features)
-  - [User Mode](#user-mode-personal-ai-config-files)
-- [Configuration Reference](#configuration-reference)
-- [Architecture](#architecture)
-- [Troubleshooting](#troubleshooting)
+| AIS | Other tools |
+|---|---|
+| **Symlinks** — upstream changes are instant | Copy files — must re-run to update |
+| **One source → many projects** | One project at a time |
+| **Native assets** — no format conversion | Rewrite / re-generate your files |
+| **Import → publish → review** workflow | One-way consumption only |
+| **370 KB, 5 dependencies** | Often 10+ MB with deep dependency trees |
+| **Git-native** — works with any Git remote | Tied to specific registries or APIs |
 
----
+**AIS is complementary to format-conversion tools.** If you also need cross-tool format conversion, you can use AIS for asset management and another tool for generation — they solve different problems.
 
-## Why AIS?
-
-- **🧩 Multi-Repository**: Mix rules from company standards, team protocols, and open-source collections
-- **🔄 Sync Once, Update Everywhere**: One source of truth, automatic updates across all projects
-- **🤝 Team Alignment**: Share coding standards instantly, onboard new members with one command
-- **🔒 Privacy First**: Keep sensitive rules local with `ai-rules-sync.local.json`
-- **🛠️ Git Integration**: Manage repositories directly through CLI (`ais git`)
-- **🔌 Extensible**: Plugin architecture for adding new AI tools
+**Supports:** Cursor (rules, commands, skills, subagents), GitHub Copilot (instructions, prompts, skills, agents), Claude Code (rules, skills, subagents, CLAUDE.md), Trae (rules, skills), OpenCode (commands, skills, agents, tools), Codex (rules, skills, AGENTS.md), Gemini CLI (commands, skills, agents, GEMINI.md), Windsurf (rules, skills), Cline (rules, skills), Warp (rules via AGENTS.md, skills), and universal AGENTS.md. Also supports **User Mode** for personal AI config files.
 
 ---
 
@@ -56,14 +42,9 @@ npm install -g ai-rules-sync
 ```bash
 brew tap lbb00/ai-rules-sync https://github.com/lbb00/ai-rules-sync
 brew install ais
-
-# one-off install without tap:
-brew install --formula https://raw.githubusercontent.com/lbb00/ai-rules-sync/main/Formula/ais.rb
 ```
 
-> This repository is the tap source. Use the explicit tap URL above to avoid Homebrew's default `homebrew-<repo>` mapping.
-
-**Verify installation:**
+**Verify:**
 ```bash
 ais --version
 ```
@@ -71,6 +52,52 @@ ais --version
 **Optional: Enable tab completion**
 ```bash
 ais completion install
+```
+
+---
+
+## Quick Start
+
+### Use assets from a repository
+
+```bash
+cd your-project
+
+# Add a rule (specify repository URL the first time)
+ais cursor add react -t https://github.com/your-org/rules-repo.git
+
+# After first use, omit -t
+ais cursor add vue
+ais copilot instructions add coding-standards
+ais claude skills add code-review
+```
+
+### Share your existing assets
+
+```bash
+# Import a rule from your project into the repository
+ais cursor rules import my-custom-rule
+
+# Optionally push to remote
+ais cursor rules import my-rule --push
+```
+
+### Restore assets (team onboarding / CI)
+
+```bash
+# Restore all assets from ai-rules-sync.json
+ais install
+```
+
+### User-level sync (personal AI configs)
+
+```bash
+# Sync personal configs to $HOME
+ais claude md add CLAUDE --user
+ais gemini md add GEMINI --user
+
+# Restore on a new machine
+ais user install
 ```
 
 ---
@@ -116,188 +143,40 @@ _This table is generated from `docs/supported-tools.json` via `npm run docs:sync
 | **Universal** | **AGENTS.md** | file | `.` (root) | `.md` | [Standard](https://agents.md/) |
 <!-- SUPPORTED_TOOLS_TABLE:END -->
 
-**Modes:**
-- **directory**: Links entire directories (skills, agents)
-- **file**: Links individual files with automatic suffix resolution
-- **hybrid**: Links both files and directories (e.g., Cursor rules)
-
----
-
-## Quick Start
-
-### Scenario 1: Use Existing Rules
-
-**You have a rules repository and want to use its rules in your project.**
-
-```bash
-# 1. Go to your project
-cd your-project
-
-# 2. Add a rule (IMPORTANT: specify repository URL the first time)
-ais cursor add react -t https://github.com/your-org/rules-repo.git
-
-# Done! The rule is now linked to your project
-```
-
-**What just happened?**
-- AIS cloned the repository to `~/.config/ai-rules-sync/repos/`
-- Set it as your current repository
-- Created a symlink: `rules-repo/.cursor/rules/react` → `your-project/.cursor/rules/react`
-- Saved the configuration to `ai-rules-sync.json`
-
-**Next time**, you can omit the `-t` flag:
-```bash
-ais cursor add vue
-ais cursor add testing
-```
-
-### Scenario 2: Share Your Existing Rules
-
-**You have rules in your project and want to share them via a repository.**
-
-```bash
-# 1. Create a rules repository (or use existing one)
-# Option A: Create new repository
-git init ~/my-rules-repo
-ais use ~/my-rules-repo
-
-# Option B: Use existing repository
-ais use https://github.com/your-org/rules-repo.git
-
-# 2. Import your existing rule
-cd your-project
-ais cursor rules import my-custom-rule
-
-# Done! Your rule is now in the repository and linked to your project
-```
-
-**What just happened?**
-- AIS copied `your-project/.cursor/rules/my-custom-rule` to the repository
-- Created a git commit
-- Replaced the original with a symlink
-- Saved the configuration to `ai-rules-sync.json`
-
-**Optional: Push to remote**
-```bash
-ais cursor rules import my-rule --push
-# or manually:
-ais git push
-```
-
 ---
 
 ## Core Concepts
 
-### 1. Repositories
-
-A **rules repository** is a Git repository containing your rules, organized by tool:
+### How It Works
 
 ```
-my-rules-repo/
-├── .cursor/
-│   ├── rules/
-│   │   ├── react.mdc
-│   │   └── typescript.mdc
-│   ├── commands/
-│   │   └── deploy.md
-│   └── skills/
-│       └── code-review/
-├── .claude/
-│   └── skills/
-│       └── debug-helper/
-└── ai-rules-sync.json  # Optional: customize source paths
+Git Repository                    Global Cache                    Your Projects
+┌─────────────────┐     clone     ┌──────────────────┐  symlink  ┌──────────┐
+│ .claude/skills/ │ ───────────→  │ ~/.config/       │ ────────→ │ projectA │
+│ .cursor/rules/  │               │ ai-rules-sync/   │ ────────→ │ projectB │
+│ .github/inst... │               │ repos/           │ ────────→ │ projectC │
+└─────────────────┘               └──────────────────┘           └──────────┘
 ```
 
-**Repository Locations:**
-- **Global**: `~/.config/ai-rules-sync/repos/` (managed by AIS)
-- **Local**: Any local path (for development)
+1. **Clone** — AIS clones your asset repositories to a global cache (`~/.config/ai-rules-sync/repos/`)
+2. **Symlink** — Each project gets symbolic links pointing into the cache
+3. **Update** — When you pull changes in the repo, every project sees them instantly
 
-**Managing Repositories:**
-```bash
-# Set current repository
-ais use https://github.com/your-org/rules-repo.git
+### Three Configuration Layers
 
-# List all repositories (Linux-style alias)
-ais ls
-# Alias kept for compatibility:
-ais list
+| File | Scope | Committed to Git |
+|------|-------|-----------------|
+| `ai-rules-sync.local.json` | Private, per-project | No |
+| `ai-rules-sync.json` | Shared, per-project | Yes |
+| `user.json` (`~/.config/ai-rules-sync/`) | Global, per-user | Optional (dotfiles) |
 
-# Switch between repositories
-ais use company-rules
-ais use personal-rules
-```
+### Three Core Operations
 
-### 2. Three Ways to Get Rules
-
-#### **`add`** - Use rules from a repository
-Link an entry from a repository to your project. Saves the dependency to `ai-rules-sync.json`.
-
-**When to use:** You want to use existing rules from a shared repository.
-
-#### **`import`** - Share your rules via a repository
-Copy an existing entry from your project into the repository, commit it, then replace the original with a symlink.
-
-**When to use:** You have rules in your project and want to share them.
-
-#### **`install`** - Restore from config file
-Read `ai-rules-sync.json` and recreate all symlinks. Use this after cloning a project that already has a config.
-
-**When to use:** You cloned a project with `ai-rules-sync.json` and want to set up all rules.
-
-### 3. Configuration Files
-
-**`ai-rules-sync.json`** - Project configuration (committed to git)
-```json
-{
-  "cursor": {
-    "rules": {
-      "react": "https://github.com/org/rules.git"
-    }
-  }
-}
-```
-
-**`ai-rules-sync.local.json`** - Private rules (NOT committed to git)
-```json
-{
-  "cursor": {
-    "rules": {
-      "company-secrets": "https://github.com/company/private-rules.git"
-    }
-  }
-}
-```
-
-## Recommended Command Style
-
-Use Linux-style commands as the default workflow (`remove` / `list` remain fully compatible):
-
-```bash
-# Recommended
-ais ls
-ais rm old-rule
-ais cursor rules rm react
-
-# Legacy-compatible forms (still supported)
-ais list
-ais remove old-rule
-ais cursor rules remove react
-
-# Query commands
-ais status
-ais search react
-
-# Script/CI JSON output
-ais ls --json
-ais status --json
-ais search react --json
-ais config repo ls --json
-ais config repo show company-rules --json
-
-# Safe preview before destructive operations
-ais cursor rules rm react --dry-run
-ais cursor rules import my-rule --dry-run
-```
+| Command | What it does |
+|---------|-------------|
+| `ais add` | Link an asset from a repository to your project |
+| `ais import` | Copy an asset from your project into the repository, then replace with symlink |
+| `ais install` | Restore all symlinks from `ai-rules-sync.json` (team onboarding, CI) |
 
 ---
 
@@ -305,76 +184,50 @@ ais cursor rules import my-rule --dry-run
 
 ### Setup a Repository
 
-**Option 1: Use an existing repository**
 ```bash
+# Use an existing remote repository
 ais use https://github.com/your-org/rules-repo.git
-```
 
-**Option 2: Create a new local repository**
-```bash
-# Create directory and initialize git
-mkdir ~/my-rules-repo
-cd ~/my-rules-repo
-git init
-
-# Set as current repository
+# Use a local path (for development / testing)
 ais use ~/my-rules-repo
 
-# Create rules structure
-mkdir -p .cursor/rules
-echo "# React Rules" > .cursor/rules/react.mdc
-git add .
-git commit -m "Initial commit"
+# List all configured repositories
+ais ls
+
+# Switch between repositories
+ais use company-rules
+ais use personal-rules
 ```
 
-**Option 3: Clone and use**
-```bash
-git clone https://github.com/your-org/rules-repo.git ~/my-rules-repo
-ais use ~/my-rules-repo
-```
+### Add Assets to Your Project
 
-### Add Rules to Your Project
-
-**Basic add:**
 ```bash
 cd your-project
 
 # First time: specify repository
 ais cursor add react -t https://github.com/org/rules.git
 
-# Subsequent adds
+# Subsequent adds (uses current repository)
 ais cursor add vue
 ais cursor add typescript
-```
 
-**Add with alias:**
-```bash
-# Add 'react' rule but name it 'react-18' in your project
+# Add with alias (different name in project)
 ais cursor add react react-18
-```
 
-**Add from different repository:**
-```bash
-# Add from company repository
+# Add from a different repository
 ais cursor add coding-standards -t company-rules
 
-# Add from personal repository
-ais cursor add my-utils -t personal-rules
-```
-
-**Add as private (local) rule:**
-```bash
-# Won't be committed to git (saved in ai-rules-sync.local.json)
+# Add as private (saved to ai-rules-sync.local.json)
 ais cursor add company-secrets --local
+
+# Add to custom target directory (monorepo)
+ais cursor add my-rule -d packages/frontend/.cursor/rules
 ```
 
-### Import Existing Rules
+### Import Existing Assets
 
-**Import a rule from your project to repository:**
 ```bash
-cd your-project
-
-# Import rule
+# Import a rule from your project into the repository
 ais cursor rules import my-custom-rule
 
 # Import with custom commit message
@@ -387,363 +240,28 @@ ais cursor rules import my-rule --push
 ais cursor rules import my-rule --force
 ```
 
-**What happens during import:**
-1. Copies rule from project to repository
-2. Creates a git commit
-3. Replaces original with symlink
-4. Updates `ai-rules-sync.json`
-
-### Remove Rules
+### Remove Assets
 
 ```bash
-# Remove a rule (deletes symlink and config entry)
 ais cursor rm react
-
-# Remove from specific tool
 ais cursor commands rm deploy
 ais cursor skills rm code-review
 ```
 
 ### Install from Configuration
 
-**When cloning a project:**
 ```bash
-# Clone project
+# Clone project and restore all assets
 git clone https://github.com/team/project.git
 cd project
-
-# Install all rules from ai-rules-sync.json
 ais install
-```
 
-**Reinstall all rules:**
-```bash
-# Remove and recreate all symlinks
+# Install all entries for a specific tool
 ais cursor install
-ais copilot install  # All copilot entries (instructions + skills)
-ais install  # All tools
-```
-
----
-
-## Tool-Specific Guides
-
-### Cursor
-
-#### Rules (Hybrid Mode)
-
-```bash
-# Add a .mdc file
-ais cursor add react
-ais cursor add coding-standards.mdc
-
-# Add a .md file
-ais cursor add readme.md
-
-# Add a rule directory
-ais cursor add my-rule-dir
-
-# Remove
-ais cursor rm react
-```
-
-#### Commands
-
-```bash
-# Add command
-ais cursor commands add deploy-docs
-
-# Remove command
-ais cursor commands rm deploy-docs
-```
-
-#### Skills
-
-```bash
-# Add skill (directory)
-ais cursor skills add code-review
-
-# Remove skill
-ais cursor skills rm code-review
-```
-
-#### Subagents
-
-```bash
-# Add subagent (directory)
-ais cursor agents add code-analyzer
-
-# Remove subagent
-ais cursor agents rm code-analyzer
-```
-
-### GitHub Copilot
-
-```bash
-# Add instruction
-ais copilot instructions add coding-style
-
-# Suffix matching (if both exist, you must specify)
-ais copilot instructions add style.md               # Explicit
-ais copilot instructions add style.instructions.md  # Explicit
-
-# Add prompt file
-ais copilot prompts add generate-tests
-
-# Add skill
-ais copilot skills add web-scraping
-
-# Add custom agent
-ais copilot agents add code-reviewer
-
-# Remove
-ais copilot instructions rm coding-style
-ais copilot prompts rm generate-tests
-ais copilot skills rm web-scraping
-ais copilot agents rm code-reviewer
-```
-
-### Claude Code
-
-```bash
-# Add rule
-ais claude rules add general
-
-# Add skill
-ais claude skills add code-review
-
-# Add subagent
-ais claude agents add debugger
-
-# Add CLAUDE.md (personal user config with --user)
-ais claude md add CLAUDE --user           # → ~/.claude/CLAUDE.md
-ais claude md add CLAUDE                  # → .claude/CLAUDE.md (project)
-
-# Install all
 ais claude install
-
-# Remove
-ais claude rules rm general
-ais claude skills rm code-review
-ais claude agents rm debugger
-ais claude md rm CLAUDE --user
 ```
 
-### Trae
-
-```bash
-# Add rule
-ais trae rules add project-rules
-
-# Add skill
-ais trae skills add adapter-builder
-
-# Remove
-ais trae rules rm project-rules
-ais trae skills rm adapter-builder
-```
-
-### OpenCode
-
-```bash
-# Add agent
-ais opencode agents add code-reviewer
-
-# Add skill
-ais opencode skills add refactor-helper
-
-# Add command
-ais opencode commands add build-optimizer
-
-# Add tool
-ais opencode tools add project-analyzer
-
-# Remove
-ais opencode agents rm code-reviewer
-```
-
-### Codex
-
-```bash
-# Add rule (Starlark syntax for sandbox control)
-ais codex rules add default
-
-# Add skill
-ais codex skills add code-assistant
-
-# Add AGENTS.md (project-level context file)
-ais codex md add AGENTS
-
-# Install all
-ais codex install
-
-# Import from project
-ais codex rules import my-sandbox-rules
-ais codex skills import my-helper-skill
-
-# Remove
-ais codex rules rm default
-```
-
-**Note:** Codex skills use `.agents/skills/` (not `.codex/skills/`) per OpenAI documentation.
-
-**User mode** — manage `~/.codex/AGENTS.md`:
-
-```bash
-ais codex md add AGENTS --user
-# → symlink created at ~/.codex/AGENTS.md
-```
-
-### Gemini CLI
-
-```bash
-# Add command (.toml)
-ais gemini commands add deploy-docs
-
-# Add skill (directory)
-ais gemini skills add code-review
-
-# Add agent (.md)
-ais gemini agents add code-analyzer
-
-# Add GEMINI.md (project-level context file)
-ais gemini md add GEMINI
-
-# Install all
-ais gemini install
-```
-
-**User mode** — manage `~/.gemini/GEMINI.md`:
-
-```bash
-ais gemini md add GEMINI --user
-# → symlink created at ~/.gemini/GEMINI.md
-```
-
-### AGENTS.md (Universal)
-
-```bash
-# Add from root
-ais agents-md add .
-
-# Add from directory
-ais agents-md add frontend
-
-# Add with alias (to distinguish multiple AGENTS.md files)
-ais agents-md add frontend fe-agents
-ais agents-md add backend be-agents
-
-# Remove
-ais agents-md rm fe-agents
-```
-
-### Warp
-
-#### Rules
-
-Warp Rules use the [AGENTS.md standard](https://agents.md/) — use the `agents-md` commands:
-
-```bash
-# Add AGENTS.md from repo root (applies globally in Warp)
-ais agents-md add .
-
-# Add directory-specific rules
-ais agents-md add src
-
-# Remove
-ais agents-md rm .
-```
-
-#### Skills
-
-```bash
-ais warp skills add my-skill
-ais warp skills rm my-skill
-ais warp skills install
-```
-
-### Windsurf
-
-```bash
-# Add rule
-ais windsurf add project-style
-
-# Add skill
-ais windsurf skills add deploy-staging
-
-# Remove
-ais windsurf rm project-style
-
-# Install all
-ais windsurf install
-```
-
-> Note: Windsurf Memories are managed inside Cascade UI/runtime. AIS syncs file-based artifacts (`.windsurf/rules` and `.windsurf/skills`).
-
-### Cline
-
-```bash
-# Add rule
-ais cline add coding
-
-# Add skill
-ais cline skills add release-checklist
-
-# Remove
-ais cline rm coding
-
-# Install all
-ais cline install
-```
-
----
-
-## Advanced Features
-
-### Multiple Repositories
-
-**Use the `-t` flag to specify which repository to use:**
-
-```bash
-# Add from company repository
-ais cursor add coding-standards -t company-rules
-
-# Add from open-source repository
-ais cursor add react-best-practices -t https://github.com/community/rules.git
-
-# Add from personal repository
-ais cursor add my-utils -t personal-rules
-```
-
-**View current repository:**
-```bash
-ais ls
-# * company-rules (current)
-#   personal-rules
-#   community-rules
-```
-
-**Switch default repository:**
-```bash
-ais use personal-rules
-```
-
-### Global Options
-
-All commands support:
-
-- `-t, --target <repo>`: Specify repository (name or URL)
-- `-l, --local`: Save to `ai-rules-sync.local.json` (private)
-
-Examples:
-```bash
-ais cursor add react -t company-rules --local
-ais copilot instructions add coding-style -t https://github.com/org/rules.git
-```
-
-### Discover and Install All (add-all)
-
-**Automatically discover and install ALL available rules:**
+### Discover and Install All
 
 ```bash
 # Install everything from current repository
@@ -752,294 +270,167 @@ ais add-all
 # Install all Cursor rules
 ais cursor add-all
 
-# Install specific type
-ais cursor rules add-all
-
 # Preview before installing
 ais add-all --dry-run
 
 # Filter by tool
 ais add-all --tools cursor,copilot
 
-# Interactive mode (confirm each)
+# Interactive mode
 ais cursor add-all --interactive
-
-# Force overwrite existing
-ais add-all --force
-
-# Skip existing
-ais add-all --skip-existing
-
-# Save as private
-ais cursor add-all --local
 ```
 
-**Output example:**
+---
+
+## Tool-Specific Commands
+
+### Cursor
+```bash
+ais cursor add react                 # Rule
+ais cursor commands add deploy       # Command
+ais cursor skills add code-review    # Skill
+ais cursor agents add code-analyzer  # Subagent
 ```
-Discovering entries from repository...
-  cursor-rules: 5 entries
-  cursor-commands: 3 entries
-Total: 8 entries discovered
 
-Installing entries:
-[1/8] cursor-rules/react → .cursor/rules/react ✓
-[2/8] cursor-rules/vue → .cursor/rules/vue ✓
-...
+### GitHub Copilot
+```bash
+ais copilot instructions add coding-style
+ais copilot prompts add generate-tests
+ais copilot skills add web-scraping
+ais copilot agents add code-reviewer
+```
 
-Summary:
-  Installed: 7
-  Skipped: 1 (already configured)
+### Claude Code
+```bash
+ais claude rules add general
+ais claude skills add code-review
+ais claude agents add debugger
+ais claude md add CLAUDE             # CLAUDE.md (project)
+ais claude md add CLAUDE --user      # CLAUDE.md (personal)
+```
+
+### Codex
+```bash
+ais codex rules add default
+ais codex skills add code-assistant
+ais codex md add AGENTS --user       # ~/.codex/AGENTS.md
+```
+
+### Gemini CLI
+```bash
+ais gemini commands add deploy-docs
+ais gemini skills add code-review
+ais gemini agents add code-analyzer
+ais gemini md add GEMINI --user      # ~/.gemini/GEMINI.md
+```
+
+### Other Tools
+```bash
+ais trae rules add project-rules
+ais opencode agents add code-reviewer
+ais opencode tools add project-analyzer
+ais windsurf add project-style
+ais windsurf skills add deploy-staging
+ais cline add coding
+ais cline skills add release-checklist
+ais warp skills add my-skill
+ais agents-md add .                  # Universal AGENTS.md
+```
+
+---
+
+## Advanced Features
+
+### Multiple Repositories
+
+```bash
+ais cursor add coding-standards -t company-rules
+ais cursor add react-best-practices -t https://github.com/community/rules.git
+ais cursor add my-utils -t personal-rules
+```
+
+### User Mode (Personal AI Config Files)
+
+```bash
+ais claude md add CLAUDE --user      # → ~/.claude/CLAUDE.md
+ais gemini md add GEMINI --user      # → ~/.gemini/GEMINI.md
+ais codex md add AGENTS --user       # → ~/.codex/AGENTS.md
+ais cursor rules add my-style --user
+
+# Restore on a new machine
+ais user install
+```
+
+**Dotfiles integration:**
+```bash
+ais config user set ~/dotfiles/ai-rules-sync/user.json
+ais user install
+```
+
+### Repository Lifecycle
+
+```bash
+# Check whether repositories are behind upstream
+ais check
+
+# Preview updates without pulling
+ais update --dry-run
+
+# Pull updates and reinstall entries
+ais update
+
+# Initialize a rules repository template
+ais init
+```
+
+### Git Commands
+
+```bash
+ais git status
+ais git pull
+ais git push
+ais git log --oneline
+ais git status -t company-rules
 ```
 
 ### Custom Source Directories
 
-**For third-party repositories with non-standard structure:**
-
-#### CLI Parameters (temporary)
+For third-party repositories with non-standard structure:
 
 ```bash
-# Simple format (in context)
+# CLI parameters (temporary)
 ais cursor rules add-all -s custom/rules
 
-# Dot notation format (explicit)
-ais add-all -s cursor.rules=custom/rules -s cursor.commands=custom/cmds
-
-# Preview first
-ais cursor rules add-all -s custom/rules --dry-run
-```
-
-#### Global Configuration (persistent)
-
-```bash
-# Set custom source directory
+# Persistent configuration
 ais config repo set-source third-party cursor.rules custom/rules
-
-# View configuration
 ais config repo show third-party
-
-# Clear configuration
-ais config repo clear-source third-party cursor.rules
-ais config repo clear-source third-party  # Clear all
-
-# List all repositories
-ais config repo list
-```
-
-**Priority system:**
-```
-CLI Parameters > Global Config > Repository Config > Adapter Defaults
 ```
 
 ### Custom Target Directories
 
-**Change where rules are linked in your project:**
-
 ```bash
-# Add to custom directory
-ais cursor add my-rule -d docs/ai/rules
-
 # Monorepo: different packages
 ais cursor add react-rules frontend-rules -d packages/frontend/.cursor/rules
 ais cursor add node-rules backend-rules -d packages/backend/.cursor/rules
 ```
 
-**IMPORTANT: Adding same rule to multiple locations requires aliases:**
-
-```bash
-# First location (no alias needed)
-ais cursor add auth-rules -d packages/frontend/.cursor/rules
-
-# Second location (alias REQUIRED)
-ais cursor add auth-rules backend-auth -d packages/backend/.cursor/rules
-```
-
-### User Mode (Personal AI Config Files)
-
-**Manage personal AI config files with version control:**
-
-```bash
-# Claude Code: ~/.claude/CLAUDE.md
-ais claude md add CLAUDE --user
-
-# Gemini CLI: ~/.gemini/GEMINI.md
-ais gemini md add GEMINI --user
-
-# Codex: ~/.codex/AGENTS.md
-ais codex md add AGENTS --user
-
-# OpenCode (XDG path): ~/.config/opencode/commands/
-ais opencode commands add my-cmd --user
-
-# Cursor rules: ~/.cursor/rules/
-ais cursor rules add my-style --user
-
-# Install all user entries on a new machine
-ais user install
-# or equivalently:
-ais install --user
-```
-
-> **OpenCode note:** User-level files land in `~/.config/opencode/` (XDG), not `~/.opencode/`.
-
-**Manage user config path** (for dotfiles integration):
-
-```bash
-# View current user config path
-ais config user show
-
-# Store user.json inside your dotfiles repo (for git tracking)
-ais config user set ~/dotfiles/ai-rules-sync/user.json
-
-# Reset to default (~/.config/ai-rules-sync/user.json)
-ais config user reset
-```
-
-**Multi-machine workflow:**
-
-```bash
-# Machine A: initial setup
-ais use git@github.com:me/my-rules.git
-ais config user set ~/dotfiles/ai-rules-sync/user.json  # optional
-ais claude md add CLAUDE --user
-ais cursor rules add my-style --user
-# user.json tracks all dependencies (commit to dotfiles to share)
-
-# Machine B: restore everything with one command
-ais use git@github.com:me/my-rules.git
-ais config user set ~/dotfiles/ai-rules-sync/user.json  # if using dotfiles
-ais user install
-```
-
-**user.json format** (same as `ai-rules-sync.json`):
-
-```json
-{
-  "claude": {
-    "md": { "CLAUDE": "https://github.com/me/my-rules.git" },
-    "rules": { "general": "https://github.com/me/my-rules.git" }
-  },
-  "gemini": {
-    "md": { "GEMINI": "https://github.com/me/my-rules.git" }
-  },
-  "codex": {
-    "md": { "AGENTS": "https://github.com/me/my-rules.git" }
-  },
-  "cursor": {
-    "rules": { "my-style": "https://github.com/me/my-rules.git" }
-  }
-}
-```
-
-### Repository Configuration
-
-**Customize source paths in repository:**
-
-Create `ai-rules-sync.json` in your rules repository:
-
-```json
-{
-  "rootPath": "src",
-  "sourceDir": {
-    "cursor": {
-      "rules": ".cursor/rules",
-      "commands": ".cursor/commands",
-      "skills": ".cursor/skills",
-      "agents": ".cursor/agents"
-    },
-    "copilot": {
-      "instructions": ".github/instructions"
-    },
-    "claude": {
-      "skills": ".claude/skills",
-      "agents": ".claude/agents",
-      "rules": ".claude/rules",
-      "md": ".claude"
-    },
-    "trae": {
-      "rules": ".trae/rules",
-      "skills": ".trae/skills"
-    },
-    "opencode": {
-      "agents": ".opencode/agents",
-      "skills": ".opencode/skills",
-      "commands": ".opencode/commands",
-      "tools": ".opencode/tools"
-    },
-    "codex": {
-      "rules": ".codex/rules",
-      "skills": ".agents/skills"
-    },
-    "gemini": {
-      "commands": ".gemini/commands",
-      "skills": ".gemini/skills",
-      "agents": ".gemini/agents"
-    },
-    "warp": {
-      "skills": ".agents/skills"
-    },
-    "windsurf": {
-      "rules": ".windsurf/rules",
-      "skills": ".windsurf/skills"
-    },
-    "cline": {
-      "rules": ".clinerules",
-      "skills": ".cline/skills"
-    },
-    "agentsMd": {
-      "file": "."
-    }
-  }
-}
-```
-
-### Git Commands
-
-**Manage repository directly from CLI:**
-
-```bash
-# Check repository status
-ais git status
-
-# Pull latest changes
-ais git pull
-
-# Push commits
-ais git push
-
-# Run any git command
-ais git log --oneline
-ais git branch
-
-# Specify repository
-ais git status -t company-rules
-```
-
 ### Tab Completion
-
-On first run, AIS will offer to install tab completion automatically. To install manually:
 
 ```bash
 ais completion install
-```
-
-Once installed, `<Tab>` after any `add` command lists available entries from your repository:
-
-```bash
 ais cursor add <Tab>              # Lists available rules
 ais cursor commands add <Tab>     # Lists available commands
-ais copilot instructions add <Tab>
 ```
 
 ---
 
 ## Configuration Reference
 
-### ai-rules-sync.json Structure
-
-**Project configuration file (committed to git):**
+### ai-rules-sync.json
 
 ```json
 {
+  "version": 1,
   "cursor": {
     "rules": {
       "react": "https://github.com/user/repo.git",
@@ -1061,151 +452,65 @@ ais copilot instructions add <Tab>
 }
 ```
 
-All other tools (`copilot`, `trae`, `opencode`, `codex`, `gemini`, `warp`, `windsurf`, `cline`) follow the same structure — see [Supported Tools](#supported-tools) for their key names.
+### Repository Config (ai-rules-sync.json in rules repo)
 
-**Format types:**
-
-1. **Simple string:** Just the repository URL
-   ```json
-   "react": "https://github.com/user/repo.git"
-   ```
-
-2. **Object with alias:** Different name in project vs repository
-   ```json
-   "react-v2": {
-     "url": "https://github.com/user/repo.git",
-     "rule": "react"
-   }
-   ```
-
-3. **Object with custom target directory:**
-   ```json
-   "docs-rule": {
-     "url": "https://github.com/user/repo.git",
-     "targetDir": "docs/ai/rules"
-   }
-   ```
-
-### Local/Private Rules
-
-**Use `ai-rules-sync.local.json` for private rules:**
-
-```bash
-# Add private rule
-ais cursor add company-secrets --local
+```json
+{
+  "version": 1,
+  "rootPath": "src",
+  "sourceDir": {
+    "cursor": { "rules": ".cursor/rules", "commands": ".cursor/commands" },
+    "claude": { "skills": ".claude/skills", "rules": ".claude/rules" },
+    "*": { "skills": "common/skills" }
+  }
+}
 ```
 
-**This file:**
-- Has same structure as `ai-rules-sync.json`
-- Should be in `.gitignore` (AIS adds it automatically)
-- Merges with main config (local takes precedence)
+### Entry Formats
 
-### Legacy Compatibility
-
-**Old `cursor-rules.json` format is still supported:**
-
-- If `ai-rules-sync.json` doesn't exist but `cursor-rules.json` does, AIS will read it
-- Running any write command (add/remove) will migrate to new format
-- Only Cursor rules are supported in legacy format
+| Format | Example |
+|--------|---------|
+| Simple string | `"react": "https://github.com/user/repo.git"` |
+| Object with alias | `"react-v2": { "url": "...", "rule": "react" }` |
+| Custom target dir | `"docs-rule": { "url": "...", "targetDir": "docs/ai/rules" }` |
 
 ---
 
 ## Architecture
 
-**AIS uses a plugin-based adapter architecture:**
-
 ```
-CLI Layer
+CLI (commander.js)
     ↓
-Adapter Registry & Lookup (findAdapterForAlias)
+Adapter Registry (34 adapters, 11 tools)
     ↓
-Unified Operations (addDependency, removeDependency, link, unlink)
+dotany — generic dotfile management layer
+    ├── SourceResolver (GitRepoSource)
+    ├── ManifestStore (ai-rules-sync.json)
+    └── DotfileManager (add, remove, apply, diff, status, import)
     ↓
-Sync Engine (linkEntry, unlinkEntry)
+Sync Engine (symlink creation, ignore management)
     ↓
-Config Layer (ai-rules-sync.json)
-```
-
-**Key Design Principles:**
-
-1. **Unified Interface**: All adapters implement the same operations
-2. **Auto-Routing**: Automatically finds correct adapter based on config
-3. **Generic Functions**: `addDependencyGeneric()` and `removeDependencyGeneric()` work with any adapter
-4. **Extensible**: Easy to add support for new AI tools
-
-For details on adding a new adapter, see [KNOWLEDGE_BASE.md](./KNOWLEDGE_BASE.md).
-
----
-
-## Troubleshooting
-
-### Command not found after installation
-
-```bash
-# Verify installation
-npm list -g ai-rules-sync
-
-# Reinstall
-npm install -g ai-rules-sync
-
-# Check PATH
-echo $PATH
-```
-
-### Symlink issues
-
-```bash
-# Remove all symlinks and recreate
-ais cursor install
-
-# Or manually
-rm .cursor/rules/*
-ais cursor install
-```
-
-### Repository not found
-
-```bash
-# List repositories
-ais ls
-
-# Set repository
-ais use <repo-name-or-url>
-```
-
-### Tab completion not working
-
-```bash
-# Zsh: ensure completion is initialized
-# Add to ~/.zshrc before ais completion line:
-autoload -Uz compinit && compinit
+Config Layer (global config, project config, user config)
 ```
 
 ---
 
-## Maintainer Release Automation
+## Learn More
 
-Releases are automated with GitHub Actions:
+📖 **Full documentation:** [https://lbb00.github.io/ai-rules-sync/](https://lbb00.github.io/ai-rules-sync/)
 
-1. Merge the Changesets release PR into `main`.
-2. `release.yml` publishes to npm.
-3. `update-homebrew.yml` updates `Formula/ais.rb` in this repository.
-
-### Required GitHub Secrets
-
-- `NPM_TOKEN`
-
-### Recovery / Rollback
-
-- If npm publish succeeds but Homebrew update fails, rerun:
-  - `Update Homebrew Tap` (`workflow_dispatch`, with `version`)
-- If a bad npm version is published, publish a fixed patch version and let automation sync downstream package channels.
+- [Getting Started](https://lbb00.github.io/ai-rules-sync/guide/getting-started)
+- [Project-Level Sync](https://lbb00.github.io/ai-rules-sync/guide/project-level)
+- [User Global-Level Sync](https://lbb00.github.io/ai-rules-sync/guide/user-level)
+- [Multiple Repositories](https://lbb00.github.io/ai-rules-sync/guide/multiple-repos)
+- [CLI Reference](https://lbb00.github.io/ai-rules-sync/reference/cli)
+- [Configuration Reference](https://lbb00.github.io/ai-rules-sync/reference/configuration)
 
 ---
 
 ## Links
 
-- **Documentation**: [https://github.com/lbb00/ai-rules-sync](https://github.com/lbb00/ai-rules-sync)
+- **Documentation**: [https://lbb00.github.io/ai-rules-sync/](https://lbb00.github.io/ai-rules-sync/)
 - **Issues**: [https://github.com/lbb00/ai-rules-sync/issues](https://github.com/lbb00/ai-rules-sync/issues)
 - **NPM**: [https://www.npmjs.com/package/ai-rules-sync](https://www.npmjs.com/package/ai-rules-sync)
 
