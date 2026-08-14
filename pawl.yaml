@@ -1,0 +1,27 @@
+snapshot: "pawl.snapshot.json"
+
+dimensions:
+  - id: "file-length"
+    title: "Files over 500 lines"
+    direction: "lower-is-better"
+    builtin: "file-length"
+    options:
+      threshold: 500
+      include: ["src/**/*.ts"]
+      exclude: ["**/*.test.ts", "**/__tests__/**"]
+
+  - id: "as-any"
+    title: "as any type assertions"
+    direction: "lower-is-better"
+    gate: "per-file-count"
+    builtin: "pattern-count"
+    options:
+      pattern: "as any"
+      include: ["src/**/*.ts"]
+      exclude: ["**/*.test.ts", "**/__tests__/**"]
+
+  - id: "passing-tests"
+    title: "Passing tests"
+    direction: "higher-is-better"
+    gate: "total"
+    command: "npx vitest run --reporter=json 2>/dev/null | node -e 'const d=require(\"fs\").readFileSync(\"/dev/stdin\",\"utf8\");const j=JSON.parse(d);console.log(JSON.stringify({value:j.numPassedTests,unit:\"tests\"}))'"

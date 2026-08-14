@@ -6,58 +6,28 @@
 
 [English](./README.md) | [中文](./README_ZH.md) | [📖 文档](https://lbb00.github.io/ai-rules-sync/)
 
-**AI Rules Sync (AIS)** — 跨项目和团队同步、管理和共享你的 AI 代理规则。
+**AI Rules Sync (AIS)** — 从多个 Git 仓库安装、组合、更新和发布原生 Agent 资产，同步到所有项目。
 
-不再复制粘贴 `.mdc` 文件。在 Git 仓库中管理规则，通过软链接同步。
+> **AIS 是一个资产联邦工具，不是格式转换器。** 它保持你的文件原样不动 — skills、rules、commands、agents — 通过软链接同步到每个项目。一处编辑，处处更新。
 
-## 为什么选择 AIS？
+---
 
-- **🔄 一次同步，处处更新** — 单一数据源，编辑一次，所有项目自动更新
-- **🧩 多仓库支持** — 混合使用公司标准、社区集合和个人偏好的规则
-- **🤝 团队共享** — 通过 Git 共享编码标准，`ais install` 一键完成新成员入职
-- **🔒 隐私优先** — 使用 `ai-rules-sync.local.json` 保持敏感规则本地化
-- **🛠️ 多工具支持** — 一套工作流支持 Cursor、Copilot、Claude Code 及 8+ 更多工具
+## AIS 的与众不同
 
-## 支持的工具
+| AIS | 其他工具 |
+|---|---|
+| **软链接** — 上游改动即时生效 | 复制文件 — 需要重新运行才能更新 |
+| **一个来源 → 多个项目** | 一次只能处理一个项目 |
+| **原生资产** — 不做格式转换 | 重写/重新生成你的文件 |
+| **导入 → 发布 → 审核** 协作流程 | 只能单向消费 |
+| **370 KB，5 个依赖** | 通常 10+ MB 及深层依赖树 |
+| **Git 原生** — 兼容任何 Git remote | 绑定特定 registry 或 API |
 
-_此表由 `docs/supported-tools.json` 通过 `npm run docs:sync-tools` 自动生成。_
+**AIS 与格式转换工具互补。** 如果你还需要跨工具格式转换，可以用 AIS 管理资产，用其他工具做生成 — 它们解决不同的问题。
 
-<!-- SUPPORTED_TOOLS_TABLE:START -->
-| 工具 | 类型 | 模式 | 默认源目录 | 文件后缀 | 文档 |
-|------|------|------|------------|----------|------|
-| Cursor | Rules | hybrid | `.cursor/rules/` | `.mdc`, `.md` | [文档](https://cursor.com/docs/context/rules) |
-| Cursor | Commands | file | `.cursor/commands/` | `.md` | [文档](https://cursor.com/docs/context/commands) |
-| Cursor | Skills | directory | `.cursor/skills/` | - | [文档](https://cursor.com/docs/context/skills) |
-| Cursor | Subagents | directory | `.cursor/agents/` | - | [文档](https://cursor.com/docs/context/subagents) |
-| GitHub Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [文档](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions) |
-| GitHub Copilot | Prompts | file | `.github/prompts/` | `.prompt.md`, `.md` | [文档](https://docs.github.com/en/copilot/tutorials/customization-library/prompt-files/your-first-prompt-file) |
-| GitHub Copilot | Skills | directory | `.github/skills/` | - | [文档](https://docs.github.com/en/copilot/using-github-copilot/using-extensions-to-integrate-external-tools-with-copilot-chat) |
-| GitHub Copilot | Agents | file | `.github/agents/` | `.agent.md`, `.md` | [文档](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-custom-agents) |
-| Claude Code | Rules | file | `.claude/rules/` | `.md` | [文档](https://code.claude.com/docs/en/memory) |
-| Claude Code | Skills | directory | `.claude/skills/` | - | [文档](https://code.claude.com/docs/en/skills) |
-| Claude Code | Subagents | directory | `.claude/agents/` | - | [文档](https://code.claude.com/docs/en/sub-agents) |
-| Claude Code | CLAUDE.md | file | `.claude/` | `.md` | [文档](https://docs.anthropic.com/en/docs/claude-code/memory) |
-| Trae | Rules | file | `.trae/rules/` | `.md` | [文档](https://docs.trae.ai/ide/rules) |
-| Trae | Skills | directory | `.trae/skills/` | - | [文档](https://docs.trae.ai/ide/skills) |
-| OpenCode | Commands | file | `.opencode/commands/` | `.md` | [文档](https://opencode.ai/docs/commands/) |
-| OpenCode | Skills | directory | `.opencode/skills/` | - | [文档](https://opencode.ai/docs/skills/) |
-| OpenCode | Agents | file | `.opencode/agents/` | `.md` | [文档](https://opencode.ai/docs/agents/) |
-| OpenCode | Tools | file | `.opencode/tools/` | `.ts`, `.js` | [文档](https://opencode.ai/docs/tools/) |
-| Codex | Rules | file | `.codex/rules/` | `.rules` | [文档](https://developers.openai.com/codex/rules) |
-| Codex | Skills | directory | `.agents/skills/` | - | [文档](https://developers.openai.com/codex/skills) |
-| Codex | AGENTS.md | file | `.codex/` | `.md` | [文档](https://developers.openai.com/codex) |
-| Gemini CLI | Commands | file | `.gemini/commands/` | `.toml` | [文档](https://geminicli.com/docs/cli/custom-commands/) |
-| Gemini CLI | Skills | directory | `.gemini/skills/` | - | [文档](https://geminicli.com/docs/cli/skills/) |
-| Gemini CLI | Agents | file | `.gemini/agents/` | `.md` | [文档](https://geminicli.com/docs/core/subagents/) |
-| Gemini CLI | GEMINI.md | file | `.gemini/` | `.md` | [网站](https://geminicli.com/) |
-| Warp | Rules | file | `.`（根目录） | `.md` | [文档](https://docs.warp.dev/agent-platform/capabilities/rules) — 与 AGENTS.md 相同，使用 `ais agents-md` |
-| Warp | Skills | directory | `.agents/skills/` | - | [文档](https://docs.warp.dev/agent-platform/capabilities/skills) |
-| Windsurf | Rules | file | `.windsurf/rules/` | `.md` | [文档](https://docs.windsurf.com/windsurf/cascade/memories) |
-| Windsurf | Skills | directory | `.windsurf/skills/` | - | [文档](https://docs.windsurf.com/windsurf/cascade/skills) |
-| Cline | Rules | file | `.clinerules/` | `.md`, `.txt` | [文档](https://docs.cline.bot/customization/cline-rules) |
-| Cline | Skills | directory | `.cline/skills/` | - | [文档](https://docs.cline.bot/customization/skills) |
-| **通用** | **AGENTS.md** | file | `.`（根目录） | `.md` | [标准](https://agents.md/) |
-<!-- SUPPORTED_TOOLS_TABLE:END -->
+**支持：** Cursor（rules、commands、skills、subagents）、GitHub Copilot（instructions、prompts、skills、agents）、Claude Code（rules、skills、subagents、CLAUDE.md）、Trae（rules、skills）、OpenCode（commands、skills、agents、tools）、Codex（rules、skills、AGENTS.md）、Gemini CLI（commands、skills、agents、GEMINI.md）、Windsurf（rules、skills）、Cline（rules、skills）、Warp（rules 通过 AGENTS.md、skills）以及通用 AGENTS.md。同时支持 **User 模式** 管理个人 AI 配置文件。
+
+---
 
 ## 安装
 
@@ -74,14 +44,21 @@ brew tap lbb00/ai-rules-sync https://github.com/lbb00/ai-rules-sync
 brew install ais
 ```
 
-**验证安装：**
+**验证：**
 ```bash
 ais --version
 ```
 
+**可选：启用 Tab 补全**
+```bash
+ais completion install
+```
+
+---
+
 ## 快速开始
 
-### 使用仓库中的规则
+### 使用仓库中的资产
 
 ```bash
 cd your-project
@@ -95,7 +72,7 @@ ais copilot instructions add coding-standards
 ais claude skills add code-review
 ```
 
-### 分享你的现有规则
+### 分享你的现有资产
 
 ```bash
 # 将项目中的规则导入到仓库
@@ -105,10 +82,10 @@ ais cursor rules import my-custom-rule
 ais cursor rules import my-rule --push
 ```
 
-### 恢复规则（团队入职 / CI）
+### 恢复资产（团队入职 / CI）
 
 ```bash
-# 从 ai-rules-sync.json 恢复所有规则
+# 从 ai-rules-sync.json 恢复所有资产
 ais install
 ```
 
@@ -123,6 +100,344 @@ ais gemini md add GEMINI --user
 ais user install
 ```
 
+---
+
+## 支持的工具
+
+_此表由 `docs/supported-tools.json` 通过 `npm run docs:sync-tools` 自动生成。_
+
+<!-- SUPPORTED_TOOLS_TABLE:START -->
+| 工具 | rules | skills | commands | agents | AGENTS.md | tools | prompts | instructions |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **通用** | — | — | — | — | ✅ | — | — | — |
+| Aider | — | ✅ | — | — | — | — | — | — |
+| Amp | — | ✅ | — | — | — | — | — | — |
+| Antigravity CLI | — | ✅ | ✅ | — | — | — | — | — |
+| Augment Code | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| Claude Code | ✅ | ✅ | — | ✅ | ✅ | — | — | — |
+| Cline | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| CodeBuddy | ✅ | ✅ | ✅ | — | ✅ | — | — | — |
+| Codex | ✅ | ✅ | — | ✅ | ✅ | — | — | — |
+| Continue | ✅ | ✅ | — | — | — | — | ✅ | — |
+| Cursor | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| DeepAgents | — | ✅ | — | ✅ | ✅ | — | — | — |
+| DeepSeek | — | ✅ | — | — | ✅ | — | — | — |
+| Factory Droid | — | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| Gemini CLI | — | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| GitHub Copilot | — | ✅ | — | ✅ | — | — | ✅ | ✅ |
+| Goose | — | ✅ | — | — | — | — | — | — |
+| Hermes Agent | ✅ | ✅ | — | — | — | — | — | — |
+| Junie | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| Kilo Code | — | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| Kimi Code | — | ✅ | — | ✅ | ✅ | — | — | — |
+| Kiro | ✅ | ✅ | — | ✅ | — | — | — | — |
+| OpenCode | ✅ | ✅ | ✅ | ✅ | — | ✅ | — | — |
+| Pi | — | ✅ | — | — | ✅ | — | ✅ | — |
+| Qwen Code | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| Trae | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| Warp | ✅ | ✅ | — | — | — | — | — | — |
+| Windsurf | ✅ | ✅ | ✅ | — | — | — | — | — |
+| WorkBuddy | — | ✅ | — | — | — | — | — | — |
+| Zed | — | ✅ | — | — | — | — | — | — |
+<!-- SUPPORTED_TOOLS_TABLE:END -->
+
+📋 [完整目录参考](./docs/reference/supported-tools.md) — 源路径、模式、后缀和文档链接。
+
+---
+
+## 核心概念
+
+### 工作原理
+
+```
+Git 仓库                      全局缓存                      你的项目
+┌─────────────────┐   clone   ┌──────────────────┐ symlink ┌──────────┐
+│ .claude/skills/ │ ────────→ │ ~/.config/       │ ──────→ │ 项目 A   │
+│ .cursor/rules/  │           │ ai-rules-sync/   │ ──────→ │ 项目 B   │
+│ .github/inst... │           │ repos/           │ ──────→ │ 项目 C   │
+└─────────────────┘           └──────────────────┘         └──────────┘
+```
+
+1. **克隆** — AIS 将资产仓库克隆到全局缓存（`~/.config/ai-rules-sync/repos/`）
+2. **软链接** — 每个项目创建指向缓存的符号链接
+3. **更新** — 拉取仓库更新后，所有项目立即生效
+
+### 三层配置
+
+| 文件 | 作用域 | 提交到 Git |
+|------|--------|-----------|
+| `ai-rules-sync.local.json` | 私有，单项目 | 否 |
+| `ai-rules-sync.json` | 共享，单项目 | 是 |
+| `user.json`（`~/.config/ai-rules-sync/`） | 全局，用户级 | 可选（dotfiles） |
+
+### 三种核心操作
+
+| 命令 | 作用 |
+|------|------|
+| `ais add` | 从仓库链接资产到项目 |
+| `ais import` | 从项目复制资产到仓库，然后替换为软链接 |
+| `ais install` | 从 `ai-rules-sync.json` 恢复所有软链接（团队入职、CI） |
+
+---
+
+## 基本用法
+
+### 设置仓库
+
+```bash
+# 使用远程仓库
+ais use https://github.com/your-org/rules-repo.git
+
+# 使用本地路径（开发/测试）
+ais use ~/my-rules-repo
+
+# 列出所有已配置的仓库
+ais ls
+
+# 切换仓库
+ais use company-rules
+ais use personal-rules
+```
+
+### 添加资产到项目
+
+```bash
+cd your-project
+
+# 首次：指定仓库
+ais cursor add react -t https://github.com/org/rules.git
+
+# 后续（使用当前仓库）
+ais cursor add vue
+ais cursor add typescript
+
+# 使用别名
+ais cursor add react react-18
+
+# 从其他仓库
+ais cursor add coding-standards -t company-rules
+
+# 私有（保存到 ai-rules-sync.local.json）
+ais cursor add company-secrets --local
+
+# 自定义目标目录（monorepo）
+ais cursor add my-rule -d packages/frontend/.cursor/rules
+```
+
+### 导入现有资产
+
+```bash
+ais cursor rules import my-custom-rule
+ais cursor rules import my-rule -m "添加自定义规则"
+ais cursor rules import my-rule --push
+ais cursor rules import my-rule --force
+```
+
+### 移除资产
+
+```bash
+ais cursor rm react
+ais cursor commands rm deploy
+ais cursor skills rm code-review
+```
+
+### 从配置安装
+
+```bash
+git clone https://github.com/team/project.git
+cd project
+ais install
+```
+
+### 发现并安装全部
+
+```bash
+ais add-all
+ais cursor add-all
+ais add-all --dry-run
+ais add-all --tools cursor,copilot
+ais cursor add-all --interactive
+```
+
+---
+
+## 各工具命令
+
+### Cursor
+```bash
+ais cursor add react                 # 规则
+ais cursor commands add deploy       # 命令
+ais cursor skills add code-review    # 技能
+ais cursor agents add code-analyzer  # 子代理
+```
+
+### GitHub Copilot
+```bash
+ais copilot instructions add coding-style
+ais copilot prompts add generate-tests
+ais copilot skills add web-scraping
+ais copilot agents add code-reviewer
+```
+
+### Claude Code
+```bash
+ais claude rules add general
+ais claude skills add code-review
+ais claude agents add debugger
+ais claude md add CLAUDE             # CLAUDE.md（项目级）
+ais claude md add CLAUDE --user      # CLAUDE.md（个人级）
+```
+
+### Codex
+```bash
+ais codex rules add default
+ais codex skills add code-assistant
+ais codex md add AGENTS --user       # ~/.codex/AGENTS.md
+```
+
+### Gemini CLI
+```bash
+ais gemini commands add deploy-docs
+ais gemini skills add code-review
+ais gemini agents add code-analyzer
+ais gemini md add GEMINI --user      # ~/.gemini/GEMINI.md
+```
+
+### 其他工具
+```bash
+ais trae rules add project-rules
+ais opencode agents add code-reviewer
+ais opencode tools add project-analyzer
+ais windsurf add project-style
+ais windsurf skills add deploy-staging
+ais cline add coding
+ais cline skills add release-checklist
+ais warp skills add my-skill
+ais agents-md add .                  # 通用 AGENTS.md
+```
+
+---
+
+## 高级功能
+
+### 多仓库
+
+```bash
+ais cursor add coding-standards -t company-rules
+ais cursor add react-best-practices -t https://github.com/community/rules.git
+ais cursor add my-utils -t personal-rules
+```
+
+### User 模式（个人 AI 配置文件）
+
+```bash
+ais claude md add CLAUDE --user      # → ~/.claude/CLAUDE.md
+ais gemini md add GEMINI --user      # → ~/.gemini/GEMINI.md
+ais codex md add AGENTS --user       # → ~/.codex/AGENTS.md
+ais cursor rules add my-style --user
+
+# 在新机器上恢复
+ais user install
+```
+
+**Dotfiles 集成：**
+```bash
+ais config user set ~/dotfiles/ai-rules-sync/user.json
+ais user install
+```
+
+### 仓库生命周期
+
+```bash
+ais check                  # 检查上游更新
+ais update --dry-run       # 预览更新
+ais update                 # 拉取更新
+ais init                   # 初始化规则仓库模板
+```
+
+### Git 命令
+
+```bash
+ais git status
+ais git pull
+ais git push
+ais git log --oneline
+ais git status -t company-rules
+```
+
+### 自定义源目录
+
+```bash
+# CLI 参数（临时）
+ais cursor rules add-all -s custom/rules
+
+# 持久化配置
+ais config repo set-source third-party cursor.rules custom/rules
+ais config repo show third-party
+```
+
+### Tab 补全
+
+```bash
+ais completion install
+ais cursor add <Tab>              # 列出可用规则
+ais cursor commands add <Tab>     # 列出可用命令
+```
+
+---
+
+## 配置参考
+
+### ai-rules-sync.json
+
+```json
+{
+  "version": 1,
+  "cursor": {
+    "rules": {
+      "react": "https://github.com/user/repo.git",
+      "react-v2": {
+        "url": "https://github.com/user/another-repo.git",
+        "rule": "react"
+      }
+    },
+    "commands": { "deploy-docs": "https://github.com/user/repo.git" },
+    "skills":   { "code-review": "https://github.com/user/repo.git" },
+    "agents":   { "code-analyzer": "https://github.com/user/repo.git" }
+  },
+  "claude": {
+    "rules":  { "general": "https://github.com/user/repo.git" },
+    "skills": { "code-review": "https://github.com/user/repo.git" },
+    "agents": { "debugger": "https://github.com/user/repo.git" },
+    "md":     { "CLAUDE": "https://github.com/user/repo.git" }
+  }
+}
+```
+
+### 仓库配置（规则仓库中的 ai-rules-sync.json）
+
+```json
+{
+  "version": 1,
+  "rootPath": "src",
+  "sourceDir": {
+    "cursor": { "rules": ".cursor/rules", "commands": ".cursor/commands" },
+    "claude": { "skills": ".claude/skills", "rules": ".claude/rules" },
+    "*": { "skills": "common/skills" }
+  }
+}
+```
+
+### 条目格式
+
+| 格式 | 示例 |
+|------|------|
+| 简单字符串 | `"react": "https://github.com/user/repo.git"` |
+| 带别名的对象 | `"react-v2": { "url": "...", "rule": "react" }` |
+| 自定义目标目录 | `"docs-rule": { "url": "...", "targetDir": "docs/ai/rules" }` |
+
+---
+
 ## 了解更多
 
 📖 **完整文档：** [https://lbb00.github.io/ai-rules-sync/](https://lbb00.github.io/ai-rules-sync/)
@@ -134,11 +449,15 @@ ais user install
 - [CLI 参考](https://lbb00.github.io/ai-rules-sync/reference/cli)
 - [配置参考](https://lbb00.github.io/ai-rules-sync/reference/configuration)
 
+---
+
 ## 链接
 
 - **文档**：[https://lbb00.github.io/ai-rules-sync/](https://lbb00.github.io/ai-rules-sync/)
 - **问题反馈**：[https://github.com/lbb00/ai-rules-sync/issues](https://github.com/lbb00/ai-rules-sync/issues)
 - **NPM**：[https://www.npmjs.com/package/ai-rules-sync](https://www.npmjs.com/package/ai-rules-sync)
+
+---
 
 ## 许可证
 

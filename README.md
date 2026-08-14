@@ -6,58 +6,28 @@
 
 [English](./README.md) | [中文](./README_ZH.md) | [📖 Documentation](https://lbb00.github.io/ai-rules-sync/)
 
-**AI Rules Sync (AIS)** — Synchronize, manage, and share your AI agent rules across projects and teams.
+**AI Rules Sync (AIS)** — Install, compose, update, and publish native agent assets from multiple Git repositories across all your projects.
 
-Stop copying `.mdc` files around. Manage your rules in Git repositories and sync them via symbolic links.
+> **AIS is an asset federation toolkit, not a format converter.** It keeps your files exactly as they are — skills, rules, commands, agents — and syncs them via symbolic links across every project you work on. Edit once, update everywhere.
 
-## Why AIS?
+---
 
-- **🔄 Sync Once, Update Everywhere** — Single source of truth, edit once, update all projects
-- **🧩 Multi-Repository** — Mix rules from company standards, community collections, and personal preferences
-- **🤝 Team Sharing** — Share coding standards via Git, onboard new members with `ais install`
-- **🔒 Privacy First** — Keep sensitive rules local with `ai-rules-sync.local.json`
-- **🛠️ Multi-Tool Support** — One workflow for Cursor, Copilot, Claude Code, and 8+ more tools
+## How AIS is Different
 
-## Supported Tools
+| AIS | Other tools |
+|---|---|
+| **Symlinks** — upstream changes are instant | Copy files — must re-run to update |
+| **One source → many projects** | One project at a time |
+| **Native assets** — no format conversion | Rewrite / re-generate your files |
+| **Import → publish → review** workflow | One-way consumption only |
+| **370 KB, 5 dependencies** | Often 10+ MB with deep dependency trees |
+| **Git-native** — works with any Git remote | Tied to specific registries or APIs |
 
-_This table is generated from `docs/supported-tools.json` via `npm run docs:sync-tools`._
+**AIS is complementary to format-conversion tools.** If you also need cross-tool format conversion, you can use AIS for asset management and another tool for generation — they solve different problems.
 
-<!-- SUPPORTED_TOOLS_TABLE:START -->
-| Tool | Type | Mode | Default Source Directory | File Suffixes | Documentation |
-|------|------|------|--------------------------|---------------|---------------|
-| Cursor | Rules | hybrid | `.cursor/rules/` | `.mdc`, `.md` | [Docs](https://cursor.com/docs/context/rules) |
-| Cursor | Commands | file | `.cursor/commands/` | `.md` | [Docs](https://cursor.com/docs/context/commands) |
-| Cursor | Skills | directory | `.cursor/skills/` | - | [Docs](https://cursor.com/docs/context/skills) |
-| Cursor | Subagents | directory | `.cursor/agents/` | - | [Docs](https://cursor.com/docs/context/subagents) |
-| GitHub Copilot | Instructions | file | `.github/instructions/` | `.instructions.md`, `.md` | [Docs](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions) |
-| GitHub Copilot | Prompts | file | `.github/prompts/` | `.prompt.md`, `.md` | [Docs](https://docs.github.com/en/copilot/tutorials/customization-library/prompt-files/your-first-prompt-file) |
-| GitHub Copilot | Skills | directory | `.github/skills/` | - | [Docs](https://docs.github.com/en/copilot/using-github-copilot/using-extensions-to-integrate-external-tools-with-copilot-chat) |
-| GitHub Copilot | Agents | file | `.github/agents/` | `.agent.md`, `.md` | [Docs](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-custom-agents) |
-| Claude Code | Rules | file | `.claude/rules/` | `.md` | [Docs](https://code.claude.com/docs/en/memory) |
-| Claude Code | Skills | directory | `.claude/skills/` | - | [Docs](https://code.claude.com/docs/en/skills) |
-| Claude Code | Subagents | directory | `.claude/agents/` | - | [Docs](https://code.claude.com/docs/en/sub-agents) |
-| Claude Code | CLAUDE.md | file | `.claude/` | `.md` | [Docs](https://docs.anthropic.com/en/docs/claude-code/memory) |
-| Trae | Rules | file | `.trae/rules/` | `.md` | [Docs](https://docs.trae.ai/ide/rules) |
-| Trae | Skills | directory | `.trae/skills/` | - | [Docs](https://docs.trae.ai/ide/skills) |
-| OpenCode | Commands | file | `.opencode/commands/` | `.md` | [Docs](https://opencode.ai/docs/commands/) |
-| OpenCode | Skills | directory | `.opencode/skills/` | - | [Docs](https://opencode.ai/docs/skills/) |
-| OpenCode | Agents | file | `.opencode/agents/` | `.md` | [Docs](https://opencode.ai/docs/agents/) |
-| OpenCode | Tools | file | `.opencode/tools/` | `.ts`, `.js` | [Docs](https://opencode.ai/docs/tools/) |
-| Codex | Rules | file | `.codex/rules/` | `.rules` | [Docs](https://developers.openai.com/codex/rules) |
-| Codex | Skills | directory | `.agents/skills/` | - | [Docs](https://developers.openai.com/codex/skills) |
-| Codex | AGENTS.md | file | `.codex/` | `.md` | [Docs](https://developers.openai.com/codex) |
-| Gemini CLI | Commands | file | `.gemini/commands/` | `.toml` | [Docs](https://geminicli.com/docs/cli/custom-commands/) |
-| Gemini CLI | Skills | directory | `.gemini/skills/` | - | [Docs](https://geminicli.com/docs/cli/skills/) |
-| Gemini CLI | Agents | file | `.gemini/agents/` | `.md` | [Docs](https://geminicli.com/docs/core/subagents/) |
-| Gemini CLI | GEMINI.md | file | `.gemini/` | `.md` | [Website](https://geminicli.com/) |
-| Warp | Rules | file | `.` (root) | `.md` | [Docs](https://docs.warp.dev/agent-platform/capabilities/rules) — same as AGENTS.md, use `ais agents-md` |
-| Warp | Skills | directory | `.agents/skills/` | - | [Docs](https://docs.warp.dev/agent-platform/capabilities/skills) |
-| Windsurf | Rules | file | `.windsurf/rules/` | `.md` | [Docs](https://docs.windsurf.com/windsurf/cascade/memories) |
-| Windsurf | Skills | directory | `.windsurf/skills/` | - | [Docs](https://docs.windsurf.com/windsurf/cascade/skills) |
-| Cline | Rules | file | `.clinerules/` | `.md`, `.txt` | [Docs](https://docs.cline.bot/customization/cline-rules) |
-| Cline | Skills | directory | `.cline/skills/` | - | [Docs](https://docs.cline.bot/customization/skills) |
-| **Universal** | **AGENTS.md** | file | `.` (root) | `.md` | [Standard](https://agents.md/) |
-<!-- SUPPORTED_TOOLS_TABLE:END -->
+**Supports:** Cursor (rules, commands, skills, subagents), GitHub Copilot (instructions, prompts, skills, agents), Claude Code (rules, skills, subagents, CLAUDE.md), Trae (rules, skills), OpenCode (commands, skills, agents, tools), Codex (rules, skills, AGENTS.md), Gemini CLI (commands, skills, agents, GEMINI.md), Windsurf (rules, skills), Cline (rules, skills), Warp (rules via AGENTS.md, skills), and universal AGENTS.md. Also supports **User Mode** for personal AI config files.
+
+---
 
 ## Installation
 
@@ -67,7 +37,7 @@ _This table is generated from `docs/supported-tools.json` via `npm run docs:sync
 npm install -g ai-rules-sync
 ```
 
-### Via Homebrew (macOS)
+### Via Homebrew (macOS only)
 
 ```bash
 brew tap lbb00/ai-rules-sync https://github.com/lbb00/ai-rules-sync
@@ -79,9 +49,16 @@ brew install ais
 ais --version
 ```
 
+**Optional: Enable tab completion**
+```bash
+ais completion install
+```
+
+---
+
 ## Quick Start
 
-### Use rules from a repository
+### Use assets from a repository
 
 ```bash
 cd your-project
@@ -95,7 +72,7 @@ ais copilot instructions add coding-standards
 ais claude skills add code-review
 ```
 
-### Share your existing rules
+### Share your existing assets
 
 ```bash
 # Import a rule from your project into the repository
@@ -105,10 +82,10 @@ ais cursor rules import my-custom-rule
 ais cursor rules import my-rule --push
 ```
 
-### Restore rules (team onboarding / CI)
+### Restore assets (team onboarding / CI)
 
 ```bash
-# Restore all rules from ai-rules-sync.json
+# Restore all assets from ai-rules-sync.json
 ais install
 ```
 
@@ -123,6 +100,401 @@ ais gemini md add GEMINI --user
 ais user install
 ```
 
+---
+
+## Supported Tools
+
+_This table is generated from `docs/supported-tools.json` via `npm run docs:sync-tools`._
+
+<!-- SUPPORTED_TOOLS_TABLE:START -->
+| Tool | rules | skills | commands | agents | AGENTS.md | tools | prompts | instructions |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Universal** | — | — | — | — | ✅ | — | — | — |
+| Aider | — | ✅ | — | — | — | — | — | — |
+| Amp | — | ✅ | — | — | — | — | — | — |
+| Antigravity CLI | — | ✅ | ✅ | — | — | — | — | — |
+| Augment Code | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| Claude Code | ✅ | ✅ | — | ✅ | ✅ | — | — | — |
+| Cline | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| CodeBuddy | ✅ | ✅ | ✅ | — | ✅ | — | — | — |
+| Codex | ✅ | ✅ | — | ✅ | ✅ | — | — | — |
+| Continue | ✅ | ✅ | — | — | — | — | ✅ | — |
+| Cursor | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| DeepAgents | — | ✅ | — | ✅ | ✅ | — | — | — |
+| DeepSeek | — | ✅ | — | — | ✅ | — | — | — |
+| Factory Droid | — | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| Gemini CLI | — | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| GitHub Copilot | — | ✅ | — | ✅ | — | — | ✅ | ✅ |
+| Goose | — | ✅ | — | — | — | — | — | — |
+| Hermes Agent | ✅ | ✅ | — | — | — | — | — | — |
+| Junie | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| Kilo Code | — | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| Kimi Code | — | ✅ | — | ✅ | ✅ | — | — | — |
+| Kiro | ✅ | ✅ | — | ✅ | — | — | — | — |
+| OpenCode | ✅ | ✅ | ✅ | ✅ | — | ✅ | — | — |
+| Pi | — | ✅ | — | — | ✅ | — | ✅ | — |
+| Qwen Code | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| Trae | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| Warp | ✅ | ✅ | — | — | — | — | — | — |
+| Windsurf | ✅ | ✅ | ✅ | — | — | — | — | — |
+| WorkBuddy | — | ✅ | — | — | — | — | — | — |
+| Zed | — | ✅ | — | — | — | — | — | — |
+<!-- SUPPORTED_TOOLS_TABLE:END -->
+
+📋 [Full directory reference](./docs/reference/supported-tools.md) — source paths, modes, suffixes, and documentation links.
+
+---
+
+## Core Concepts
+
+### How It Works
+
+```
+Git Repository                    Global Cache                    Your Projects
+┌─────────────────┐     clone     ┌──────────────────┐  symlink  ┌──────────┐
+│ .claude/skills/ │ ───────────→  │ ~/.config/       │ ────────→ │ projectA │
+│ .cursor/rules/  │               │ ai-rules-sync/   │ ────────→ │ projectB │
+│ .github/inst... │               │ repos/           │ ────────→ │ projectC │
+└─────────────────┘               └──────────────────┘           └──────────┘
+```
+
+1. **Clone** — AIS clones your asset repositories to a global cache (`~/.config/ai-rules-sync/repos/`)
+2. **Symlink** — Each project gets symbolic links pointing into the cache
+3. **Update** — When you pull changes in the repo, every project sees them instantly
+
+### Three Configuration Layers
+
+| File | Scope | Committed to Git |
+|------|-------|-----------------|
+| `ai-rules-sync.local.json` | Private, per-project | No |
+| `ai-rules-sync.json` | Shared, per-project | Yes |
+| `user.json` (`~/.config/ai-rules-sync/`) | Global, per-user | Optional (dotfiles) |
+
+### Three Core Operations
+
+| Command | What it does |
+|---------|-------------|
+| `ais add` | Link an asset from a repository to your project |
+| `ais import` | Copy an asset from your project into the repository, then replace with symlink |
+| `ais install` | Restore all symlinks from `ai-rules-sync.json` (team onboarding, CI) |
+
+---
+
+## Basic Usage
+
+### Setup a Repository
+
+```bash
+# Use an existing remote repository
+ais use https://github.com/your-org/rules-repo.git
+
+# Use a local path (for development / testing)
+ais use ~/my-rules-repo
+
+# List all configured repositories
+ais ls
+
+# Switch between repositories
+ais use company-rules
+ais use personal-rules
+```
+
+### Add Assets to Your Project
+
+```bash
+cd your-project
+
+# First time: specify repository
+ais cursor add react -t https://github.com/org/rules.git
+
+# Subsequent adds (uses current repository)
+ais cursor add vue
+ais cursor add typescript
+
+# Add with alias (different name in project)
+ais cursor add react react-18
+
+# Add from a different repository
+ais cursor add coding-standards -t company-rules
+
+# Add as private (saved to ai-rules-sync.local.json)
+ais cursor add company-secrets --local
+
+# Add to custom target directory (monorepo)
+ais cursor add my-rule -d packages/frontend/.cursor/rules
+```
+
+### Import Existing Assets
+
+```bash
+# Import a rule from your project into the repository
+ais cursor rules import my-custom-rule
+
+# Import with custom commit message
+ais cursor rules import my-rule -m "Add custom rule"
+
+# Import and push to remote
+ais cursor rules import my-rule --push
+
+# Force overwrite if exists in repository
+ais cursor rules import my-rule --force
+```
+
+### Remove Assets
+
+```bash
+ais cursor rm react
+ais cursor commands rm deploy
+ais cursor skills rm code-review
+```
+
+### Install from Configuration
+
+```bash
+# Clone project and restore all assets
+git clone https://github.com/team/project.git
+cd project
+ais install
+
+# Install all entries for a specific tool
+ais cursor install
+ais claude install
+```
+
+### Discover and Install All
+
+```bash
+# Install everything from current repository
+ais add-all
+
+# Install all Cursor rules
+ais cursor add-all
+
+# Preview before installing
+ais add-all --dry-run
+
+# Filter by tool
+ais add-all --tools cursor,copilot
+
+# Interactive mode
+ais cursor add-all --interactive
+```
+
+---
+
+## Tool-Specific Commands
+
+### Cursor
+```bash
+ais cursor add react                 # Rule
+ais cursor commands add deploy       # Command
+ais cursor skills add code-review    # Skill
+ais cursor agents add code-analyzer  # Subagent
+```
+
+### GitHub Copilot
+```bash
+ais copilot instructions add coding-style
+ais copilot prompts add generate-tests
+ais copilot skills add web-scraping
+ais copilot agents add code-reviewer
+```
+
+### Claude Code
+```bash
+ais claude rules add general
+ais claude skills add code-review
+ais claude agents add debugger
+ais claude md add CLAUDE             # CLAUDE.md (project)
+ais claude md add CLAUDE --user      # CLAUDE.md (personal)
+```
+
+### Codex
+```bash
+ais codex rules add default
+ais codex skills add code-assistant
+ais codex md add AGENTS --user       # ~/.codex/AGENTS.md
+```
+
+### Gemini CLI
+```bash
+ais gemini commands add deploy-docs
+ais gemini skills add code-review
+ais gemini agents add code-analyzer
+ais gemini md add GEMINI --user      # ~/.gemini/GEMINI.md
+```
+
+### Other Tools
+```bash
+ais trae rules add project-rules
+ais opencode agents add code-reviewer
+ais opencode tools add project-analyzer
+ais windsurf add project-style
+ais windsurf skills add deploy-staging
+ais cline add coding
+ais cline skills add release-checklist
+ais warp skills add my-skill
+ais agents-md add .                  # Universal AGENTS.md
+```
+
+---
+
+## Advanced Features
+
+### Multiple Repositories
+
+```bash
+ais cursor add coding-standards -t company-rules
+ais cursor add react-best-practices -t https://github.com/community/rules.git
+ais cursor add my-utils -t personal-rules
+```
+
+### User Mode (Personal AI Config Files)
+
+```bash
+ais claude md add CLAUDE --user      # → ~/.claude/CLAUDE.md
+ais gemini md add GEMINI --user      # → ~/.gemini/GEMINI.md
+ais codex md add AGENTS --user       # → ~/.codex/AGENTS.md
+ais cursor rules add my-style --user
+
+# Restore on a new machine
+ais user install
+```
+
+**Dotfiles integration:**
+```bash
+ais config user set ~/dotfiles/ai-rules-sync/user.json
+ais user install
+```
+
+### Repository Lifecycle
+
+```bash
+# Check whether repositories are behind upstream
+ais check
+
+# Preview updates without pulling
+ais update --dry-run
+
+# Pull updates and reinstall entries
+ais update
+
+# Initialize a rules repository template
+ais init
+```
+
+### Git Commands
+
+```bash
+ais git status
+ais git pull
+ais git push
+ais git log --oneline
+ais git status -t company-rules
+```
+
+### Custom Source Directories
+
+For third-party repositories with non-standard structure:
+
+```bash
+# CLI parameters (temporary)
+ais cursor rules add-all -s custom/rules
+
+# Persistent configuration
+ais config repo set-source third-party cursor.rules custom/rules
+ais config repo show third-party
+```
+
+### Custom Target Directories
+
+```bash
+# Monorepo: different packages
+ais cursor add react-rules frontend-rules -d packages/frontend/.cursor/rules
+ais cursor add node-rules backend-rules -d packages/backend/.cursor/rules
+```
+
+### Tab Completion
+
+```bash
+ais completion install
+ais cursor add <Tab>              # Lists available rules
+ais cursor commands add <Tab>     # Lists available commands
+```
+
+---
+
+## Configuration Reference
+
+### ai-rules-sync.json
+
+```json
+{
+  "version": 1,
+  "cursor": {
+    "rules": {
+      "react": "https://github.com/user/repo.git",
+      "react-v2": {
+        "url": "https://github.com/user/another-repo.git",
+        "rule": "react"
+      }
+    },
+    "commands": { "deploy-docs": "https://github.com/user/repo.git" },
+    "skills":   { "code-review": "https://github.com/user/repo.git" },
+    "agents":   { "code-analyzer": "https://github.com/user/repo.git" }
+  },
+  "claude": {
+    "rules":  { "general": "https://github.com/user/repo.git" },
+    "skills": { "code-review": "https://github.com/user/repo.git" },
+    "agents": { "debugger": "https://github.com/user/repo.git" },
+    "md":     { "CLAUDE": "https://github.com/user/repo.git" }
+  }
+}
+```
+
+### Repository Config (ai-rules-sync.json in rules repo)
+
+```json
+{
+  "version": 1,
+  "rootPath": "src",
+  "sourceDir": {
+    "cursor": { "rules": ".cursor/rules", "commands": ".cursor/commands" },
+    "claude": { "skills": ".claude/skills", "rules": ".claude/rules" },
+    "*": { "skills": "common/skills" }
+  }
+}
+```
+
+### Entry Formats
+
+| Format | Example |
+|--------|---------|
+| Simple string | `"react": "https://github.com/user/repo.git"` |
+| Object with alias | `"react-v2": { "url": "...", "rule": "react" }` |
+| Custom target dir | `"docs-rule": { "url": "...", "targetDir": "docs/ai/rules" }` |
+
+---
+
+## Architecture
+
+```
+CLI (commander.js)
+    ↓
+Adapter Registry (34 adapters, 11 tools)
+    ↓
+dotany — generic dotfile management layer
+    ├── SourceResolver (GitRepoSource)
+    ├── ManifestStore (ai-rules-sync.json)
+    └── DotfileManager (add, remove, apply, diff, status, import)
+    ↓
+Sync Engine (symlink creation, ignore management)
+    ↓
+Config Layer (global config, project config, user config)
+```
+
+---
+
 ## Learn More
 
 📖 **Full documentation:** [https://lbb00.github.io/ai-rules-sync/](https://lbb00.github.io/ai-rules-sync/)
@@ -134,11 +506,15 @@ ais user install
 - [CLI Reference](https://lbb00.github.io/ai-rules-sync/reference/cli)
 - [Configuration Reference](https://lbb00.github.io/ai-rules-sync/reference/configuration)
 
+---
+
 ## Links
 
 - **Documentation**: [https://lbb00.github.io/ai-rules-sync/](https://lbb00.github.io/ai-rules-sync/)
 - **Issues**: [https://github.com/lbb00/ai-rules-sync/issues](https://github.com/lbb00/ai-rules-sync/issues)
 - **NPM**: [https://www.npmjs.com/package/ai-rules-sync](https://www.npmjs.com/package/ai-rules-sync)
+
+---
 
 ## License
 

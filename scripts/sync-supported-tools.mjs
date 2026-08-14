@@ -11,69 +11,92 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 const dataPath = path.join(rootDir, 'docs', 'supported-tools.json');
 
-const targets = [
-  {
-    filePath: path.join(rootDir, 'README.md'),
-    lang: 'en',
-    header: '| Tool | Type | Mode | Default Source Directory | File Suffixes | Documentation |',
-    separator: '|------|------|------|--------------------------|---------------|---------------|'
-  },
-  {
-    filePath: path.join(rootDir, 'README_ZH.md'),
-    lang: 'zh',
-    header: '| 工具 | 类型 | 模式 | 默认源目录 | 文件后缀 | 文档 |',
-    separator: '|------|------|------|------------|----------|------|'
+// ----- Feature matrix for READMEs -----
+
+const assetTypes = ['rules', 'skills', 'commands', 'agents', 'AGENTS.md', 'tools', 'prompts', 'instructions'];
+
+// Map typeEn values from supported-tools.json to matrix columns
+const typeToColumn = {
+  'Rules': 'rules',
+  'Skills': 'skills',
+  'Commands': 'commands',
+  'Subagents': 'agents',
+  'Agents': 'agents',
+  'CLAUDE.md': 'AGENTS.md',
+  'GEMINI.md': 'AGENTS.md',
+  'Tools': 'tools',
+  'Prompts': 'prompts',
+  'Instructions': 'instructions',
+  'Workflows': 'commands',
+  'CODEBUDDY.md': 'AGENTS.md',
+  '**AGENTS.md**': 'AGENTS.md',
+  'AGENTS.md': 'AGENTS.md',
+  'QWEN.md': 'AGENTS.md',
+};
+
+function buildMatrixHeader(lang) {
+  const headers = lang === 'en'
+    ? ['Tool', ...assetTypes]
+    : ['工具', ...assetTypes];
+  const header = `| ${headers.join(' | ')} |`;
+  const sep = `|${headers.map((_, i) => i === 0 ? ':---' : ':---:').join('|')}|`;
+  return [header, sep];
+}
+
+function buildMatrixRows(entries, lang) {
+  // Group entries by tool
+  const toolMap = new Map();
+  for (const entry of entries) {
+    const toolKey = lang === 'en' ? entry.toolEn : entry.toolZh;
+    const col = typeToColumn[entry.typeEn];
+    if (!toolMap.has(toolKey)) {
+      toolMap.set(toolKey, {});
+    }
+    if (col) {
+      toolMap.get(toolKey)[col] = true;
+    }
   }
-];
+
+  const rows = [];
+  for (const [tool, types] of toolMap) {
+    const cells = [tool, ...assetTypes.map(t => types[t] ? '✅' : '—')];
+    rows.push(`| ${cells.join(' | ')} |`);
+  }
+  return rows;
+}
+
+// ----- Directory reference for docs/reference/supported-tools.md -----
+
+const REF_START = '<!-- REF_TABLE:START -->';
+const REF_END = '<!-- REF_TABLE:END -->';
 
 function formatPathCell(pathValue) {
-  if (pathValue.includes(' (root)')) {
-    return `\`${pathValue.replace(' (root)', '')}\` (root)`;
-  }
-  if (pathValue.includes('（根目录）')) {
-    return `\`${pathValue.replace('（根目录）', '')}\`（根目录）`;
-  }
+  if (pathValue.includes(' (root)')) return `\`${pathValue.replace(' (root)', '')}\` (root)`;
+  if (pathValue.includes('（根目录）')) return `\`${pathValue.replace('（根目录）', '')}\`（根目录）`;
   return `\`${pathValue}\``;
 }
 
 function formatSuffixCell(suffixValue) {
-  if (suffixValue === '-') {
-    return '-';
-  }
-  const parts = suffixValue.split(',').map(part => part.trim()).filter(Boolean);
-  if (parts.length === 0) {
-    return '-';
-  }
-  return parts.map(part => `\`${part}\``).join(', ');
+  if (suffixValue === '-') return '—';
+  const parts = suffixValue.split(',').map(p => p.trim()).filter(Boolean);
+  return parts.length === 0 ? '—' : parts.map(p => `\`${p}\``).join(', ');
 }
 
-function formatDocumentationCell(entry, lang) {
-  const label = lang === 'en' ? entry.docLabelEn : entry.docLabelZh;
-  const note = lang === 'en' ? entry.noteEn : entry.noteZh;
-  let cell = `[${label}](${entry.docUrl})`;
-  if (note) {
-    cell += ` — ${note}`;
-  }
-  return cell;
-}
-
-function buildTableRows(entries, lang) {
+function buildRefRows(entries) {
   return entries.map((entry) => {
-    const tool = lang === 'en' ? entry.toolEn : entry.toolZh;
-    const type = lang === 'en' ? entry.typeEn : entry.typeZh;
-    const pathValue = lang === 'en' ? entry.pathEn : entry.pathZh;
-    return `| ${tool} | ${type} | ${entry.mode} | ${formatPathCell(pathValue)} | ${formatSuffixCell(entry.suffix)} | ${formatDocumentationCell(entry, lang)} |`;
+    const docLabel = entry.docLabelEn;
+    return `| ${entry.toolEn} | ${entry.typeEn} | ${entry.mode} | ${formatPathCell(entry.pathEn)} | ${formatSuffixCell(entry.suffix)} | [→](${entry.docUrl}) |`;
   });
 }
 
-function updateMarkedBlock(content, replacement) {
-  const startIndex = content.indexOf(START_MARKER);
-  const endIndex = content.indexOf(END_MARKER);
+function updateMarkedBlock(content, replacement, startMarker = START_MARKER, endMarker = END_MARKER) {
+  const startIndex = content.indexOf(startMarker);
+  const endIndex = content.indexOf(endMarker);
   if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
-    throw new Error(`Missing or invalid markers: ${START_MARKER} / ${END_MARKER}`);
+    throw new Error(`Missing or invalid markers: ${startMarker} / ${endMarker}`);
   }
 
-  const before = content.slice(0, startIndex + START_MARKER.length);
+  const before = content.slice(0, startIndex + startMarker.length);
   const after = content.slice(endIndex);
   return `${before}\n${replacement}\n${after}`;
 }
@@ -82,21 +105,65 @@ async function main() {
   const raw = await readFile(dataPath, 'utf8');
   const entries = JSON.parse(raw);
 
-  for (const target of targets) {
-    const tableLines = [
-      target.header,
-      target.separator,
-      ...buildTableRows(entries, target.lang)
-    ].join('\n');
+  // ----- Update README.md (English) -----
+  const enMatrix = [
+    ...buildMatrixHeader('en'),
+    ...buildMatrixRows(entries, 'en')
+  ].join('\n');
 
-    const original = await readFile(target.filePath, 'utf8');
-    const updated = updateMarkedBlock(original, tableLines);
-    if (updated !== original) {
-      await writeFile(target.filePath, updated, 'utf8');
-      console.log(`Updated: ${path.relative(rootDir, target.filePath)}`);
+  const readmeEn = path.join(rootDir, 'README.md');
+  const enOriginal = await readFile(readmeEn, 'utf8');
+  const enUpdated = updateMarkedBlock(enOriginal, enMatrix);
+  if (enUpdated !== enOriginal) {
+    await writeFile(readmeEn, enUpdated, 'utf8');
+    console.log(`Updated: README.md`);
+  } else {
+    console.log(`Unchanged: README.md`);
+  }
+
+  // ----- Update README_ZH.md (Chinese) -----
+  const zhMatrix = [
+    ...buildMatrixHeader('zh'),
+    ...buildMatrixRows(entries, 'zh')
+  ].join('\n');
+
+  const readmeZh = path.join(rootDir, 'README_ZH.md');
+  const zhOriginal = await readFile(readmeZh, 'utf8');
+  const zhUpdated = updateMarkedBlock(zhOriginal, zhMatrix);
+  if (zhUpdated !== zhOriginal) {
+    await writeFile(readmeZh, zhUpdated, 'utf8');
+    console.log(`Updated: README_ZH.md`);
+  } else {
+    console.log(`Unchanged: README_ZH.md`);
+  }
+
+  // ----- Update docs/reference/supported-tools.md -----
+  const refHeader = '| Tool | Type | Mode | Default Source Directory | File Suffixes | Docs |';
+  const refSep = '|------|------|------|--------------------------|---------------|------|';
+  const refTable = [refHeader, refSep, ...buildRefRows(entries)].join('\n');
+
+  const refPath = path.join(rootDir, 'docs', 'reference', 'supported-tools.md');
+  let refOriginal;
+  try {
+    refOriginal = await readFile(refPath, 'utf8');
+  } catch {
+    // File doesn't exist yet — create it
+    const content = `# Supported Tools — Directory Reference\n\nSource paths, sync modes, file suffixes, and documentation links for every supported tool and asset type.\n\n${REF_START}\n${refTable}\n${REF_END}\n\n## Modes\n\n- **directory** — Links entire directories (skills, agents)\n- **file** — Links individual files with automatic suffix resolution\n- **hybrid** — Links both files and directories (e.g., Cursor rules)\n`;
+    await writeFile(refPath, content, 'utf8');
+    console.log(`Created: docs/reference/supported-tools.md`);
+    return;
+  }
+
+  if (refOriginal.includes(REF_START) && refOriginal.includes(REF_END)) {
+    const refUpdated = updateMarkedBlock(refOriginal, refTable, REF_START, REF_END);
+    if (refUpdated !== refOriginal) {
+      await writeFile(refPath, refUpdated, 'utf8');
+      console.log(`Updated: docs/reference/supported-tools.md`);
     } else {
-      console.log(`Unchanged: ${path.relative(rootDir, target.filePath)}`);
+      console.log(`Unchanged: docs/reference/supported-tools.md`);
     }
+  } else {
+    console.log(`Skipped: docs/reference/supported-tools.md (no REF_TABLE markers)`);
   }
 }
 

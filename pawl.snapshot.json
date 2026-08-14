@@ -1,0 +1,42 @@
+{
+  "metrics": {
+    "as-any": {
+      "direction": "lower-is-better",
+      "value": 13,
+      "unit": "matches",
+      "breakdown": {
+        "src/cli/source-dir-parser.ts:83": 1,
+        "src/cli/source-dir-parser.ts:85": 1,
+        "src/cli/source-dir-parser.ts:94": 1,
+        "src/cli/source-dir-parser.ts:96": 1,
+        "src/cli/source-dir-parser.ts:98": 1,
+        "src/commands/add-all.ts:108": 1,
+        "src/commands/config.ts:157": 1,
+        "src/commands/config.ts:42": 1,
+        "src/commands/config.ts:43": 1,
+        "src/commands/config.ts:78": 1,
+        "src/commands/config.ts:79": 1,
+        "src/commands/helpers.ts:164": 1,
+        "src/index.ts:55": 1
+      }
+    },
+    "file-length": {
+      "direction": "lower-is-better",
+      "value": 5,
+      "unit": "files \u003e 500 lines",
+      "breakdown": {
+        "src/commands/handlers.ts": 503,
+        "src/commands/lifecycle.ts": 515,
+        "src/completion/scripts.ts": 718,
+        "src/index.ts": 2278,
+        "src/project-config.ts": 693
+      }
+    },
+    "passing-tests": {
+      "direction": "higher-is-better",
+      "value": 406,
+      "unit": "tests",
+      "breakdown": null
+    }
+  }
+}
