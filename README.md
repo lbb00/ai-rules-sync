@@ -1,10 +1,20 @@
 # AI Rules Sync
 
-[![Npm](https://badgen.net/npm/v/ai-rules-sync)](https://www.npmjs.com/package/ai-rules-sync)
-[![License](https://img.shields.io/github/license/lbb00/ai-rules-sync.svg)](https://github.com/lbb00/ai-rules-sync/blob/master/LICENSE)
-[![Npm download](https://img.shields.io/npm/dw/ai-rules-sync.svg)](https://www.npmjs.com/package/ai-rules-sync)
+<p align="center">
+  <img src="./assets/readme/banner.svg" width="100%" alt="AIS: sync native agent assets via symbolic links from Git repositories to Cursor, Claude, Copilot, Codex, and 20+ tools">
+</p>
 
-[English](./README.md) | [中文](./README_ZH.md) | [📖 Documentation](https://lbb00.github.io/ai-rules-sync/)
+<p align="center">
+  <a href="https://www.npmjs.com/package/ai-rules-sync"><img src="https://badgen.net/npm/v/ai-rules-sync" alt="npm version"></a>
+  <a href="https://github.com/lbb00/ai-rules-sync/blob/master/LICENSE"><img src="https://img.shields.io/github/license/lbb00/ai-rules-sync.svg" alt="Unlicense"></a>
+  <a href="https://www.npmjs.com/package/ai-rules-sync"><img src="https://img.shields.io/npm/dw/ai-rules-sync.svg" alt="npm downloads"></a>
+</p>
+
+<p align="center">
+  <a href="./README.md">English</a> ·
+  <a href="./README_ZH.md">中文</a> ·
+  <a href="https://lbb00.github.io/ai-rules-sync/"><strong>Documentation</strong></a>
+</p>
 
 **AI Rules Sync (AIS)** — Install, compose, update, and publish native agent assets from multiple Git repositories across all your projects.
 
@@ -25,7 +35,50 @@
 
 **AIS is complementary to format-conversion tools.** If you also need cross-tool format conversion, you can use AIS for asset management and another tool for generation — they solve different problems.
 
-**Supports:** Cursor (rules, commands, skills, subagents), GitHub Copilot (instructions, prompts, skills, agents), Claude Code (rules, skills, subagents, CLAUDE.md), Trae (rules, skills), OpenCode (commands, skills, agents, tools), Codex (rules, skills, AGENTS.md), Gemini CLI (commands, skills, agents, GEMINI.md), Windsurf (rules, skills), Cline (rules, skills), Warp (rules via AGENTS.md, skills), and universal AGENTS.md. Also supports **User Mode** for personal AI config files.
+---
+
+## Supported Tools
+
+_This table is generated from `docs/supported-tools.json` via `npm run docs:sync-tools`._
+
+<!-- SUPPORTED_TOOLS_TABLE:START -->
+| Tool | rules | skills | commands | agents | AGENTS.md | tools | prompts | instructions |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Universal** | — | — | — | — | ✅ | — | — | — |
+| Aider | — | ✅ | — | — | — | — | — | — |
+| Amp | — | ✅ | — | — | — | — | — | — |
+| Antigravity CLI | — | ✅ | ✅ | — | — | — | — | — |
+| Augment Code | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| Claude Code | ✅ | ✅ | — | ✅ | ✅ | — | — | — |
+| Cline | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| CodeBuddy | ✅ | ✅ | ✅ | — | ✅ | — | — | — |
+| Codex | ✅ | ✅ | — | ✅ | ✅ | — | — | — |
+| Continue | ✅ | ✅ | — | — | — | — | ✅ | — |
+| Cursor | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| DeepAgents | — | ✅ | — | ✅ | ✅ | — | — | — |
+| DeepSeek | — | ✅ | — | — | ✅ | — | — | — |
+| Factory Droid | — | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| Gemini CLI | — | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| GitHub Copilot | — | ✅ | — | ✅ | — | — | ✅ | ✅ |
+| Goose | — | ✅ | — | — | — | — | — | — |
+| Hermes Agent | ✅ | ✅ | — | — | — | — | — | — |
+| Junie | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| Kilo Code | — | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| Kimi Code | — | ✅ | — | ✅ | ✅ | — | — | — |
+| Kiro | ✅ | ✅ | — | ✅ | — | — | — | — |
+| OpenCode | ✅ | ✅ | ✅ | ✅ | — | ✅ | — | — |
+| Pi | — | ✅ | — | — | ✅ | — | ✅ | — |
+| Qwen Code | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| Trae | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| Warp | ✅ | ✅ | — | — | — | — | — | — |
+| Windsurf | ✅ | ✅ | ✅ | — | — | — | — | — |
+| WorkBuddy | — | ✅ | — | — | — | — | — | — |
+| Zed | — | ✅ | — | — | — | — | — | — |
+<!-- SUPPORTED_TOOLS_TABLE:END -->
+
+📋 [Full directory reference](./docs/reference/supported-tools.md) — source paths, modes, suffixes, and documentation links.
+
+Also supports **User Mode** for personal AI config files.
 
 ---
 
@@ -99,49 +152,6 @@ ais gemini md add GEMINI --user
 # Restore on a new machine
 ais user install
 ```
-
----
-
-## Supported Tools
-
-_This table is generated from `docs/supported-tools.json` via `npm run docs:sync-tools`._
-
-<!-- SUPPORTED_TOOLS_TABLE:START -->
-| Tool | rules | skills | commands | agents | AGENTS.md | tools | prompts | instructions |
-|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Universal** | — | — | — | — | ✅ | — | — | — |
-| Aider | — | ✅ | — | — | — | — | — | — |
-| Amp | — | ✅ | — | — | — | — | — | — |
-| Antigravity CLI | — | ✅ | ✅ | — | — | — | — | — |
-| Augment Code | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
-| Claude Code | ✅ | ✅ | — | ✅ | ✅ | — | — | — |
-| Cline | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
-| CodeBuddy | ✅ | ✅ | ✅ | — | ✅ | — | — | — |
-| Codex | ✅ | ✅ | — | ✅ | ✅ | — | — | — |
-| Continue | ✅ | ✅ | — | — | — | — | ✅ | — |
-| Cursor | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
-| DeepAgents | — | ✅ | — | ✅ | ✅ | — | — | — |
-| DeepSeek | — | ✅ | — | — | ✅ | — | — | — |
-| Factory Droid | — | ✅ | ✅ | ✅ | ✅ | — | — | — |
-| Gemini CLI | — | ✅ | ✅ | ✅ | ✅ | — | — | — |
-| GitHub Copilot | — | ✅ | — | ✅ | — | — | ✅ | ✅ |
-| Goose | — | ✅ | — | — | — | — | — | — |
-| Hermes Agent | ✅ | ✅ | — | — | — | — | — | — |
-| Junie | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — |
-| Kilo Code | — | ✅ | ✅ | ✅ | ✅ | — | — | — |
-| Kimi Code | — | ✅ | — | ✅ | ✅ | — | — | — |
-| Kiro | ✅ | ✅ | — | ✅ | — | — | — | — |
-| OpenCode | ✅ | ✅ | ✅ | ✅ | — | ✅ | — | — |
-| Pi | — | ✅ | — | — | ✅ | — | ✅ | — |
-| Qwen Code | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — |
-| Trae | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
-| Warp | ✅ | ✅ | — | — | — | — | — | — |
-| Windsurf | ✅ | ✅ | ✅ | — | — | — | — | — |
-| WorkBuddy | — | ✅ | — | — | — | — | — | — |
-| Zed | — | ✅ | — | — | — | — | — | — |
-<!-- SUPPORTED_TOOLS_TABLE:END -->
-
-📋 [Full directory reference](./docs/reference/supported-tools.md) — source paths, modes, suffixes, and documentation links.
 
 ---
 

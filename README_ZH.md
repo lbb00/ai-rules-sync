@@ -1,10 +1,20 @@
 # AI Rules Sync
 
-[![Npm](https://badgen.net/npm/v/ai-rules-sync)](https://www.npmjs.com/package/ai-rules-sync)
-[![License](https://img.shields.io/github/license/lbb00/ai-rules-sync.svg)](https://github.com/lbb00/ai-rules-sync/blob/master/LICENSE)
-[![Npm download](https://img.shields.io/npm/dw/ai-rules-sync.svg)](https://www.npmjs.com/package/ai-rules-sync)
+<p align="center">
+  <img src="./assets/readme/banner-zh.svg" width="100%" alt="AIS：通过软链接将 Git 仓库中的原生 Agent 资产同步到 Cursor、Claude、Copilot、Codex 及 20+ 工具">
+</p>
 
-[English](./README.md) | [中文](./README_ZH.md) | [📖 文档](https://lbb00.github.io/ai-rules-sync/)
+<p align="center">
+  <a href="https://www.npmjs.com/package/ai-rules-sync"><img src="https://badgen.net/npm/v/ai-rules-sync" alt="npm 版本"></a>
+  <a href="https://github.com/lbb00/ai-rules-sync/blob/master/LICENSE"><img src="https://img.shields.io/github/license/lbb00/ai-rules-sync.svg" alt="Unlicense"></a>
+  <a href="https://www.npmjs.com/package/ai-rules-sync"><img src="https://img.shields.io/npm/dw/ai-rules-sync.svg" alt="npm 下载量"></a>
+</p>
+
+<p align="center">
+  <a href="./README.md">English</a> ·
+  <a href="./README_ZH.md">中文</a> ·
+  <a href="https://lbb00.github.io/ai-rules-sync/"><strong>文档</strong></a>
+</p>
 
 **AI Rules Sync (AIS)** — 从多个 Git 仓库安装、组合、更新和发布原生 Agent 资产，同步到所有项目。
 
@@ -25,7 +35,50 @@
 
 **AIS 与格式转换工具互补。** 如果你还需要跨工具格式转换，可以用 AIS 管理资产，用其他工具做生成 — 它们解决不同的问题。
 
-**支持：** Cursor（rules、commands、skills、subagents）、GitHub Copilot（instructions、prompts、skills、agents）、Claude Code（rules、skills、subagents、CLAUDE.md）、Trae（rules、skills）、OpenCode（commands、skills、agents、tools）、Codex（rules、skills、AGENTS.md）、Gemini CLI（commands、skills、agents、GEMINI.md）、Windsurf（rules、skills）、Cline（rules、skills）、Warp（rules 通过 AGENTS.md、skills）以及通用 AGENTS.md。同时支持 **User 模式** 管理个人 AI 配置文件。
+---
+
+## 支持的工具
+
+_此表由 `docs/supported-tools.json` 通过 `npm run docs:sync-tools` 自动生成。_
+
+<!-- SUPPORTED_TOOLS_TABLE:START -->
+| 工具 | rules | skills | commands | agents | AGENTS.md | tools | prompts | instructions |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **通用** | — | — | — | — | ✅ | — | — | — |
+| Aider | — | ✅ | — | — | — | — | — | — |
+| Amp | — | ✅ | — | — | — | — | — | — |
+| Antigravity CLI | — | ✅ | ✅ | — | — | — | — | — |
+| Augment Code | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| Claude Code | ✅ | ✅ | — | ✅ | ✅ | — | — | — |
+| Cline | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| CodeBuddy | ✅ | ✅ | ✅ | — | ✅ | — | — | — |
+| Codex | ✅ | ✅ | — | ✅ | ✅ | — | — | — |
+| Continue | ✅ | ✅ | — | — | — | — | ✅ | — |
+| Cursor | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| DeepAgents | — | ✅ | — | ✅ | ✅ | — | — | — |
+| DeepSeek | — | ✅ | — | — | ✅ | — | — | — |
+| Factory Droid | — | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| Gemini CLI | — | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| GitHub Copilot | — | ✅ | — | ✅ | — | — | ✅ | ✅ |
+| Goose | — | ✅ | — | — | — | — | — | — |
+| Hermes Agent | ✅ | ✅ | — | — | — | — | — | — |
+| Junie | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| Kilo Code | — | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| Kimi Code | — | ✅ | — | ✅ | ✅ | — | — | — |
+| Kiro | ✅ | ✅ | — | ✅ | — | — | — | — |
+| OpenCode | ✅ | ✅ | ✅ | ✅ | — | ✅ | — | — |
+| Pi | — | ✅ | — | — | ✅ | — | ✅ | — |
+| Qwen Code | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| Trae | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| Warp | ✅ | ✅ | — | — | — | — | — | — |
+| Windsurf | ✅ | ✅ | ✅ | — | — | — | — | — |
+| WorkBuddy | — | ✅ | — | — | — | — | — | — |
+| Zed | — | ✅ | — | — | — | — | — | — |
+<!-- SUPPORTED_TOOLS_TABLE:END -->
+
+📋 [完整目录参考](./docs/reference/supported-tools.md) — 源路径、模式、后缀和文档链接。
+
+同时支持 **User 模式** 管理个人 AI 配置文件。
 
 ---
 
@@ -99,49 +152,6 @@ ais gemini md add GEMINI --user
 # 在新机器上恢复
 ais user install
 ```
-
----
-
-## 支持的工具
-
-_此表由 `docs/supported-tools.json` 通过 `npm run docs:sync-tools` 自动生成。_
-
-<!-- SUPPORTED_TOOLS_TABLE:START -->
-| 工具 | rules | skills | commands | agents | AGENTS.md | tools | prompts | instructions |
-|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **通用** | — | — | — | — | ✅ | — | — | — |
-| Aider | — | ✅ | — | — | — | — | — | — |
-| Amp | — | ✅ | — | — | — | — | — | — |
-| Antigravity CLI | — | ✅ | ✅ | — | — | — | — | — |
-| Augment Code | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
-| Claude Code | ✅ | ✅ | — | ✅ | ✅ | — | — | — |
-| Cline | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
-| CodeBuddy | ✅ | ✅ | ✅ | — | ✅ | — | — | — |
-| Codex | ✅ | ✅ | — | ✅ | ✅ | — | — | — |
-| Continue | ✅ | ✅ | — | — | — | — | ✅ | — |
-| Cursor | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
-| DeepAgents | — | ✅ | — | ✅ | ✅ | — | — | — |
-| DeepSeek | — | ✅ | — | — | ✅ | — | — | — |
-| Factory Droid | — | ✅ | ✅ | ✅ | ✅ | — | — | — |
-| Gemini CLI | — | ✅ | ✅ | ✅ | ✅ | — | — | — |
-| GitHub Copilot | — | ✅ | — | ✅ | — | — | ✅ | ✅ |
-| Goose | — | ✅ | — | — | — | — | — | — |
-| Hermes Agent | ✅ | ✅ | — | — | — | — | — | — |
-| Junie | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — |
-| Kilo Code | — | ✅ | ✅ | ✅ | ✅ | — | — | — |
-| Kimi Code | — | ✅ | — | ✅ | ✅ | — | — | — |
-| Kiro | ✅ | ✅ | — | ✅ | — | — | — | — |
-| OpenCode | ✅ | ✅ | ✅ | ✅ | — | ✅ | — | — |
-| Pi | — | ✅ | — | — | ✅ | — | ✅ | — |
-| Qwen Code | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — |
-| Trae | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
-| Warp | ✅ | ✅ | — | — | — | — | — | — |
-| Windsurf | ✅ | ✅ | ✅ | — | — | — | — | — |
-| WorkBuddy | — | ✅ | — | — | — | — | — | — |
-| Zed | — | ✅ | — | — | — | — | — | — |
-<!-- SUPPORTED_TOOLS_TABLE:END -->
-
-📋 [完整目录参考](./docs/reference/supported-tools.md) — 源路径、模式、后缀和文档链接。
 
 ---
 

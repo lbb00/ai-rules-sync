@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">AI Rules Sync</title>
+  <desc id="desc">Asset federation toolkit. Sync native agent assets via symbolic links from Git repositories to every project.</desc>
+
+  <style>
+    @media (prefers-reduced-motion: no-preference) {
+      .animated-arrow {
+        stroke-dasharray: 5 5;
+        animation: arrow-flow 0.75s linear infinite;
+      }
+      .hub-ring {
+        animation: hub-pulse 2.8s ease-in-out infinite;
+      }
+    }
+    @keyframes arrow-flow {
+      to { stroke-dashoffset: -10; }
+    }
+    @keyframes hub-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+  </style>
+
+  <defs>
+    <linearGradient id="ais-accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0F766E"/>
+      <stop offset="1" stop-color="#14B8A6"/>
+    </linearGradient>
+    <linearGradient id="ais-panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F8FAFA"/>
+    </linearGradient>
+    <marker id="ais-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#0F766E"/>
+    </marker>
+  </defs>
+
+  <rect x="0.5" y="0.5" width="1199" height="419" rx="28" fill="#F8FAFA" stroke="#E4E8E8"/>
+  <path d="M1 348 C220 300 380 430 620 352 C860 278 980 338 1199 268 L1199 391 Q1199 419 1171 419 H29 Q1 419 1 391 Z" fill="#EEF3F2"/>
+  <line x1="620" y1="48" x2="620" y2="372" stroke="#E4E8E8"/>
+
+  <g id="title-block" transform="translate(58 54)">
+    <g>
+      <circle cx="8" cy="8" r="8" fill="#0F766E"/>
+      <text x="28" y="14" fill="#5C6670" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="700" letter-spacing="2">AGENT ASSETS &#183; FEDERATION TOOLKIT</text>
+    </g>
+
+    <text x="0" y="112" fill="#0B1220" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="84" font-weight="800" letter-spacing="2">AIS</text>
+    <text x="4" y="156" fill="#334155" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="28" font-weight="600">AI Rules Sync</text>
+
+    <text x="0" y="226" fill="#0B1220" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="27" font-weight="600">Edit once. Update everywhere.</text>
+    <text x="0" y="263" fill="#5C6670" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20">Cursor &#183; Copilot &#183; Claude &#183; Codex &#183; Gemini &#183; 20+</text>
+
+    <g transform="translate(0 302)">
+      <rect width="168" height="36" rx="18" fill="#FFFFFF" stroke="#E4E8E8"/>
+      <text x="84" y="23" text-anchor="middle" fill="#5C6670" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="700">UNLICENSE</text>
+      <rect x="180" width="168" height="36" rx="18" fill="#FFFFFF" stroke="#E4E8E8"/>
+      <text x="264" y="23" text-anchor="middle" fill="#5C6670" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="700">SYMLINKS</text>
+    </g>
+  </g>
+
+  <g id="project-proof">
+    <rect x="648" y="76" width="168" height="268" rx="22" fill="url(#ais-panel)" stroke="#E4E8E8"/>
+    <text x="732" y="108" text-anchor="middle" fill="#5C6670" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="700" letter-spacing="1.4">GIT REPO</text>
+
+    <g transform="translate(670 132)">
+      <rect width="124" height="44" rx="10" fill="#F8FAFA" stroke="#E4E8E8"/>
+      <path d="M14 16h16M14 22h12M14 28h18" stroke="#0F766E" stroke-width="2" stroke-linecap="round"/>
+      <text x="42" y="27" fill="#0B1220" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="700">rules</text>
+    </g>
+    <g transform="translate(670 188)">
+      <rect width="124" height="44" rx="10" fill="#F8FAFA" stroke="#E4E8E8"/>
+      <path d="M14 16h18M14 22h10M14 28h16" stroke="#0B1220" stroke-width="2" stroke-linecap="round"/>
+      <text x="42" y="27" fill="#0B1220" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="700">skills</text>
+    </g>
+    <g transform="translate(670 244)">
+      <rect width="124" height="44" rx="10" fill="#F8FAFA" stroke="#E4E8E8"/>
+      <path d="M14 16h12M14 22h18M14 28h10" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
+      <text x="42" y="27" fill="#0B1220" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="700">cmds</text>
+    </g>
+    <text x="732" y="322" text-anchor="middle" fill="#5C6670" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">SOURCE</text>
+
+    <path class="animated-arrow" d="M818 210 H838" fill="none" stroke="#0F766E" stroke-width="2.5" marker-end="url(#ais-arrow)"/>
+
+    <circle class="hub-ring" cx="907" cy="210" r="68" fill="#FFFFFF" stroke="url(#ais-accent)" stroke-width="3"/>
+    <circle cx="907" cy="210" r="54" fill="none" stroke="#E4E8E8" stroke-dasharray="3 7"/>
+    <rect x="885" y="170" width="44" height="30" rx="8" fill="#0B1220"/>
+    <text x="907" y="190" text-anchor="middle" fill="#FFFFFF" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="800">ln</text>
+    <text x="907" y="225" text-anchor="middle" fill="#0B1220" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="19" font-weight="800">AIS</text>
+    <text x="907" y="244" text-anchor="middle" fill="#5C6670" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11">SYMLINK</text>
+
+    <path class="animated-arrow" d="M973 188 C991 166 994 116 1014 100" fill="none" stroke="#CBD5D1" stroke-width="2"/>
+    <path class="animated-arrow" d="M974 202 C993 191 997 174 1014 172" fill="none" stroke="#CBD5D1" stroke-width="2"/>
+    <path class="animated-arrow" d="M974 218 C993 229 997 246 1014 248" fill="none" stroke="#CBD5D1" stroke-width="2"/>
+    <path class="animated-arrow" d="M973 232 C991 254 994 304 1014 320" fill="none" stroke="#CBD5D1" stroke-width="2"/>
+
+    <g transform="translate(1014 72)">
+      <rect width="144" height="56" rx="14" fill="#FFFFFF" stroke="#E4E8E8"/>
+      <circle cx="22" cy="28" r="7" fill="#0F766E"/>
+      <text x="38" y="25" fill="#0B1220" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="16" font-weight="700">Cursor</text>
+      <text x="38" y="42" fill="#5C6670" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11">.cursor/</text>
+    </g>
+    <g transform="translate(1014 144)">
+      <rect width="144" height="56" rx="14" fill="#FFFFFF" stroke="#E4E8E8"/>
+      <circle cx="22" cy="28" r="7" fill="#0B1220"/>
+      <text x="38" y="25" fill="#0B1220" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="16" font-weight="700">Claude</text>
+      <text x="38" y="42" fill="#5C6670" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11">.claude/</text>
+    </g>
+    <g transform="translate(1014 220)">
+      <rect width="144" height="56" rx="14" fill="#FFFFFF" stroke="#E4E8E8"/>
+      <circle cx="22" cy="28" r="7" fill="#64748B"/>
+      <text x="38" y="25" fill="#0B1220" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="16" font-weight="700">Copilot</text>
+      <text x="38" y="42" fill="#5C6670" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11">.github/</text>
+    </g>
+    <g transform="translate(1014 292)">
+      <rect width="144" height="56" rx="14" fill="#FFFFFF" stroke="#E4E8E8"/>
+      <circle cx="22" cy="28" r="7" fill="#14B8A6"/>
+      <text x="38" y="25" fill="#0B1220" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="16" font-weight="700">Codex</text>
+      <text x="38" y="42" fill="#5C6670" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11">.codex/</text>
+    </g>
+  </g>
+</svg>
