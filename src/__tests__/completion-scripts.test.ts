@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bashScript, fishScript, getCompletionScript, resolveCompletionAdapter, UNWIRED_ADAPTER_NAMES, zshScript } from '../completion/scripts.js';
+import { bashScript, fishScript, getCompletionScript, resolveCompletionAdapter, zshScript } from '../completion/scripts.js';
 import { adapterRegistry } from '../adapters/index.js';
 
 describe('completion scripts metadata generation', () => {
@@ -47,43 +47,41 @@ describe('completion scripts metadata generation', () => {
     expect(getCompletionScript('fish')).toBe(fishScript.trim());
   });
 
-  it('should generate a directory-listing completion type for every registered, CLI-wired adapter', () => {
-    // Every adapter (all ~30 tools, not just the original 11) that has a real CLI
-    // command must be reachable from `ais <TAB>` completion; the generator is
-    // expected to derive this from adapterRegistry rather than a hand-maintained
-    // tool list that drifts. Adapters registered but not yet wired to a CLI
-    // command (see UNWIRED_ADAPTER_NAMES) are excluded on purpose.
+  it('should generate a directory-listing completion type for every registered adapter', () => {
+    // Every adapter (all ~30 tools) now gets a real `ais <tool> <subtype>` CLI
+    // command (registerToolGroup wires every adapter the registry has, no
+    // hand-maintained exceptions), so every adapter must be reachable from
+    // `ais <TAB>` completion too.
     const missing = adapterRegistry.all()
       .map(adapter => adapter.name)
-      .filter(name => !UNWIRED_ADAPTER_NAMES.has(name))
       .filter(name => !bashScript.includes(`ais _complete ${name}`));
 
     expect(missing).toEqual([]);
   });
 
-  it('should not suggest subcommands for adapters that lack real CLI wiring', () => {
-    // registerRulesAndSkillsToolGroup only wires rules/skills for cline and
-    // windsurf; the opencode and codex command blocks in src/index.ts don't wire
-    // opencode-rules or codex-agents. Completion must not lie about these.
-    expect(bashScript).not.toContain('ais _complete cline-commands');
-    expect(bashScript).not.toContain('ais _complete cline-agents');
-    expect(bashScript).not.toContain('ais _complete windsurf-commands');
-    expect(bashScript).not.toContain('ais _complete opencode-rules');
-    expect(bashScript).not.toContain('ais _complete codex-agents');
+  it('should suggest subcommands for every adapter subtype, including tools with more than one', () => {
+    // registerToolGroup wires a subtype subgroup per adapter uniformly, so
+    // multi-subtype tools (cline, windsurf, opencode, codex, ...) must expose
+    // completion for all of their subtypes, not just the first one wired.
+    expect(bashScript).toContain('ais _complete cline-commands');
+    expect(bashScript).toContain('ais _complete cline-agents');
+    expect(bashScript).toContain('ais _complete windsurf-commands');
+    expect(bashScript).toContain('ais _complete opencode-rules');
+    expect(bashScript).toContain('ais _complete codex-agents');
 
-    expect(zshScript).not.toContain('cline_commands_subcmds');
-    expect(zshScript).not.toContain('cline_agents_subcmds');
-    expect(zshScript).not.toContain('windsurf_commands_subcmds');
-    expect(zshScript).not.toContain('opencode_rules_subcmds');
-    expect(zshScript).not.toContain('codex_agents_subcmds');
+    expect(zshScript).toContain('cline_commands_subcmds');
+    expect(zshScript).toContain('cline_agents_subcmds');
+    expect(zshScript).toContain('windsurf_commands_subcmds');
+    expect(zshScript).toContain('opencode_rules_subcmds');
+    expect(zshScript).toContain('codex_agents_subcmds');
 
-    expect(fishScript).not.toContain('ais _complete cline-commands');
-    expect(fishScript).not.toContain('ais _complete cline-agents');
-    expect(fishScript).not.toContain('ais _complete windsurf-commands');
-    expect(fishScript).not.toContain('ais _complete opencode-rules');
-    expect(fishScript).not.toContain('ais _complete codex-agents');
+    expect(fishScript).toContain('ais _complete cline-commands');
+    expect(fishScript).toContain('ais _complete cline-agents');
+    expect(fishScript).toContain('ais _complete windsurf-commands');
+    expect(fishScript).toContain('ais _complete opencode-rules');
+    expect(fishScript).toContain('ais _complete codex-agents');
 
-    // Actually-wired subtypes for the same tools must still get completion.
+    // Their other subtypes still get completion too.
     expect(bashScript).toContain('ais _complete cline-rules');
     expect(bashScript).toContain('ais _complete cline-skills');
     expect(bashScript).toContain('ais _complete windsurf-rules');
@@ -97,9 +95,13 @@ describe('completion scripts metadata generation', () => {
     expect(bashScript).toContain('ais _complete codex-md');
   });
 
-  it('should not resolve an adapter for unwired completion types', () => {
-    for (const name of UNWIRED_ADAPTER_NAMES) {
-      expect(resolveCompletionAdapter(name), `"${name}" should not resolve, it has no CLI wiring`).toBeUndefined();
+  it('should resolve an adapter for every adapter now wired into the command tree', () => {
+    // These five used to have no real CLI command and had to be excluded from
+    // resolveCompletionAdapter; the 1.0 command-tree redesign wires every
+    // adapter uniformly, so they must resolve like any other adapter now.
+    const previouslyUnwired = ['cline-commands', 'cline-agents', 'windsurf-commands', 'opencode-rules', 'codex-agents'];
+    for (const name of previouslyUnwired) {
+      expect(resolveCompletionAdapter(name), `"${name}" should resolve now that it has CLI wiring`).toBeDefined();
     }
   });
 
