@@ -13,6 +13,7 @@ import { getCompletionScript, resolveCompletionAdapter } from './completion/scri
 import { adapterRegistry, findAdapterForAlias } from './adapters/index.js';
 import { SyncAdapter } from './adapters/types.js';
 import { registerToolGroup } from './cli/tool-group.js';
+import { registerBroadcastGroups } from './cli/broadcast.js';
 import {
   getTargetRepo,
   inferDefaultMode,
@@ -828,6 +829,11 @@ const allTools = Array.from(new Set(adapterRegistry.all().map(a => a.tool)));
 for (const tool of allTools) {
   registerToolGroup(program, tool);
 }
+
+// ============ Broadcast command groups (registry-driven) ============
+// ais <subtype> add/remove/list — cross-tool complement to the tool groups
+// above. See src/cli/broadcast.ts and design doc §5.
+registerBroadcastGroups(program);
 
 // ============ Git command ============
 program
