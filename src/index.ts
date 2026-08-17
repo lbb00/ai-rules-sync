@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { Command } from 'commander';
+import { Command, Help } from 'commander';
 import chalk from 'chalk';
 import path from 'path';
 import os from 'os';
@@ -10,21 +10,16 @@ import { addIgnoreEntry, isLocalPath, resolveLocalPath } from './utils.js';
 import { getCombinedProjectConfig, getConfigSource, getRepoSourceConfig, getSourceDir, ProjectConfig } from './project-config.js';
 import { checkAndPromptCompletion, forceInstallCompletion } from './completion.js';
 import { getCompletionScript, resolveCompletionAdapter } from './completion/scripts.js';
-import { adapterRegistry, findAdapterForAlias } from './adapters/index.js';
+import { adapterRegistry } from './adapters/index.js';
 import { SyncAdapter } from './adapters/types.js';
 import { registerToolGroup } from './cli/tool-group.js';
 import { registerBroadcastGroups } from './cli/broadcast.js';
+import { cliNameForTool } from './adapters/cli-groups.js';
 import {
   getTargetRepo,
-  inferDefaultMode,
-  requireExplicitMode,
-  resolveCopilotAliasFromConfig,
-  resolveCommandAliasFromConfig,
-  getToolsForInstallMode,
-  resolveSingleAdapterForMode,
-  DefaultMode
+  resolveCommandAliasFromConfig
 } from './commands/helpers.js';
-import { handleAdd, handleRemove, handleImport } from './commands/handlers.js';
+import { handleImport } from './commands/handlers.js';
 import { installEntriesForAdapter, installEntriesForTool, installAllUserEntries } from './commands/install.js';
 import { discoverAllEntries, handleAddAll } from './commands/add-all.js';
 import { parseSourceDirParams } from './cli/source-dir-parser.js';
@@ -63,6 +58,21 @@ function getAdapterEntryCount(config: ProjectConfig, adapter: SyncAdapter): numb
   }
 
   return Object.keys(section).length;
+}
+
+/** Temporarily swallow console output — used around handlers that print unconditionally, for --json. */
+async function withSilencedConsole<T>(fn: () => Promise<T>): Promise<T> {
+  const original = { log: console.log, error: console.error, warn: console.warn };
+  console.log = () => {};
+  console.error = () => {};
+  console.warn = () => {};
+  try {
+    return await fn();
+  } finally {
+    console.log = original.log;
+    console.error = original.error;
+    console.warn = original.warn;
+  }
 }
 
 function collectToolCounts(config: ProjectConfig): { perTool: Record<string, number>; total: number } {
@@ -285,7 +295,6 @@ program
       const projectPath = process.cwd();
       const projectConfigSource = await getConfigSource(projectPath);
       const projectConfig = await getCombinedProjectConfig(projectPath);
-      const projectMode = await inferDefaultMode(projectPath);
       const projectCounts = collectToolCounts(projectConfig);
 
       let userStatus:
@@ -321,7 +330,6 @@ program
         project: {
           path: projectPath,
           configSource: projectConfigSource,
-          inferredMode: projectMode,
           totalEntries: projectCounts.total,
           perTool: projectCounts.perTool
         },
@@ -346,7 +354,6 @@ program
       console.log(chalk.bold('\nProject:'));
       console.log(`  Path: ${projectPath}`);
       console.log(`  Config source: ${projectConfigSource}`);
-      console.log(`  Inferred mode: ${projectMode}`);
       console.log(`  Configured entries: ${projectCounts.total}`);
       if (projectCounts.total > 0) {
         for (const [tool, count] of Object.entries(projectCounts.perTool)) {
@@ -615,94 +622,41 @@ program
     }
   });
 
-// ============ Top-level shortcuts ============
-program
-  .command('add')
-  .description('Add an entry (auto-detects cursor/copilot when unambiguous)')
-  .argument('<name>', 'Rule/Instruction name in the rules repo')
-  .argument('[alias]', 'Alias in the project')
-  .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
-  .option('-d, --target-dir <dir>', 'Custom target directory for this entry')
-  .action(async (name, alias, options) => {
-    try {
-      const projectPath = process.cwd();
-      const mode = await inferDefaultMode(projectPath);
-      if (mode === 'none' || mode === 'ambiguous') requireExplicitMode(mode);
-
-      const opts = program.opts();
-      const currentRepo = await getTargetRepo(opts);
-
-      const addOptions = {
-        local: options.local,
-        targetDir: options.targetDir
-      };
-
-      const adapter = resolveSingleAdapterForMode(mode, 'add');
-      await handleAdd(adapter, { projectPath, repo: currentRepo, isLocal: options.local || false }, name, alias, addOptions);
-    } catch (error: any) {
-      console.error(chalk.red('Error adding entry:'), error.message);
-      process.exit(1);
-    }
-  });
-
-program
-  .command('remove')
-  .alias('rm')
-  .description('Remove an entry (auto-detects cursor/copilot if unambiguous)')
-  .argument('<alias>', 'Alias/name in the project to remove')
-  .option('--dry-run', 'Preview changes without applying')
-  .action(async (alias, cmdOptions: { dryRun?: boolean }) => {
-    try {
-      const projectPath = process.cwd();
-      const cfg = await getCombinedProjectConfig(projectPath);
-
-      // Find which adapter contains this alias
-      const found = findAdapterForAlias(cfg, alias);
-
-      if (found) {
-        await handleRemove(found.adapter, projectPath, alias, false, { dryRun: cmdOptions.dryRun });
-      } else {
-        // Alias not found in config, try to infer mode
-        const mode = await inferDefaultMode(projectPath);
-        if (mode === 'none' || mode === 'ambiguous') {
-          requireExplicitMode(mode);
-        }
-
-        if (mode === 'copilot') {
-          // Try to resolve the alias with suffix
-          alias = resolveCopilotAliasFromConfig(alias, Object.keys((cfg.copilot as Record<string, unknown>)?.instructions || {}));
-        }
-
-        const adapter = resolveSingleAdapterForMode(mode, 'remove');
-        await handleRemove(adapter, projectPath, alias, false, { dryRun: cmdOptions.dryRun });
-      }
-    } catch (error: any) {
-      console.error(chalk.red('Error removing entry:'), error.message);
-      process.exit(1);
-    }
-  });
-
+// ============ Install command ============
+// Explicit-only: no mode inference. Project scope installs every adapter's
+// already-configured entries (each adapter prints its own "No X Y found"
+// and moves on when it has nothing to do — see installEntriesForAdapter).
+// -g/-u (aliases of each other, matching the <tool> install convention in
+// cli/tool-group.ts) install from user.json instead, folding in what used
+// to be the separate `ais user install` command (design §6.4).
 program
   .command('install')
-  .description('Install all entries from config, or --user for user config')
-  .option('-u, --user', 'Install all user config entries (~/.config/ai-rules-sync/user.json)')
-  .action(async (cmdOptions: { user?: boolean }) => {
+  .description('Install all entries from config (project scope by default)')
+  .option('-g, --global', 'Install all user config entries (~/.config/ai-rules-sync/user.json)')
+  .option('-u, --user', 'Alias for --global')
+  .option('--json', 'Output results as JSON')
+  .action(async (cmdOptions: { global?: boolean; user?: boolean; json?: boolean }) => {
     try {
-      if (cmdOptions.user) {
-        await installAllUserEntries(adapterRegistry.all());
+      const isGlobal = !!(cmdOptions.global || cmdOptions.user);
+
+      if (isGlobal) {
+        if (cmdOptions.json) {
+          await withSilencedConsole(() => installAllUserEntries(adapterRegistry.all()));
+          const counts = collectToolCounts(await getUserProjectConfig());
+          console.log(JSON.stringify({ scope: 'user', totalEntries: counts.total, perTool: counts.perTool }, null, 2));
+        } else {
+          await installAllUserEntries(adapterRegistry.all());
+        }
         return;
       }
 
       const projectPath = process.cwd();
-      const mode = await inferDefaultMode(projectPath);
-
-      if (mode === 'none') {
-        console.log(chalk.yellow('No config found in ai-rules-sync*.json.'));
-        return;
-      }
-
-      for (const tool of getToolsForInstallMode(mode)) {
-        await installEntriesForTool(adapterRegistry.getForTool(tool), projectPath);
+      if (cmdOptions.json) {
+        await withSilencedConsole(() => installEntriesForTool(adapterRegistry.all(), projectPath));
+        const counts = collectToolCounts(await getCombinedProjectConfig(projectPath));
+        console.log(JSON.stringify({ scope: 'project', totalEntries: counts.total, perTool: counts.perTool }, null, 2));
+      } else {
+        await installEntriesForTool(adapterRegistry.all(), projectPath);
       }
     } catch (error: any) {
       console.error(chalk.red('Error installing entries:'), error.message);
@@ -834,6 +788,21 @@ for (const tool of allTools) {
 // ais <subtype> add/remove/list — cross-tool complement to the tool groups
 // above. See src/cli/broadcast.ts and design doc §5.
 registerBroadcastGroups(program);
+
+// ============ Top-level --help: fold 30 tool groups into one index line ============
+// Listed flat in Commander's default Commands: section, the tool groups
+// registered above drown out the handful of commands most users actually
+// need (design §6.5). configureHelp is per-command, not inherited by
+// children — Command.createHelp() reads `this._helpConfiguration`, so this
+// only reshapes `ais --help` itself; `ais <tool> --help` / `ais <subtype>
+// --help` build their own default Help instance and are untouched.
+const toolCliNames = new Set(allTools.map(cliNameForTool));
+program.configureHelp({
+  visibleCommands: (cmd) => new Help().visibleCommands(cmd).filter(c => !toolCliNames.has(c.name()))
+});
+program.addHelpText('after', () =>
+  `\nTools: ${[...toolCliNames].sort().join(', ')} (ais <tool> --help for details)\n`
+);
 
 // ============ Git command ============
 program
@@ -1028,23 +997,6 @@ configUser
       await handleUserConfigReset();
     } catch (error: any) {
       console.error(chalk.red('Error resetting user config path:'), error.message);
-      process.exit(1);
-    }
-  });
-
-// ============ User command group ============
-const userCmd = program
-  .command('user')
-  .description('Manage user-level AI config files (~/.claude/CLAUDE.md, ~/.gemini/GEMINI.md, ~/.codex/AGENTS.md, etc.)');
-
-userCmd
-  .command('install')
-  .description('Install all user config entries from user.json')
-  .action(async () => {
-    try {
-      await installAllUserEntries(adapterRegistry.all());
-    } catch (error: any) {
-      console.error(chalk.red('Error installing user entries:'), error.message);
       process.exit(1);
     }
   });

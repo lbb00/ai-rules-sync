@@ -80,7 +80,6 @@ import { opencodeRulesAdapter } from './opencode-rules.js';
 import { ampSkillsAdapter } from './amp-skills.js';
 import { codexAgentsAdapter } from './codex-agents.js';
 import { clineAgentsAdapter } from './cline-agents.js';
-import { ProjectConfig, getConfigSectionWithFallback } from '../project-config.js';
 
 // Re-export types and utilities
 export * from './types.js';
@@ -241,30 +240,4 @@ export function getDefaultAdapter(tool: string): SyncAdapter {
  */
 export function getToolAdapters(tool: string): SyncAdapter[] {
     return adapterRegistry.getForTool(tool);
-}
-/**
- * Find adapter by checking which config section contains the alias
- */
-export function findAdapterForAlias(
-    cfg: ProjectConfig,
-    alias: string
-): { adapter: SyncAdapter; section: string } | null {
-    for (const adapter of adapterRegistry.all()) {
-        const sectionConfig = getAliasSectionConfig(cfg, adapter);
-        if (sectionConfig && Object.prototype.hasOwnProperty.call(sectionConfig, alias)) {
-            return { adapter, section: getSectionName(adapter) };
-        }
-    }
-    return null;
-}
-
-function getAliasSectionConfig(cfg: ProjectConfig, adapter: SyncAdapter): Record<string, unknown> {
-    const [topLevel, subLevel] = adapter.configPath;
-    const section = getConfigSectionWithFallback(cfg, topLevel, subLevel);
-    return section as Record<string, unknown>;
-}
-
-function getSectionName(adapter: SyncAdapter): string {
-    const [topLevel, subLevel] = adapter.configPath;
-    return `${topLevel}.${subLevel}`;
 }

@@ -7,9 +7,6 @@ import chalk from 'chalk';
 import fs from 'fs-extra';
 import { getConfig, setConfig, getReposBaseDir, getCurrentRepo, RepoConfig } from '../config.js';
 import { cloneOrUpdateRepo, getRemoteUrl } from '../git.js';
-import { getCombinedProjectConfig } from '../project-config.js';
-import { stripCopilotSuffix, adapterRegistry } from '../adapters/index.js';
-import { SyncAdapter } from '../adapters/types.js';
 import { isLocalPath, resolveLocalPath } from '../utils.js';
 
 /**
@@ -141,124 +138,6 @@ export async function getTargetRepo(options: { target?: string }): Promise<RepoC
     throw new Error('No repository configured. Please run "ais use [url]" first.');
   }
   return currentRepo;
-}
-
-/**
- * DefaultMode is now a string to support dynamically registered tools.
- * Well-known values: tool names (e.g. 'cursor', 'copilot'), 'agents-md', 'ambiguous', 'none'.
- */
-export type DefaultMode = string;
-
-/**
- * Infer the default mode based on project configuration.
- * Registry-driven: counts entries for each registered adapter's tool,
- * no hardcoded tool list required.
- *
- * Keyed by `adapter.tool` (not `configPath[0]`) so the returned mode string
- * always matches the tool name used everywhere else (registry lookups, CLI
- * command names, error messages) — e.g. the agents-md adapter's tool is
- * 'agents-md' while its configPath's top-level key is 'agentsMd' (that key
- * is the literal on-disk config field and cannot change). Keying by
- * configPath[0] would return 'agentsMd', which never matches any tool name
- * comparison elsewhere in the CLI.
- */
-export async function inferDefaultMode(projectPath: string): Promise<DefaultMode> {
-  const cfg = await getCombinedProjectConfig(projectPath);
-
-  // Count total entries per tool using the adapter registry
-  const toolCounts: Record<string, number> = {};
-
-  for (const adapter of adapterRegistry.all()) {
-    const [topLevel, subLevel] = adapter.configPath;
-    const count = Object.keys((cfg as any)[topLevel]?.[subLevel] || {}).length;
-
-    toolCounts[adapter.tool] = (toolCounts[adapter.tool] || 0) + count;
-  }
-
-  const activeModes = Object.entries(toolCounts)
-    .filter(([, count]) => count > 0)
-    .map(([mode]) => mode);
-
-  if (activeModes.length === 0) return 'none';
-  if (activeModes.length === 1) return activeModes[0];
-  return 'ambiguous';
-}
-
-/**
- * Unique tool names across the adapter registry, in registration order.
- */
-export function getRegisteredTools(): string[] {
-  return [...new Set(adapterRegistry.all().map(a => a.tool))];
-}
-
-/**
- * Throw an error requiring explicit mode specification.
- * Tool list generated dynamically from the adapter registry.
- */
-export function requireExplicitMode(mode: DefaultMode): never {
-  const toolCommands = getRegisteredTools().map(t => `"ais ${t} ..."`).join(', ');
-  const explicitTools = toolCommands || '"ais <tool> ..."';
-
-  if (mode === 'ambiguous') {
-    throw new Error(`Multiple tool configs exist in this project. Please use ${explicitTools} explicitly.`);
-  }
-  throw new Error(`No default mode could be inferred. Please use ${explicitTools} explicitly.`);
-}
-
-/**
- * Which tools `ais install` should install entries for, given the inferred
- * mode. Registry-driven: iterates every registered tool instead of a
- * hardcoded if-chain, so new adapters are covered automatically. In
- * 'ambiguous' mode (multiple tool configs present in one project), every
- * tool with a matching config gets installed.
- */
-export function getToolsForInstallMode(mode: DefaultMode): string[] {
-  if (mode === 'none') return [];
-  return getRegisteredTools().filter(tool => mode === tool || mode === 'ambiguous');
-}
-
-/**
- * Tools whose `ais add`/`ais remove` generic dispatch has an established
- * default subtype (the first-registered adapter for the tool) even though
- * the tool has more than one registered subtype. This preserves the CLI's
- * documented "auto-detects cursor/copilot when unambiguous" behavior for the
- * handful of tools that already relied on it; every other multi-subtype
- * tool requires the explicit subcommand instead of guessing which one the
- * user means.
- */
-const TOOLS_WITH_DEFAULT_ADD_SUBTYPE = new Set(['cursor', 'copilot', 'windsurf', 'cline']);
-
-/**
- * Resolve the single adapter that `ais add`/`ais remove`'s generic dispatch
- * should use for a given tool. Registry-driven: any tool with exactly one
- * registered subtype (e.g. warp, aider, zed) resolves automatically without
- * a code change here. Tools with multiple subtypes throw an error requiring
- * the explicit subcommand, listing the actual registered subtypes, unless
- * the tool is in the legacy default-subtype set above.
- */
-export function resolveSingleAdapterForMode(mode: string, command: 'add' | 'remove'): SyncAdapter {
-  const adapters = adapterRegistry.getForTool(mode);
-  if (adapters.length === 0) {
-    throw new Error(`Cannot determine which tool to use for mode "${mode}"`);
-  }
-  if (adapters.length === 1 || TOOLS_WITH_DEFAULT_ADD_SUBTYPE.has(mode)) {
-    return adapters[0];
-  }
-  const subtypes = adapters.map(a => a.subtype).join('/');
-  throw new Error(`For ${mode} components, please use "ais ${mode} ${subtypes} ${command}" explicitly.`);
-}
-
-/**
- * Resolve Copilot alias from config with suffix handling
- */
-export function resolveCopilotAliasFromConfig(input: string, keys: string[]): string {
-  if (input.endsWith('.md') || input.endsWith('.instructions.md')) return input;
-  const matches = keys.filter(k => stripCopilotSuffix(k) === input);
-  if (matches.length === 1) return matches[0];
-  if (matches.length > 1) {
-    throw new Error(`Alias "${input}" matches multiple Copilot entries: ${matches.join(', ')}. Please specify the suffix explicitly.`);
-  }
-  return input;
 }
 
 /**

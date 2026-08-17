@@ -39,15 +39,13 @@ describe('discoverAllEntries --tools filter', () => {
     expect(entries.every(e => e.adapter.tool === 'factorydroid')).toBe(true);
   });
 
-  it('warns when a --tools value matches no known adapter', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  it('hard-errors when a --tools value matches no known adapter, aligned with broadcast groups', async () => {
     const repoDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-repo-typo-'));
     const projectPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-project-typo-'));
     const repo: RepoConfig = { name: 'repo', url: 'https://example.com/repo.git', path: repoDir };
 
-    const entries = await discoverAllEntries(projectPath, repo, adapterRegistry, { tools: ['not-a-real-tool'] });
-
-    expect(entries).toEqual([]);
-    expect(warnSpy).toHaveBeenCalled();
+    await expect(
+      discoverAllEntries(projectPath, repo, adapterRegistry, { tools: ['not-a-real-tool'] })
+    ).rejects.toThrow(/Unknown tool "not-a-real-tool"/);
   });
 });
