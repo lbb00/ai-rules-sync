@@ -9,7 +9,7 @@ import { cloneOrUpdateRepo, getRemoteUrl, runGitCommand } from './git.js';
 import { addIgnoreEntry, isLocalPath, resolveLocalPath } from './utils.js';
 import { getCombinedProjectConfig, getConfigSource, getRepoSourceConfig, getSourceDir, ProjectConfig } from './project-config.js';
 import { checkAndPromptCompletion, forceInstallCompletion } from './completion.js';
-import { getCompletionScript } from './completion/scripts.js';
+import { getCompletionScript, resolveCompletionAdapter } from './completion/scripts.js';
 import { adapterRegistry, getAdapter, findAdapterForAlias } from './adapters/index.js';
 import { SyncAdapter } from './adapters/types.js';
 import { copilotInstructionsAdapter } from './adapters/copilot-instructions.js';
@@ -23,12 +23,15 @@ import {
   requireExplicitMode,
   resolveCopilotAliasFromConfig,
   resolveCommandAliasFromConfig,
+  getToolsForInstallMode,
+  resolveSingleAdapterForMode,
   DefaultMode
 } from './commands/helpers.js';
 import { handleAdd, handleRemove, handleImport } from './commands/handlers.js';
 import { installEntriesForAdapter, installEntriesForTool, installAllUserEntries } from './commands/install.js';
 import { discoverAllEntries, handleAddAll } from './commands/add-all.js';
 import { parseSourceDirParams } from './cli/source-dir-parser.js';
+import { parseCsvOption } from './cli/csv-option.js';
 import { setRepoSourceDir, clearRepoSourceDir, showRepoConfig, listRepos, handleUserConfigShow, handleUserConfigSet, handleUserConfigReset } from './commands/config.js';
 import { getFormattedVersion } from './commands/version.js';
 import { checkRepositories, updateRepositories, initRulesRepository } from './commands/lifecycle.js';
@@ -79,17 +82,6 @@ function collectToolCounts(config: ProjectConfig): { perTool: Record<string, num
   }
 
   return { perTool, total };
-}
-
-function parseCsvOption(input?: string): string[] | undefined {
-  if (!input) {
-    return undefined;
-  }
-  const values = input
-    .split(',')
-    .map((item: string) => item.trim())
-    .filter(Boolean);
-  return values.length > 0 ? values : undefined;
 }
 
 function formatCheckStatus(status: string): string {
@@ -648,35 +640,8 @@ program
         targetDir: options.targetDir
       };
 
-      if (mode === 'cursor') {
-        const adapter = getAdapter('cursor', 'rules');
-        await handleAdd(adapter, { projectPath, repo: currentRepo, isLocal: options.local || false }, name, alias, addOptions);
-      } else if (mode === 'copilot') {
-        const adapter = getAdapter('copilot', 'instructions');
-        await handleAdd(adapter, { projectPath, repo: currentRepo, isLocal: options.local || false }, name, alias, addOptions);
-      } else if (mode === 'claude') {
-        throw new Error('For Claude components, please use "ais claude skills/agents add" explicitly.');
-      } else if (mode === 'trae') {
-        throw new Error('For Trae components, please use "ais trae rules/skills add" explicitly.');
-      } else if (mode === 'opencode') {
-        throw new Error('For OpenCode components, please use "ais opencode agents/skills/commands/tools add" explicitly.');
-      } else if (mode === 'codex') {
-        throw new Error('For Codex components, please use "ais codex rules/skills add" explicitly.');
-      } else if (mode === 'gemini') {
-        throw new Error('For Gemini components, please use "ais gemini commands/skills/agents add" explicitly.');
-      } else if (mode === 'warp') {
-        throw new Error('For Warp components, please use "ais warp skills add" explicitly.');
-      } else if (mode === 'windsurf') {
-        const adapter = getAdapter('windsurf', 'rules');
-        await handleAdd(adapter, { projectPath, repo: currentRepo, isLocal: options.local || false }, name, alias, addOptions);
-      } else if (mode === 'cline') {
-        const adapter = getAdapter('cline', 'rules');
-        await handleAdd(adapter, { projectPath, repo: currentRepo, isLocal: options.local || false }, name, alias, addOptions);
-      } else if (mode === 'agents-md') {
-        throw new Error('For AGENTS.md files, please use "ais agents-md add" explicitly.');
-      } else {
-        throw new Error(`Cannot determine which tool to use for mode "${mode}"`);
-      }
+      const adapter = resolveSingleAdapterForMode(mode, 'add');
+      await handleAdd(adapter, { projectPath, repo: currentRepo, isLocal: options.local || false }, name, alias, addOptions);
     } catch (error: any) {
       console.error(chalk.red('Error adding entry:'), error.message);
       process.exit(1);
@@ -706,57 +671,12 @@ program
           requireExplicitMode(mode);
         }
 
-        let adapter;
-        if (mode === 'cursor') {
-          adapter = getAdapter('cursor', 'rules');
-        } else if (mode === 'copilot') {
+        if (mode === 'copilot') {
           // Try to resolve the alias with suffix
-          const resolved = resolveCopilotAliasFromConfig(alias, Object.keys((cfg.copilot as Record<string, unknown>)?.instructions || {}));
-          adapter = getAdapter('copilot', 'instructions');
-          alias = resolved;
-        } else if (mode === 'claude') {
-          // Try all Claude adapters
-          const claudeAdapters = adapterRegistry.getForTool('claude');
-          for (const a of claudeAdapters) {
-            await handleRemove(a, projectPath, alias, false, { dryRun: cmdOptions.dryRun });
-          }
-          return;
-        } else if (mode === 'trae') {
-          const traeAdapters = adapterRegistry.getForTool('trae');
-          for (const a of traeAdapters) {
-            await handleRemove(a, projectPath, alias, false, { dryRun: cmdOptions.dryRun });
-          }
-          return;
-        } else if (mode === 'opencode') {
-          const opencodeAdapters = adapterRegistry.getForTool('opencode');
-          for (const a of opencodeAdapters) {
-            await handleRemove(a, projectPath, alias, false, { dryRun: cmdOptions.dryRun });
-          }
-          return;
-        } else if (mode === 'codex') {
-          const codexAdapters = adapterRegistry.getForTool('codex');
-          for (const a of codexAdapters) {
-            await handleRemove(a, projectPath, alias, false, { dryRun: cmdOptions.dryRun });
-          }
-          return;
-        } else if (mode === 'gemini') {
-          const geminiAdapters = adapterRegistry.getForTool('gemini');
-          for (const a of geminiAdapters) {
-            await handleRemove(a, projectPath, alias, false, { dryRun: cmdOptions.dryRun });
-          }
-          return;
-        } else if (mode === 'warp') {
-          adapter = getAdapter('warp', 'skills');
-        } else if (mode === 'windsurf') {
-          adapter = getAdapter('windsurf', 'rules');
-        } else if (mode === 'cline') {
-          adapter = getAdapter('cline', 'rules');
-        } else if (mode === 'agents-md') {
-          adapter = getAdapter('agents-md', 'file');
-        } else {
-          throw new Error(`Cannot determine which tool to use for alias "${alias}"`);
+          alias = resolveCopilotAliasFromConfig(alias, Object.keys((cfg.copilot as Record<string, unknown>)?.instructions || {}));
         }
 
+        const adapter = resolveSingleAdapterForMode(mode, 'remove');
         await handleRemove(adapter, projectPath, alias, false, { dryRun: cmdOptions.dryRun });
       }
     } catch (error: any) {
@@ -784,38 +704,8 @@ program
         return;
       }
 
-      if (mode === 'cursor' || mode === 'ambiguous') {
-        await installEntriesForTool(adapterRegistry.getForTool('cursor'), projectPath);
-      }
-      if (mode === 'copilot' || mode === 'ambiguous') {
-        await installEntriesForTool(adapterRegistry.getForTool('copilot'), projectPath);
-      }
-      if (mode === 'claude' || mode === 'ambiguous') {
-        await installEntriesForTool(adapterRegistry.getForTool('claude'), projectPath);
-      }
-      if (mode === 'trae' || mode === 'ambiguous') {
-        await installEntriesForTool(adapterRegistry.getForTool('trae'), projectPath);
-      }
-      if (mode === 'opencode' || mode === 'ambiguous') {
-        await installEntriesForTool(adapterRegistry.getForTool('opencode'), projectPath);
-      }
-      if (mode === 'codex' || mode === 'ambiguous') {
-        await installEntriesForTool(adapterRegistry.getForTool('codex'), projectPath);
-      }
-      if (mode === 'gemini' || mode === 'ambiguous') {
-        await installEntriesForTool(adapterRegistry.getForTool('gemini'), projectPath);
-      }
-      if (mode === 'warp' || mode === 'ambiguous') {
-        await installEntriesForTool(adapterRegistry.getForTool('warp'), projectPath);
-      }
-      if (mode === 'windsurf' || mode === 'ambiguous') {
-        await installEntriesForTool(adapterRegistry.getForTool('windsurf'), projectPath);
-      }
-      if (mode === 'cline' || mode === 'ambiguous') {
-        await installEntriesForTool(adapterRegistry.getForTool('cline'), projectPath);
-      }
-      if (mode === 'agents-md' || mode === 'ambiguous') {
-        await installEntriesForTool(adapterRegistry.getForTool('agents-md'), projectPath);
+      for (const tool of getToolsForInstallMode(mode)) {
+        await installEntriesForTool(adapterRegistry.getForTool(tool), projectPath);
       }
     } catch (error: any) {
       console.error(chalk.red('Error installing entries:'), error.message);
@@ -859,8 +749,8 @@ program
         adapterRegistry,
         {
           target: opts.target,
-          tools: options.tools?.split(','),
-          adapters: options.adapters?.split(','),
+          tools: parseCsvOption(options.tools),
+          adapters: parseCsvOption(options.adapters),
           dryRun: options.dryRun,
           force: options.force,
           interactive: options.interactive,
@@ -2321,7 +2211,7 @@ program
 // ============ Internal _complete command ============
 program
   .command('_complete')
-  .argument('<type>', 'Type of completion: cursor, cursor-commands, cursor-skills, cursor-agents, copilot, claude-skills, claude-agents, claude-rules, trae-rules, trae-skills, opencode-agents, opencode-skills, opencode-commands, opencode-tools, codex-rules, codex-skills, codex-md, gemini-commands, gemini-skills, gemini-agents, gemini-md, warp-skills, windsurf-rules, windsurf-skills, cline-rules, cline-skills, agents-md')
+  .argument('<type>', `Type of completion (tool-subtype identifier, e.g. cursor-rules, codex-skills): ${adapterRegistry.all().map(adapter => adapter.name).join(', ')}`)
   .description('Internal command for shell completion')
   .action(async (type: string) => {
     try {
@@ -2338,88 +2228,17 @@ program
       }
 
       const repoConfig = await getRepoSourceConfig(repoDir);
-      let sourceDir: string;
 
-      switch (type) {
-        case 'cursor':
-          sourceDir = getSourceDir(repoConfig, 'cursor', 'rules', '.cursor/rules');
-          break;
-        case 'cursor-commands':
-          sourceDir = getSourceDir(repoConfig, 'cursor', 'commands', '.cursor/commands');
-          break;
-        case 'cursor-skills':
-          sourceDir = getSourceDir(repoConfig, 'cursor', 'skills', '.cursor/skills');
-          break;
-        case 'cursor-agents':
-          sourceDir = getSourceDir(repoConfig, 'cursor', 'agents', '.cursor/agents');
-          break;
-        case 'copilot':
-          sourceDir = getSourceDir(repoConfig, 'copilot', 'instructions', '.github/instructions');
-          break;
-        case 'claude-skills':
-          sourceDir = getSourceDir(repoConfig, 'claude', 'skills', '.claude/skills');
-          break;
-        case 'claude-agents':
-          sourceDir = getSourceDir(repoConfig, 'claude', 'agents', '.claude/agents');
-          break;
-        case 'claude-rules':
-          sourceDir = getSourceDir(repoConfig, 'claude', 'rules', '.claude/rules');
-          break;
-        case 'trae-rules':
-          sourceDir = getSourceDir(repoConfig, 'trae', 'rules', '.trae/rules');
-          break;
-        case 'trae-skills':
-          sourceDir = getSourceDir(repoConfig, 'trae', 'skills', '.trae/skills');
-          break;
-        case 'opencode-agents':
-          sourceDir = getSourceDir(repoConfig, 'opencode', 'agents', '.opencode/agents');
-          break;
-        case 'opencode-skills':
-          sourceDir = getSourceDir(repoConfig, 'opencode', 'skills', '.opencode/skills');
-          break;
-        case 'opencode-commands':
-          sourceDir = getSourceDir(repoConfig, 'opencode', 'commands', '.opencode/commands');
-          break;
-        case 'opencode-tools':
-          sourceDir = getSourceDir(repoConfig, 'opencode', 'tools', '.opencode/tools');
-          break;
-        case 'codex-rules':
-          sourceDir = getSourceDir(repoConfig, 'codex', 'rules', '.codex/rules');
-          break;
-        case 'codex-skills':
-          sourceDir = getSourceDir(repoConfig, 'codex', 'skills', '.agents/skills');
-          break;
-        case 'gemini-commands':
-          sourceDir = getSourceDir(repoConfig, 'gemini', 'commands', '.gemini/commands');
-          break;
-        case 'gemini-skills':
-          sourceDir = getSourceDir(repoConfig, 'gemini', 'skills', '.gemini/skills');
-          break;
-        case 'gemini-agents':
-          sourceDir = getSourceDir(repoConfig, 'gemini', 'agents', '.gemini/agents');
-          break;
-        case 'warp-skills':
-          sourceDir = getSourceDir(repoConfig, 'warp', 'skills', '.agents/skills');
-          break;
-        case 'windsurf-rules':
-          sourceDir = getSourceDir(repoConfig, 'windsurf', 'rules', '.windsurf/rules');
-          break;
-        case 'windsurf-skills':
-          sourceDir = getSourceDir(repoConfig, 'windsurf', 'skills', '.windsurf/skills');
-          break;
-        case 'cline-rules':
-          sourceDir = getSourceDir(repoConfig, 'cline', 'rules', '.clinerules');
-          break;
-        case 'cline-skills':
-          sourceDir = getSourceDir(repoConfig, 'cline', 'skills', '.cline/skills');
-          break;
-        case 'agents-md':
-          sourceDir = getSourceDir(repoConfig, 'agents-md', 'file', 'agents-md');
-          break;
-        default:
-          process.exit(0);
+      // Every completion type the generated bash/zsh/fish scripts can emit is
+      // an adapter name (or a legacy alias from a previously installed
+      // script) — resolveCompletionAdapter is the single source of truth
+      // shared with the generator, so no adapter can silently fall through here.
+      const adapter = resolveCompletionAdapter(type);
+      if (!adapter) {
+        process.exit(0);
       }
 
+      const sourceDir = getSourceDir(repoConfig, adapter.tool, adapter.subtype, adapter.defaultSourceDir);
       const fullPath = path.join(repoDir, sourceDir);
       if (!await fs.pathExists(fullPath)) {
         process.exit(0);

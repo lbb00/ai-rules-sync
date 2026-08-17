@@ -83,8 +83,8 @@ export interface SyncAdapter {
     /** Link entry from repo to project (filesystem) */
     link(options: SyncOptions): Promise<LinkResult>;
 
-    /** Unlink entry from project (filesystem) */
-    unlink(projectPath: string, alias: string): Promise<void>;
+    /** Unlink entry from project (filesystem). Pass isUser=true to resolve userTargetDir (global mode) instead of targetDir. */
+    unlink(projectPath: string, alias: string, isUser?: boolean): Promise<void>;
 }
 
 /**

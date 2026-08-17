@@ -133,19 +133,28 @@ export async function linkEntry(
 export async function unlinkEntry(
     adapter: SyncAdapter,
     projectPath: string,
-    alias: string
+    alias: string,
+    isUser: boolean = false
 ): Promise<void> {
     const absoluteProjectPath = path.resolve(projectPath);
 
-    // Get target directory from project config (for unlink, always read from config)
-    const projectConfig = await getCombinedProjectConfig(projectPath);
-    const targetDirPath = getTargetDir(
-        projectConfig,
-        adapter.tool,
-        adapter.subtype,
-        alias,
-        adapter.targetDir
-    );
+    // In user/global mode, resolve against userTargetDir (mirrors link()'s skipIgnore
+    // branch) instead of reading project config, since user mode has no per-entry
+    // targetDir overrides stored in ai-rules-sync.json.
+    let targetDirPath: string;
+    if (isUser) {
+        targetDirPath = adapter.userTargetDir || adapter.targetDir;
+    } else {
+        // Get target directory from project config (for unlink, always read from config)
+        const projectConfig = await getCombinedProjectConfig(projectPath);
+        targetDirPath = getTargetDir(
+            projectConfig,
+            adapter.tool,
+            adapter.subtype,
+            alias,
+            adapter.targetDir
+        );
+    }
 
     const targetDir = path.join(absoluteProjectPath, targetDirPath);
 

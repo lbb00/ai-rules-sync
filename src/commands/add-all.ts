@@ -4,7 +4,20 @@ import chalk from 'chalk';
 import readline from 'readline';
 import { RepoConfig } from '../config.js';
 import { SyncAdapter, AdapterRegistry } from '../adapters/types.js';
-import { getRepoSourceConfig, getSourceDir, getCombinedProjectConfig } from '../project-config.js';
+import { getRepoSourceConfig, getSourceDir, getCombinedProjectConfig, getConfigSectionWithFallback, ProjectConfig } from '../project-config.js';
+import { manageEntryIgnore, manageLocalConfigIgnore } from './handlers.js';
+
+/**
+ * Maps a CLI command group name to its underlying adapter tool name, for cases
+ * where they diverge (e.g. "agy" group -> "antigravity-cli" adapter tool,
+ * "droid" group -> "factorydroid" adapter tool). Used to resolve --tools
+ * filter values in discoverAllEntries. Mirrors TOOL_CLI_GROUPS in
+ * src/completion/scripts.ts, which tracks the same facts for completion.
+ */
+const TOOL_CLI_ALIASES: Record<string, string> = {
+    agy: 'antigravity-cli',
+    droid: 'factorydroid'
+};
 
 /**
  * Simple yes/no prompt using readline
@@ -105,7 +118,8 @@ export async function discoverEntriesForAdapter(
         projectConfig = {};
     }
 
-    const configSection = (projectConfig as any)[adapter.tool]?.[adapter.subtype] || {};
+    const [configTopLevel, configSubLevel] = adapter.configPath;
+    const configSection = getConfigSectionWithFallback(projectConfig as ProjectConfig, configTopLevel, configSubLevel);
 
     // Read directory contents
     let items: string[];
@@ -255,14 +269,26 @@ export async function discoverAllEntries(
 
     if (options?.adapters && options.adapters.length > 0) {
         // Filter by specific adapter names
-        adapters = options.adapters
-            .map(name => adapterRegistry.getByName(name))
-            .filter((a): a is SyncAdapter => a !== undefined);
-    } else if (options?.tools && options.tools.length > 0) {
-        // Filter by tools
         adapters = [];
-        for (const tool of options.tools) {
-            adapters.push(...adapterRegistry.getForTool(tool));
+        for (const name of options.adapters) {
+            const found = adapterRegistry.getByName(name);
+            if (!found) {
+                console.warn(chalk.yellow(`Warning: no adapter found named "${name}".`));
+                continue;
+            }
+            adapters.push(found);
+        }
+    } else if (options?.tools && options.tools.length > 0) {
+        // Filter by tools (resolving CLI-group aliases like "agy" -> "antigravity-cli")
+        adapters = [];
+        for (const rawTool of options.tools) {
+            const tool = TOOL_CLI_ALIASES[rawTool] ?? rawTool;
+            const toolAdapters = adapterRegistry.getForTool(tool);
+            if (toolAdapters.length === 0) {
+                console.warn(chalk.yellow(`Warning: no adapters found for tool "${rawTool}".`));
+                continue;
+            }
+            adapters.push(...toolAdapters);
         }
     } else {
         // All adapters
@@ -347,13 +373,19 @@ export async function installDiscoveredEntries(
                 options.isLocal || false
             );
 
-            await entry.adapter.link({
+            const linkResult = await entry.adapter.link({
                 projectPath,
                 name: entry.entryName,
                 repo,
                 alias: entry.entryName,
                 isLocal: options.isLocal || false
             });
+
+            // Ignore file management, same as "ais <tool> add" (see handleAdd)
+            if (linkResult.linked) {
+                const relEntry = path.join(entry.adapter.targetDir, linkResult.targetName);
+                await manageEntryIgnore(projectPath, options.isLocal || false, relEntry);
+            }
 
             if (!options.quiet) {
                 const targetDir = entry.adapter.targetDir;
@@ -373,6 +405,11 @@ export async function installDiscoveredEntries(
                 console.log(chalk.red(`${progress} ${entry.adapter.name}/${entry.entryName} ✗ (${error.message})`));
             }
         }
+    }
+
+    // Parity with "ais <tool> add --local": gitignore the private config file itself.
+    if (options.isLocal && !options.dryRun && result.installed > 0) {
+        await manageLocalConfigIgnore(projectPath);
     }
 
     return result;

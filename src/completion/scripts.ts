@@ -1,7 +1,18 @@
 /**
  * Shell completion scripts for bash, zsh, and fish
- * Generated from shared completion metadata to reduce drift.
+ *
+ * The tool/subtype list and the `ais _complete <type>` names below are derived
+ * from adapterRegistry so every registered adapter automatically gets
+ * completion support. What can't be derived from the registry (the literal CLI
+ * command word when it differs from `adapter.tool`, and which tools expose a
+ * flattened root-level `add` in addition to their nested `<subtype> add`) is
+ * kept as a small explicit table, mirroring the hand-written command tree in
+ * src/index.ts. See resolveCompletionAdapter() for the matching lookup used by
+ * the `_complete` command.
  */
+
+import { adapterRegistry } from '../adapters/index.js';
+import { SyncAdapter } from '../adapters/types.js';
 
 interface CompletionEntry {
   name: string;
@@ -22,365 +33,167 @@ const COMMAND_ALIASES: Record<string, string[]> = {
   remove: ['rm']
 };
 
-const TOOL_SPECS: ToolCompletionSpec[] = [
-  {
-    tool: 'cursor',
-    description: 'Manage Cursor rules, commands, and skills',
-    rootSubcommands: [
-      { name: 'add', description: 'Add a Cursor rule' },
-      { name: 'remove', description: 'Remove a Cursor rule' },
-      { name: 'install', description: 'Install all Cursor entries' },
-      { name: 'import', description: 'Import entry to repository' },
-      { name: 'rules', description: 'Manage rules explicitly' },
-      { name: 'commands', description: 'Manage commands' },
-      { name: 'skills', description: 'Manage skills' },
-      { name: 'agents', description: 'Manage agents' }
-    ],
-    nestedSubcommands: {
-      rules: [
-        { name: 'add', description: 'Add a Cursor rule' },
-        { name: 'remove', description: 'Remove a Cursor rule' },
-        { name: 'install', description: 'Install all Cursor rules' },
-        { name: 'import', description: 'Import rule to repository' }
-      ],
-      commands: [
-        { name: 'add', description: 'Add a Cursor command' },
-        { name: 'remove', description: 'Remove a Cursor command' },
-        { name: 'install', description: 'Install all Cursor commands' },
-        { name: 'import', description: 'Import command to repository' }
-      ],
-      skills: [
-        { name: 'add', description: 'Add a Cursor skill' },
-        { name: 'remove', description: 'Remove a Cursor skill' },
-        { name: 'install', description: 'Install all Cursor skills' },
-        { name: 'import', description: 'Import skill to repository' }
-      ],
-      agents: [
-        { name: 'add', description: 'Add a Cursor agent' },
-        { name: 'remove', description: 'Remove a Cursor agent' },
-        { name: 'install', description: 'Install all Cursor agents' },
-        { name: 'import', description: 'Import agent to repository' }
-      ]
-    },
-    rootAddCompletionType: 'cursor',
-    nestedAddCompletionTypes: {
-      rules: 'cursor',
-      commands: 'cursor-commands',
-      skills: 'cursor-skills',
-      agents: 'cursor-agents'
-    }
-  },
-  {
-    tool: 'copilot',
-    description: 'Manage GitHub Copilot instructions',
-    rootSubcommands: [
-      { name: 'instructions', description: 'Manage GitHub Copilot instructions' },
-      { name: 'prompts', description: 'Manage GitHub Copilot prompt files' },
-      { name: 'skills', description: 'Manage GitHub Copilot skills' },
-      { name: 'agents', description: 'Manage GitHub Copilot custom agents' },
-      { name: 'install', description: 'Install all GitHub Copilot entries' }
-    ],
-    nestedSubcommands: {
-      instructions: [
-        { name: 'add', description: 'Add a GitHub Copilot instruction' },
-        { name: 'remove', description: 'Remove a GitHub Copilot instruction' },
-        { name: 'install', description: 'Install all GitHub Copilot instructions' },
-        { name: 'import', description: 'Import instruction to repository' }
-      ],
-      prompts: [
-        { name: 'add', description: 'Add a GitHub Copilot prompt' },
-        { name: 'remove', description: 'Remove a GitHub Copilot prompt' },
-        { name: 'install', description: 'Install all GitHub Copilot prompts' },
-        { name: 'import', description: 'Import prompt to repository' }
-      ],
-      skills: [
-        { name: 'add', description: 'Add a GitHub Copilot skill' },
-        { name: 'remove', description: 'Remove a GitHub Copilot skill' },
-        { name: 'install', description: 'Install all GitHub Copilot skills' },
-        { name: 'import', description: 'Import skill to repository' }
-      ],
-      agents: [
-        { name: 'add', description: 'Add a GitHub Copilot agent' },
-        { name: 'remove', description: 'Remove a GitHub Copilot agent' },
-        { name: 'install', description: 'Install all GitHub Copilot agents' },
-        { name: 'import', description: 'Import agent to repository' }
-      ]
-    },
-    nestedAddCompletionTypes: {
-      instructions: 'copilot-instructions',
-      prompts: 'copilot-prompts',
-      skills: 'copilot-skills',
-      agents: 'copilot-agents'
-    }
-  },
-  {
-    tool: 'claude',
-    description: 'Manage Claude skills, agents, and plugins',
-    rootSubcommands: [
-      { name: 'rules', description: 'Manage Claude rules' },
-      { name: 'skills', description: 'Manage Claude skills' },
-      { name: 'agents', description: 'Manage Claude agents' },
-      { name: 'install', description: 'Install all Claude components' }
-    ],
-    nestedSubcommands: {
-      rules: [
-        { name: 'add', description: 'Add a Claude rule' },
-        { name: 'remove', description: 'Remove a Claude rule' },
-        { name: 'install', description: 'Install all Claude rules' },
-        { name: 'import', description: 'Import rule to repository' }
-      ],
-      skills: [
-        { name: 'add', description: 'Add a Claude skill' },
-        { name: 'remove', description: 'Remove a Claude skill' },
-        { name: 'install', description: 'Install all Claude skills' },
-        { name: 'import', description: 'Import skill to repository' }
-      ],
-      agents: [
-        { name: 'add', description: 'Add a Claude agent' },
-        { name: 'remove', description: 'Remove a Claude agent' },
-        { name: 'install', description: 'Install all Claude agents' },
-        { name: 'import', description: 'Import agent to repository' }
-      ]
-    },
-    nestedAddCompletionTypes: {
-      rules: 'claude-rules',
-      skills: 'claude-skills',
-      agents: 'claude-agents'
-    }
-  },
-  {
-    tool: 'trae',
-    description: 'Manage Trae rules and skills',
-    rootSubcommands: [
-      { name: 'rules', description: 'Manage Trae rules' },
-      { name: 'skills', description: 'Manage Trae skills' },
-      { name: 'install', description: 'Install all Trae entries' }
-    ],
-    nestedSubcommands: {
-      rules: [
-        { name: 'add', description: 'Add a Trae rule' },
-        { name: 'remove', description: 'Remove a Trae rule' },
-        { name: 'install', description: 'Install all Trae rules' },
-        { name: 'import', description: 'Import rule to repository' }
-      ],
-      skills: [
-        { name: 'add', description: 'Add a Trae skill' },
-        { name: 'remove', description: 'Remove a Trae skill' },
-        { name: 'install', description: 'Install all Trae skills' },
-        { name: 'import', description: 'Import skill to repository' }
-      ]
-    },
-    nestedAddCompletionTypes: {
-      rules: 'trae-rules',
-      skills: 'trae-skills'
-    }
-  },
-  {
-    tool: 'opencode',
-    description: 'Manage OpenCode agents, skills, commands, and tools',
-    rootSubcommands: [
-      { name: 'commands', description: 'Manage OpenCode commands' },
-      { name: 'skills', description: 'Manage OpenCode skills' },
-      { name: 'agents', description: 'Manage OpenCode agents' },
-      { name: 'tools', description: 'Manage OpenCode tools' },
-      { name: 'install', description: 'Install all OpenCode entries' },
-      { name: 'import', description: 'Import entry to repository' }
-    ],
-    nestedSubcommands: {
-      commands: [
-        { name: 'add', description: 'Add an OpenCode command' },
-        { name: 'remove', description: 'Remove an OpenCode command' },
-        { name: 'install', description: 'Install all OpenCode commands' },
-        { name: 'import', description: 'Import command to repository' }
-      ],
-      skills: [
-        { name: 'add', description: 'Add an OpenCode skill' },
-        { name: 'remove', description: 'Remove an OpenCode skill' },
-        { name: 'install', description: 'Install all OpenCode skills' },
-        { name: 'import', description: 'Import skill to repository' }
-      ],
-      agents: [
-        { name: 'add', description: 'Add an OpenCode agent' },
-        { name: 'remove', description: 'Remove an OpenCode agent' },
-        { name: 'install', description: 'Install all OpenCode agents' },
-        { name: 'import', description: 'Import agent to repository' }
-      ],
-      tools: [
-        { name: 'add', description: 'Add an OpenCode tool' },
-        { name: 'remove', description: 'Remove an OpenCode tool' },
-        { name: 'install', description: 'Install all OpenCode tools' },
-        { name: 'import', description: 'Import tool to repository' }
-      ]
-    },
-    nestedAddCompletionTypes: {
-      commands: 'opencode-commands',
-      skills: 'opencode-skills',
-      agents: 'opencode-agents',
-      tools: 'opencode-tools'
-    }
-  },
-  {
-    tool: 'codex',
-    description: 'Manage Codex rules and skills',
-    rootSubcommands: [
-      { name: 'rules', description: 'Manage Codex rules' },
-      { name: 'skills', description: 'Manage Codex skills' },
-      { name: 'install', description: 'Install all Codex entries' },
-      { name: 'import', description: 'Import entry to repository' }
-    ],
-    nestedSubcommands: {
-      rules: [
-        { name: 'add', description: 'Add a Codex rule' },
-        { name: 'remove', description: 'Remove a Codex rule' },
-        { name: 'install', description: 'Install all Codex rules' },
-        { name: 'import', description: 'Import rule to repository' }
-      ],
-      skills: [
-        { name: 'add', description: 'Add a Codex skill' },
-        { name: 'remove', description: 'Remove a Codex skill' },
-        { name: 'install', description: 'Install all Codex skills' },
-        { name: 'import', description: 'Import skill to repository' }
-      ]
-    },
-    nestedAddCompletionTypes: {
-      rules: 'codex-rules',
-      skills: 'codex-skills'
-    }
-  },
-  {
-    tool: 'gemini',
-    description: 'Manage Gemini CLI commands, skills, and agents',
-    rootSubcommands: [
-      { name: 'commands', description: 'Manage Gemini commands' },
-      { name: 'skills', description: 'Manage Gemini skills' },
-      { name: 'agents', description: 'Manage Gemini agents' },
-      { name: 'install', description: 'Install all Gemini entries' },
-      { name: 'add-all', description: 'Add all Gemini entries' },
-      { name: 'import', description: 'Import entry to repository' }
-    ],
-    nestedSubcommands: {
-      commands: [
-        { name: 'add', description: 'Add a Gemini command' },
-        { name: 'remove', description: 'Remove a Gemini command' },
-        { name: 'install', description: 'Install all Gemini commands' },
-        { name: 'import', description: 'Import command to repository' }
-      ],
-      skills: [
-        { name: 'add', description: 'Add a Gemini skill' },
-        { name: 'remove', description: 'Remove a Gemini skill' },
-        { name: 'install', description: 'Install all Gemini skills' },
-        { name: 'import', description: 'Import skill to repository' }
-      ],
-      agents: [
-        { name: 'add', description: 'Add a Gemini agent' },
-        { name: 'remove', description: 'Remove a Gemini agent' },
-        { name: 'install', description: 'Install all Gemini agents' },
-        { name: 'import', description: 'Import agent to repository' }
-      ]
-    },
-    nestedAddCompletionTypes: {
-      commands: 'gemini-commands',
-      skills: 'gemini-skills',
-      agents: 'gemini-agents'
-    }
-  },
-  {
-    tool: 'warp',
-    description: 'Manage Warp agent skills',
-    rootSubcommands: [
-      { name: 'skills', description: 'Manage Warp skills' },
-      { name: 'install', description: 'Install all Warp entries' },
-      { name: 'import', description: 'Import entry to repository' }
-    ],
-    nestedSubcommands: {
-      skills: [
-        { name: 'add', description: 'Add a Warp skill' },
-        { name: 'remove', description: 'Remove a Warp skill' },
-        { name: 'install', description: 'Install all Warp skills' },
-        { name: 'import', description: 'Import skill to repository' }
-      ]
-    },
-    nestedAddCompletionTypes: {
-      skills: 'warp-skills'
-    }
-  },
-  {
-    tool: 'windsurf',
-    description: 'Manage Windsurf rules and skills',
-    rootSubcommands: [
-      { name: 'add', description: 'Add a Windsurf rule' },
-      { name: 'remove', description: 'Remove a Windsurf rule' },
-      { name: 'install', description: 'Install all Windsurf entries' },
-      { name: 'add-all', description: 'Add all Windsurf entries' },
-      { name: 'import', description: 'Import entry to repository' },
-      { name: 'rules', description: 'Manage Windsurf rules' },
-      { name: 'skills', description: 'Manage Windsurf skills' }
-    ],
-    nestedSubcommands: {
-      rules: [
-        { name: 'add', description: 'Add a Windsurf rule' },
-        { name: 'remove', description: 'Remove a Windsurf rule' },
-        { name: 'install', description: 'Install all Windsurf rules' },
-        { name: 'import', description: 'Import rule to repository' }
-      ],
-      skills: [
-        { name: 'add', description: 'Add a Windsurf skill' },
-        { name: 'remove', description: 'Remove a Windsurf skill' },
-        { name: 'install', description: 'Install all Windsurf skills' },
-        { name: 'import', description: 'Import skill to repository' }
-      ]
-    },
-    rootAddCompletionType: 'windsurf-rules',
-    nestedAddCompletionTypes: {
-      rules: 'windsurf-rules',
-      skills: 'windsurf-skills'
-    }
-  },
-  {
-    tool: 'cline',
-    description: 'Manage Cline rules and skills',
-    rootSubcommands: [
-      { name: 'add', description: 'Add a Cline rule' },
-      { name: 'remove', description: 'Remove a Cline rule' },
-      { name: 'install', description: 'Install all Cline entries' },
-      { name: 'add-all', description: 'Add all Cline entries' },
-      { name: 'import', description: 'Import entry to repository' },
-      { name: 'rules', description: 'Manage Cline rules' },
-      { name: 'skills', description: 'Manage Cline skills' }
-    ],
-    nestedSubcommands: {
-      rules: [
-        { name: 'add', description: 'Add a Cline rule' },
-        { name: 'remove', description: 'Remove a Cline rule' },
-        { name: 'install', description: 'Install all Cline rules' },
-        { name: 'import', description: 'Import rule to repository' }
-      ],
-      skills: [
-        { name: 'add', description: 'Add a Cline skill' },
-        { name: 'remove', description: 'Remove a Cline skill' },
-        { name: 'install', description: 'Install all Cline skills' },
-        { name: 'import', description: 'Import skill to repository' }
-      ]
-    },
-    rootAddCompletionType: 'cline-rules',
-    nestedAddCompletionTypes: {
-      rules: 'cline-rules',
-      skills: 'cline-skills'
-    }
-  },
-  {
-    tool: 'agents-md',
-    description: 'Manage AGENTS.md files (agents.md standard)',
-    rootSubcommands: [
-      { name: 'add', description: 'Add an AGENTS.md file' },
-      { name: 'remove', description: 'Remove an AGENTS.md file' },
-      { name: 'install', description: 'Install AGENTS.md' },
-      { name: 'import', description: 'Import AGENTS.md to repository' }
-    ],
-    nestedSubcommands: {},
-    rootAddCompletionType: 'agents-md'
-  }
+/**
+ * CLI-tree facts that aren't part of the adapter model: the literal command
+ * word typed at the root (only differs from adapter.tool for antigravity-cli
+ * -> "agy" and factorydroid -> "droid"), and which tools additionally expose a
+ * flattened `<tool> add` shortcut for one default subtype (cursor, windsurf,
+ * cline, agents-md — see registerRulesAndSkillsToolGroup and the cursor/
+ * agents-md command blocks in src/index.ts).
+ */
+interface ToolCliGroup {
+  cliCommand: string;
+  registryTool: string;
+  displayName: string;
+  flattenedAddSubtype?: string;
+  /** agents-md registers add/remove/install/import directly on the tool root — it has a single subtype and no nested subcommand group. */
+  rootOnly?: boolean;
+}
+
+const TOOL_CLI_GROUPS: ToolCliGroup[] = [
+  { cliCommand: 'cursor', registryTool: 'cursor', displayName: 'Cursor', flattenedAddSubtype: 'rules' },
+  { cliCommand: 'copilot', registryTool: 'copilot', displayName: 'GitHub Copilot' },
+  { cliCommand: 'claude', registryTool: 'claude', displayName: 'Claude' },
+  { cliCommand: 'trae', registryTool: 'trae', displayName: 'Trae' },
+  { cliCommand: 'opencode', registryTool: 'opencode', displayName: 'OpenCode' },
+  { cliCommand: 'codex', registryTool: 'codex', displayName: 'Codex' },
+  { cliCommand: 'gemini', registryTool: 'gemini', displayName: 'Gemini' },
+  { cliCommand: 'warp', registryTool: 'warp', displayName: 'Warp' },
+  { cliCommand: 'windsurf', registryTool: 'windsurf', displayName: 'Windsurf', flattenedAddSubtype: 'rules' },
+  { cliCommand: 'cline', registryTool: 'cline', displayName: 'Cline', flattenedAddSubtype: 'rules' },
+  { cliCommand: 'agents-md', registryTool: 'agents-md', displayName: 'AGENTS.md', rootOnly: true },
+  { cliCommand: 'codebuddy', registryTool: 'codebuddy', displayName: 'CodeBuddy' },
+  { cliCommand: 'pi', registryTool: 'pi', displayName: 'Pi' },
+  { cliCommand: 'agy', registryTool: 'antigravity-cli', displayName: 'Antigravity CLI' },
+  { cliCommand: 'workbuddy', registryTool: 'workbuddy', displayName: 'WorkBuddy' },
+  { cliCommand: 'deepseek', registryTool: 'deepseek', displayName: 'DeepSeek' },
+  { cliCommand: 'droid', registryTool: 'factorydroid', displayName: 'Factory Droid' },
+  { cliCommand: 'kimi', registryTool: 'kimi', displayName: 'Kimi Code' },
+  { cliCommand: 'kilo', registryTool: 'kilo', displayName: 'Kilo Code' },
+  { cliCommand: 'hermes', registryTool: 'hermes', displayName: 'Hermes' },
+  { cliCommand: 'junie', registryTool: 'junie', displayName: 'Junie' },
+  { cliCommand: 'kiro', registryTool: 'kiro', displayName: 'Kiro' },
+  { cliCommand: 'qwen', registryTool: 'qwen', displayName: 'Qwen Code' },
+  { cliCommand: 'augment', registryTool: 'augment', displayName: 'Augment Code' },
+  { cliCommand: 'deepagents', registryTool: 'deepagents', displayName: 'DeepAgents' },
+  { cliCommand: 'continue', registryTool: 'continue', displayName: 'Continue' },
+  { cliCommand: 'aider', registryTool: 'aider', displayName: 'Aider' },
+  { cliCommand: 'zed', registryTool: 'zed', displayName: 'Zed' },
+  { cliCommand: 'goose', registryTool: 'goose', displayName: 'Goose' },
+  { cliCommand: 'amp', registryTool: 'amp', displayName: 'Amp' }
 ];
+
+/**
+ * Adapters registered but not yet wired to a CLI command — remove entries
+ * here as they get wired. adapterRegistry knows nothing about src/index.ts's
+ * hand-written command tree, so completion would otherwise suggest running
+ * subcommands (e.g. `ais cline commands ...`) that Commander never registered
+ * and that fail with "unknown command". Excluded from every completion
+ * surface derived from TOOL_SPECS, and from resolveCompletionAdapter so
+ * `ais _complete <type>` stays consistent with what the scripts emit.
+ */
+export const UNWIRED_ADAPTER_NAMES: Set<string> = new Set([
+  'cline-commands',
+  'cline-agents',
+  'windsurf-commands',
+  'opencode-rules',
+  'codex-agents'
+]);
+
+function singularize(subtype: string): string {
+  return subtype.endsWith('s') ? subtype.slice(0, -1) : subtype;
+}
+
+/** The uniform add/remove/install/import group registerAdapterCommands() wires up for every subtype. */
+function buildEntityCommands(displayName: string, adapter: SyncAdapter): CompletionEntry[] {
+  const entity = singularize(adapter.subtype);
+  return [
+    { name: 'add', description: `Add a ${displayName} ${entity}` },
+    { name: 'remove', description: `Remove a ${displayName} ${entity}` },
+    { name: 'install', description: `Install all ${displayName} ${adapter.subtype}` },
+    { name: 'import', description: `Import ${entity} to repository` }
+  ];
+}
+
+function buildToolSpecs(): ToolCompletionSpec[] {
+  const specs: ToolCompletionSpec[] = [];
+
+  for (const group of TOOL_CLI_GROUPS) {
+    const adapters = adapterRegistry.getForTool(group.registryTool)
+      .filter(adapter => !UNWIRED_ADAPTER_NAMES.has(adapter.name));
+    if (adapters.length === 0) continue;
+
+    if (group.rootOnly) {
+      const adapter = adapters[0];
+      specs.push({
+        tool: group.cliCommand,
+        description: `Manage ${group.displayName} entries`,
+        rootSubcommands: buildEntityCommands(group.displayName, adapter),
+        nestedSubcommands: {},
+        rootAddCompletionType: adapter.name
+      });
+      continue;
+    }
+
+    const rootSubcommands: CompletionEntry[] = [
+      { name: 'install', description: `Install all ${group.displayName} entries` },
+      ...adapters.map(adapter => ({ name: adapter.subtype, description: `Manage ${group.displayName} ${adapter.subtype}` }))
+    ];
+
+    const nestedSubcommands: Record<string, CompletionEntry[]> = {};
+    const nestedAddCompletionTypes: Record<string, string> = {};
+    for (const adapter of adapters) {
+      nestedSubcommands[adapter.subtype] = buildEntityCommands(group.displayName, adapter);
+      nestedAddCompletionTypes[adapter.subtype] = adapter.name;
+    }
+
+    const flattenedAdapter = group.flattenedAddSubtype
+      ? adapters.find(adapter => adapter.subtype === group.flattenedAddSubtype)
+      : undefined;
+
+    specs.push({
+      tool: group.cliCommand,
+      description: `Manage ${group.displayName} entries`,
+      rootSubcommands,
+      nestedSubcommands,
+      rootAddCompletionType: flattenedAdapter?.name,
+      nestedAddCompletionTypes
+    });
+  }
+
+  return specs;
+}
+
+const TOOL_SPECS: ToolCompletionSpec[] = buildToolSpecs();
+
+/**
+ * Completion type strings used by shell completion scripts generated before
+ * this file derived TOOL_SPECS from the adapter registry. Kept so already-
+ * installed completion scripts (`ais completion install`) keep working until
+ * the user re-installs them.
+ */
+const LEGACY_COMPLETION_ALIASES: Record<string, [tool: string, subtype: string]> = {
+  cursor: ['cursor', 'rules'],
+  copilot: ['copilot', 'instructions'],
+  'agents-md': ['agents-md', 'file']
+};
+
+/**
+ * Resolve an `ais _complete <type>` type string to the adapter it should list
+ * entries for. Shared by scripts.ts (to know every type it can legitimately
+ * emit) and the `_complete` command in src/index.ts, so the two can't drift
+ * the way the old hand-written TOOL_SPECS and switch statement did.
+ */
+export function resolveCompletionAdapter(type: string): SyncAdapter | undefined {
+  if (UNWIRED_ADAPTER_NAMES.has(type)) {
+    return undefined;
+  }
+  const legacy = LEGACY_COMPLETION_ALIASES[type];
+  if (legacy) {
+    return adapterRegistry.get(legacy[0], legacy[1]);
+  }
+  return adapterRegistry.getByName(type);
+}
 
 const EXTRA_TOP_LEVEL_COMMANDS: CompletionEntry[] = [
   { name: 'use', description: 'Configure rules repository' },
