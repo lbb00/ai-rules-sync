@@ -44,6 +44,51 @@ export interface AddResult {
 }
 
 /**
+ * Add a newly-linked entry's target path to .gitignore (or .git/info/exclude for
+ * --local entries) so it doesn't show up as untracked noise in `git status`.
+ * Shared by handleAdd and add-all's bulk install path so both stay in sync.
+ */
+export async function manageEntryIgnore(
+  projectPath: string,
+  isLocal: boolean,
+  relEntry: string
+): Promise<void> {
+  if (isLocal) {
+    const gitInfoExclude = path.join(projectPath, '.git', 'info', 'exclude');
+    if (await fs.pathExists(path.dirname(gitInfoExclude))) {
+      await fs.ensureFile(gitInfoExclude);
+      if (await addIgnoreEntry(gitInfoExclude, relEntry, '# AI Rules Sync')) {
+        console.log(chalk.green(`Added "${relEntry}" to .git/info/exclude.`));
+      } else {
+        console.log(chalk.gray(`"${relEntry}" already in .git/info/exclude.`));
+      }
+    } else {
+      console.log(chalk.yellow(`Warning: Could not find .git/info/exclude. Skipping automatic ignore for private entry.`));
+      console.log(chalk.yellow(`Please manually add "${relEntry}" to your private ignore file.`));
+    }
+  } else {
+    const gitignorePath = path.join(projectPath, '.gitignore');
+    if (await addIgnoreEntry(gitignorePath, relEntry, '# AI Rules Sync')) {
+      console.log(chalk.green(`Added "${relEntry}" to .gitignore.`));
+    } else {
+      console.log(chalk.gray(`"${relEntry}" already in .gitignore.`));
+    }
+  }
+}
+
+/**
+ * Ensure the private local config file itself is gitignored (parity for any
+ * install path that writes to ai-rules-sync.local.json).
+ */
+export async function manageLocalConfigIgnore(projectPath: string): Promise<void> {
+  const gitignorePath = path.join(projectPath, '.gitignore');
+  const added = await addIgnoreEntry(gitignorePath, 'ai-rules-sync.local.json', '# Local AI Rules Sync Config');
+  if (added) {
+    console.log(chalk.green(`Added "ai-rules-sync.local.json" to .gitignore.`));
+  }
+}
+
+/**
  * Generic add command handler - works with any adapter
  */
 export async function handleAdd(
@@ -129,38 +174,14 @@ export async function handleAdd(
   // Ignore file management (ai-rules-sync specific, not dotfile layer responsibility)
   if (result.linked) {
     const relEntry = path.relative(path.resolve(ctx.projectPath), result.targetPath);
-    if (ctx.isLocal) {
-      const gitInfoExclude = path.join(ctx.projectPath, '.git', 'info', 'exclude');
-      if (await fs.pathExists(path.dirname(gitInfoExclude))) {
-        await fs.ensureFile(gitInfoExclude);
-        if (await addIgnoreEntry(gitInfoExclude, relEntry, '# AI Rules Sync')) {
-          console.log(chalk.green(`Added "${relEntry}" to .git/info/exclude.`));
-        } else {
-          console.log(chalk.gray(`"${relEntry}" already in .git/info/exclude.`));
-        }
-      } else {
-        console.log(chalk.yellow(`Warning: Could not find .git/info/exclude. Skipping automatic ignore for private entry.`));
-        console.log(chalk.yellow(`Please manually add "${relEntry}" to your private ignore file.`));
-      }
-    } else {
-      const gitignorePath = path.join(ctx.projectPath, '.gitignore');
-      if (await addIgnoreEntry(gitignorePath, relEntry, '# AI Rules Sync')) {
-        console.log(chalk.green(`Added "${relEntry}" to .gitignore.`));
-      } else {
-        console.log(chalk.gray(`"${relEntry}" already in .gitignore.`));
-      }
-    }
+    await manageEntryIgnore(ctx.projectPath, ctx.isLocal, relEntry);
   }
 
   const configFileName = ctx.isLocal ? 'ai-rules-sync.local.json' : 'ai-rules-sync.json';
   console.log(chalk.green(`Updated ${configFileName} dependency.`));
 
   if (ctx.isLocal) {
-    const gitignorePath = path.join(ctx.projectPath, '.gitignore');
-    const added = await addIgnoreEntry(gitignorePath, 'ai-rules-sync.local.json', '# Local AI Rules Sync Config');
-    if (added) {
-      console.log(chalk.green(`Added "ai-rules-sync.local.json" to .gitignore.`));
-    }
+    await manageLocalConfigIgnore(ctx.projectPath);
   }
 
   return {
@@ -310,7 +331,7 @@ export async function handleRemove(
   }
 
   if (isUser) {
-    await adapter.unlink(projectPath, alias);
+    await adapter.unlink(projectPath, alias, true);
     const { removedFrom } = await removeUserDependency(adapter.configPath, alias);
 
     if (removedFrom.length > 0) {

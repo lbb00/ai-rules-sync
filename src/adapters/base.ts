@@ -87,8 +87,8 @@ export function createBaseAdapter(config: AdapterConfig): SyncAdapter {
             });
         },
 
-        async unlink(projectPath: string, alias: string): Promise<void> {
-            return engineUnlinkEntry(this, projectPath, alias);
+        async unlink(projectPath: string, alias: string, isUser?: boolean): Promise<void> {
+            return engineUnlinkEntry(this, projectPath, alias, isUser);
         },
     };
 }
