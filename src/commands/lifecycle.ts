@@ -4,7 +4,7 @@ import { execa } from 'execa';
 import { adapterRegistry } from '../adapters/index.js';
 import { RepoConfig, getConfig, setConfig, getReposBaseDir, getUserProjectConfig } from '../config.js';
 import { cloneOrUpdateRepo } from '../git.js';
-import { ProjectConfig, RuleEntry, SourceDirConfig, getCombinedProjectConfig, getRuleSection, CURRENT_CONFIG_VERSION } from '../project-config.js';
+import { ProjectConfig, RuleEntry, SourceDirConfig, getCombinedProjectConfig, getRuleSection, CURRENT_CONFIG_VERSION, WILDCARD_TOOL } from '../project-config.js';
 import { installAllUserEntries, installEntriesForAdapter } from './install.js';
 
 type CheckStatus =
@@ -459,15 +459,57 @@ function getFilteredAdapters(only?: string[], exclude?: string[]) {
   return adapters;
 }
 
+/**
+ * Subtypes whose repo content is the *same thing* regardless of which tool
+ * reads it (a skill or a rule doesn't change meaning between claude/cursor/
+ * codex), so multiple tools can point at one shared repo directory for them.
+ * Deliberately a fixed list, not derived from adapter counts or reused from
+ * `BROADCAST_GROUPS` (cli-groups.ts): that map answers "which subtypes get a
+ * broadcast CLI verb" and folds 'md' + 'file' into one 'md' group for UX
+ * convenience, but CLAUDE.md and AGENTS.md are different files with
+ * different content — sharing a directory for them would be wrong even
+ * though they're broadcast together. This list answers a narrower question
+ * ("can two tools safely point at the same repo directory for this
+ * subtype"), so 'md' and 'file' must stay off it despite being on
+ * BROADCAST_GROUPS.
+ */
+const SHAREABLE_TEMPLATE_SUBTYPES: readonly string[] = ['skills', 'agents', 'rules', 'commands', 'prompts'];
+
 function buildTemplateSourceDirConfig(adapters: ReturnType<typeof adapterRegistry.all>): SourceDirConfig {
   const sourceDir: SourceDirConfig = {};
 
+  const adaptersBySubtype = new Map<string, typeof adapters>();
   for (const adapter of adapters) {
-    const toolSection = sourceDir[adapter.tool] || {};
-    if (!toolSection[adapter.subtype]) {
-      toolSection[adapter.subtype] = adapter.defaultSourceDir;
+    const list = adaptersBySubtype.get(adapter.subtype) || [];
+    list.push(adapter);
+    adaptersBySubtype.set(adapter.subtype, list);
+  }
+
+  for (const subtypeAdapters of adaptersBySubtype.values()) {
+    const subtype = subtypeAdapters[0].subtype;
+    const distinctTools = new Set(subtypeAdapters.map(a => a.tool));
+    const shareable = SHAREABLE_TEMPLATE_SUBTYPES.includes(subtype) && distinctTools.size >= 2;
+
+    if (shareable) {
+      // Flat shared directory, e.g. sourceDir['*'].skills = 'skills'. Content
+      // for different tools under this subtype coexists in one directory,
+      // disambiguated at discovery time by each adapter's fileSuffixes/mode.
+      const wildcardSection = sourceDir[WILDCARD_TOOL] || {};
+      wildcardSection[subtype] = subtype;
+      sourceDir[WILDCARD_TOOL] = wildcardSection;
+      continue;
     }
-    sourceDir[adapter.tool] = toolSection;
+
+    // Not shareable (tool-specific content) or only one tool left after
+    // --only/--exclude filtering (sharing would be pointless) — fall back
+    // to one explicit entry per adapter, same as pre-wildcard behavior.
+    for (const adapter of subtypeAdapters) {
+      const toolSection = sourceDir[adapter.tool] || {};
+      if (!toolSection[adapter.subtype]) {
+        toolSection[adapter.subtype] = adapter.defaultSourceDir;
+      }
+      sourceDir[adapter.tool] = toolSection;
+    }
   }
 
   return sourceDir;
@@ -492,12 +534,19 @@ export async function initRulesRepository(options: InitOptions): Promise<InitRes
 
   const createdDirectories: string[] = [];
   if (options.createDirs !== false) {
+    // Build directories from the generated sourceDir config, not from the
+    // adapter list directly — a wildcard entry (sourceDir['*'].skills) means
+    // one shared directory, not one per adapter that happens to share it.
     const dirs = new Set<string>();
-    for (const adapter of adapters) {
-      if (!adapter.defaultSourceDir || adapter.defaultSourceDir === '.') {
-        continue;
+    for (const toolSection of Object.values(sourceDir)) {
+      if (!toolSection) continue;
+      for (const value of Object.values(toolSection)) {
+        const relativeDir = typeof value === 'string' ? value : value.dir;
+        if (!relativeDir || relativeDir === '.') {
+          continue;
+        }
+        dirs.add(relativeDir);
       }
-      dirs.add(adapter.defaultSourceDir);
     }
 
     for (const relativeDir of Array.from(dirs).sort()) {
