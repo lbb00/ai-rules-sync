@@ -402,7 +402,63 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
 }
 
 /**
+ * Origin of a resolved source directory, in priority order (highest first):
+ * override (CLI/global) > explicit repo tool entry > repo "*" wildcard entry > adapter default.
+ * Concept mirrors the dependency-side wildcard in getRuleSection (same WILDCARD_TOOL constant,
+ * different value shape: RuleEntry there vs SourceDirValue here) — kept separate on purpose (see design doc §3.6).
+ */
+export type SourceDirOrigin = 'override' | 'explicit' | 'wildcard' | 'default';
+
+/**
+ * Resolve the source directory for a specific tool type from repo config, along with which
+ * priority tier produced it.
+ * @param repoConfig - The repo source configuration
+ * @param tool - Tool name: 'cursor', 'copilot', 'claude', etc.
+ * @param subtype - Subtype: 'rules', 'plans', 'instructions', 'skills', 'agents', etc.
+ * @param defaultDir - Default directory if not configured
+ * @param globalOverride - Optional override from CLI or global config (highest priority)
+ */
+export function resolveSourceDir(
+    repoConfig: RepoSourceConfig,
+    tool: string,
+    subtype: string,
+    defaultDir: string,
+    globalOverride?: SourceDirConfig
+): { dir: string; origin: SourceDirOrigin } {
+    const rootPath = repoConfig.rootPath || '';
+
+    // 1. Check globalOverride first (CLI or global config - highest priority)
+    if (globalOverride) {
+        const overrideDir = readNestedStringValue(globalOverride, tool, subtype);
+        if (overrideDir !== undefined) {
+            // globalOverride paths are relative to repo root, so no rootPath prefix
+            return { dir: overrideDir, origin: 'override' };
+        }
+    }
+
+    // 2. Check repoConfig for an explicit tool-specific entry
+    const explicitValue = readNestedSourceDirValueFromTool(repoConfig as Record<string, unknown>, tool, subtype);
+    if (explicitValue !== undefined) {
+        const toolDir = typeof explicitValue === 'string' ? explicitValue : explicitValue.dir;
+        return { dir: rootPath ? path.join(rootPath, toolDir) : toolDir, origin: 'explicit' };
+    }
+
+    // 3. Fall back to repoConfig's "*" wildcard entry
+    if (tool !== WILDCARD_TOOL) {
+        const wildcardValue = readNestedSourceDirValueFromTool(repoConfig as Record<string, unknown>, WILDCARD_TOOL, subtype);
+        if (wildcardValue !== undefined) {
+            const toolDir = typeof wildcardValue === 'string' ? wildcardValue : wildcardValue.dir;
+            return { dir: rootPath ? path.join(rootPath, toolDir) : toolDir, origin: 'wildcard' };
+        }
+    }
+
+    // 4. Nothing configured - use adapter default
+    return { dir: rootPath ? path.join(rootPath, defaultDir) : defaultDir, origin: 'default' };
+}
+
+/**
  * Get the source directory for a specific tool type from repo config.
+ * Thin wrapper over resolveSourceDir for call sites that only need the path.
  * @param repoConfig - The repo source configuration
  * @param tool - Tool name: 'cursor', 'copilot', 'claude', etc.
  * @param subtype - Subtype: 'rules', 'plans', 'instructions', 'skills', 'agents', etc.
@@ -416,24 +472,7 @@ export function getSourceDir(
     defaultDir: string,
     globalOverride?: SourceDirConfig
 ): string {
-    const rootPath = repoConfig.rootPath || '';
-
-    // 1. Check globalOverride first (CLI or global config - highest priority)
-    if (globalOverride) {
-        const overrideDir = readNestedStringValue(globalOverride, tool, subtype);
-        if (overrideDir !== undefined) {
-            // globalOverride paths are relative to repo root, so no rootPath prefix
-            return overrideDir;
-        }
-    }
-
-    // 2. Check repoConfig (from repo's ai-rules-sync.json)
-    const rawValue = readNestedSourceDirValue(repoConfig, tool, subtype);
-    const toolDir = typeof rawValue === 'string' ? rawValue : rawValue?.dir;
-
-    // 3. Apply rootPath and default
-    const dir = toolDir ?? defaultDir;
-    return rootPath ? path.join(rootPath, dir) : dir;
+    return resolveSourceDir(repoConfig, tool, subtype, defaultDir, globalOverride).dir;
 }
 
 /**
