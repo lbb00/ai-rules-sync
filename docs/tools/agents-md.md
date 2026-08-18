@@ -8,17 +8,17 @@
 
 ```bash
 # Add from root
-ais agents-md add .
+ais agents-md file add .
 
 # Add from directory
-ais agents-md add frontend
+ais agents-md file add frontend
 
 # Add with alias (to distinguish multiple AGENTS.md files)
-ais agents-md add frontend fe-agents
-ais agents-md add backend be-agents
+ais agents-md file add frontend fe-agents
+ais agents-md file add backend be-agents
 
 # Remove
-ais agents-md rm fe-agents
+ais agents-md file rm fe-agents
 ```
 
 ## Reference

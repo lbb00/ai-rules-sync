@@ -35,8 +35,8 @@ ais completion install
 
 ## Quick Start
 
-::: tip Rules repository vs project
-A **rules repository** stores your rules (e.g., `react.mdc`). Your **project** consumes them — AIS creates symlinks from the repo into your project. You need a rules repo (or create one) before adding rules.
+::: tip Asset repository vs project
+An **asset repository** is a Git repo of native files (`.cursor/rules/`, `.claude/skills/`, `AGENTS.md`, …). Your **project** consumes them through symlinks. You need a repo (or [create one](#scenario-4-create-rules-from-scratch)) before `add`.
 :::
 
 ### Scenario 1: Use Existing Rules
@@ -52,7 +52,7 @@ Try [Scenario 4](#scenario-4-create-rules-from-scratch) to create one from scrat
 cd your-project
 
 # 2. Add a rule (specify repository URL the first time)
-ais cursor add react -t https://github.com/your-org/rules-repo.git
+ais cursor rules add react -t https://github.com/your-org/rules-repo.git
 
 # Done! The rule is now linked to your project
 ```
@@ -66,8 +66,8 @@ What happened:
 Next time, you can omit the `-t` flag:
 
 ```bash
-ais cursor add vue
-ais cursor add testing
+ais cursor rules add vue
+ais cursor rules add testing
 ```
 
 ### Scenario 2: Share Your Existing Rules
@@ -131,21 +131,21 @@ git push -u origin main
 
 # 4. Use in any project
 cd your-project
-ais cursor add react -t https://github.com/your-org/rules-repo.git
+ais cursor rules add react -t https://github.com/your-org/rules-repo.git
 ```
 
 ## What's Next
 
-- **Understand the model:** [Core Concepts](/guide/core-concepts) — add vs import vs install, repository lifecycle
-- **Project vs personal:** [Project-Level Sync](/guide/project-level) for team rules, [User Global-Level Sync](/guide/user-level) for personal CLAUDE.md / GEMINI.md
-- **Your tool:** [Tool Guides](/guide/tool-guides) — Cursor, Copilot, Claude, and more
-- **CLI reference:** [CLI Commands](/reference/cli) — full command list
+- [Core Concepts](/guide/core-concepts) — cache, compose, add / import / install
+- [Project-Level Sync](/guide/project-level) vs [User-Level Sync](/guide/user-level)
+- [Multiple Repositories](/guide/multiple-repos) — mix sources in one project
+- [Tool Guides](/guide/tool-guides) · [CLI Reference](/reference/cli)
 
 ## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| `-t` required on first add | Specify the repository URL or name the first time: `ais cursor add react -t https://github.com/org/repo.git` |
+| `-t` required on first add | Specify the repository URL or name the first time: `ais cursor rules add react -t https://github.com/org/repo.git` |
 | Import fails: "entry not found" | Ensure the rule file exists in your project (e.g., `.cursor/rules/my-rule.mdc`) before importing |
 | Symlinks broken after clone | Run `ais install` in the project root to recreate symlinks from config |
 | Wrong repository used | Run `ais use <repo>` to switch, or use `-t <repo>` with add/import |

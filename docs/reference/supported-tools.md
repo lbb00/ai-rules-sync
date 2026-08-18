@@ -1,6 +1,6 @@
 # Supported Tools — Directory Reference
 
-Source paths, sync modes, file suffixes, and documentation links for every supported tool and asset type.
+Source paths, sync modes, file suffixes, and documentation links for every supported tool and asset type. Command walkthroughs: [Tool Guides](/guide/tool-guides).
 
 <!-- REF_TABLE:START -->
 | Tool | Type | Mode | Default Source Directory | File Suffixes | Docs |

@@ -6,7 +6,7 @@ Use `-d` to specify where symlinks should be created:
 
 ```bash
 # Add to custom directory
-ais cursor add my-rule -d docs/ai/rules
+ais cursor rules add my-rule -d docs/ai/rules
 ```
 
 ### Monorepo Usage
@@ -14,16 +14,16 @@ ais cursor add my-rule -d docs/ai/rules
 In a monorepo, you can sync different rules to different packages:
 
 ```bash
-ais cursor add react-rules frontend-rules -d packages/frontend/.cursor/rules
-ais cursor add node-rules backend-rules -d packages/backend/.cursor/rules
+ais cursor rules add react-rules frontend-rules -d packages/frontend/.cursor/rules
+ais cursor rules add node-rules backend-rules -d packages/backend/.cursor/rules
 ```
 
 ::: warning
 Adding the same rule to multiple locations requires **aliases**:
 
 ```bash
-ais cursor add auth-rules -d packages/frontend/.cursor/rules
-ais cursor add auth-rules backend-auth -d packages/backend/.cursor/rules
+ais cursor rules add auth-rules -d packages/frontend/.cursor/rules
+ais cursor rules add auth-rules backend-auth -d packages/backend/.cursor/rules
 ```
 :::
 

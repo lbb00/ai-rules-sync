@@ -3,33 +3,36 @@ layout: home
 
 hero:
   name: AI Rules Sync
-  text: 跨项目管理 AI 代理规则
-  tagline: 不再复制粘贴 .mdc 文件。在 Git 仓库中管理规则，通过软链接同步。
+  text: 原生资产。多仓。多项目。
+  tagline: 用软链接做资产联邦，不是格式转换器。从 Git 仓库组合 skills、rules、commands、agents 到每个项目。
   actions:
     - theme: brand
       text: 快速开始
       link: /zh/guide/getting-started
     - theme: alt
-      text: 在 GitHub 上查看
+      text: 什么是 AIS？
+      link: /zh/guide/what-is-ais
+    - theme: alt
+      text: GitHub
       link: https://github.com/lbb00/ai-rules-sync
 
 features:
+  - icon: 🔗
+    title: 软链接，不复制
+    details: 在源仓库改一次，所有已链接项目立刻生效。
   - icon: 🧩
-    title: 多仓库支持
-    details: 混合使用公司标准、团队协议和开源集合的规则。
-  - icon: 🔄
-    title: 一次同步，处处更新
-    details: 单一数据源，所有项目自动更新。
-  - icon: 🤝
-    title: 团队对齐
-    details: 即时共享编码标准，一条命令完成新成员入职。
-  - icon: 🔒
-    title: 隐私优先
-    details: 使用 ai-rules-sync.local.json 保持敏感规则本地化。
+    title: 多对多组合
+    details: 一个项目可混合公司仓、个人仓和社区仓，并跨工具映射目录。
+  - icon: 📦
+    title: 原生文件
+    details: AIS 不改写你的资产。skills 还是 skills，rules 还是 rules。
+  - icon: 👥
+    title: 团队一键恢复
+    details: 提交 ai-rules-sync.json。同事和 CI 运行 ais install。
+  - icon: 🏠
+    title: 用户级配置
+    details: 把 CLAUDE.md、GEMINI.md 和个人规则同步到 $HOME。新机器用 ais install -g。
   - icon: 🛠️
-    title: Git 集成
-    details: 通过 CLI 直接管理仓库（ais git）。
-  - icon: 🔌
-    title: 可扩展
-    details: 插件架构，支持 10+ AI 工具，包括 Cursor、Copilot、Claude 等。
+    title: 30+ 工具
+    details: Cursor、Copilot、Claude、Codex、Gemini 等，同一套 CLI。
 ---

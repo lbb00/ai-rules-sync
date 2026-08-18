@@ -35,8 +35,8 @@ ais completion install
 
 ## 快速上手
 
-::: tip 规则仓库 vs 项目
-**规则仓库**存储你的规则（如 `react.mdc`）。**项目**消费这些规则 — AIS 在仓库与项目之间创建符号链接。添加规则前需要先有规则仓库（或创建一个）。
+::: tip 资产仓库 vs 项目
+**资产仓库**是存放原生文件的 Git 仓库（`.cursor/rules/`、`.claude/skills/`、`AGENTS.md` …）。**项目**通过软链接消费它们。`add` 之前需要已有仓库（或[现场创建一个](#场景-4-从零创建规则)）。
 :::
 
 ### 场景 1：使用现有规则
@@ -52,7 +52,7 @@ ais completion install
 cd your-project
 
 # 2. 添加规则（第一次需要指定仓库 URL）
-ais cursor add react -t https://github.com/your-org/rules-repo.git
+ais cursor rules add react -t https://github.com/your-org/rules-repo.git
 
 # 完成！规则现在已链接到你的项目
 ```
@@ -66,8 +66,8 @@ ais cursor add react -t https://github.com/your-org/rules-repo.git
 之后可以省略 `-t` 标志：
 
 ```bash
-ais cursor add vue
-ais cursor add testing
+ais cursor rules add vue
+ais cursor rules add testing
 ```
 
 ### 场景 2：分享你的现有规则
@@ -131,21 +131,21 @@ git push -u origin main
 
 # 4. 在任何项目中使用
 cd your-project
-ais cursor add react -t https://github.com/your-org/rules-repo.git
+ais cursor rules add react -t https://github.com/your-org/rules-repo.git
 ```
 
 ## 下一步
 
-- **理解模型：** [核心概念](/zh/guide/core-concepts) — add、import、install 的区别，仓库生命周期
-- **项目 vs 个人：** [项目级别同步](/zh/guide/project-level) 用于团队规则，[用户全局级别同步](/zh/guide/user-level) 用于个人 CLAUDE.md / GEMINI.md
-- **你的工具：** [工具指南](/zh/guide/tool-guides) — Cursor、Copilot、Claude 等
-- **CLI 参考：** [CLI 命令](/zh/reference/cli) — 完整命令列表
+- [核心概念](/zh/guide/core-concepts) — 缓存、组合、add / import / install
+- [项目级同步](/zh/guide/project-level) vs [用户级同步](/zh/guide/user-level)
+- [多仓库](/zh/guide/multiple-repos) — 一个项目混合多个来源
+- [工具指南](/zh/guide/tool-guides) · [CLI 参考](/zh/reference/cli)
 
 ## 故障排查
 
 | 问题 | 解决方案 |
 |------|----------|
-| 首次 add 需要 `-t` | 第一次需指定仓库 URL：`ais cursor add react -t https://github.com/org/repo.git` |
+| 首次 add 需要 `-t` | 第一次需指定仓库 URL：`ais cursor rules add react -t https://github.com/org/repo.git` |
 | 导入失败：「entry not found」 | 导入前确保项目中已有规则文件（如 `.cursor/rules/my-rule.mdc`） |
 | 克隆后符号链接损坏 | 在项目根目录运行 `ais install` 根据配置重建符号链接 |
 | 使用了错误仓库 | 运行 `ais use <repo>` 切换，或在 add/import 时使用 `-t <repo>` |

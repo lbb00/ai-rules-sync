@@ -13,17 +13,17 @@ Cursor rules support both file and directory linking.
 
 ```bash
 # Add a .mdc file
-ais cursor add react
-ais cursor add coding-standards.mdc
+ais cursor rules add react
+ais cursor rules add coding-standards.mdc
 
 # Add a .md file
-ais cursor add readme.md
+ais cursor rules add readme.md
 
 # Add a rule directory
-ais cursor add my-rule-dir
+ais cursor rules add my-rule-dir
 
 # Remove
-ais cursor rm react
+ais cursor rules rm react
 ```
 
 ## Commands

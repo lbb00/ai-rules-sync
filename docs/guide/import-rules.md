@@ -1,8 +1,6 @@
-# Import Rules
+# Import Assets
 
-Import existing rules from your project into a repository, making them available for sharing across projects and teams.
-
-The `import` command copies the entry into the repository, commits it, then replaces the original with a symlink.
+Copy an existing file from your project into an asset repository, commit it, then replace the original with a symlink so other projects can `add` it.
 
 ```bash
 # Import rule from project to repository
@@ -30,4 +28,4 @@ ais cursor rules import my-rule --dry-run
 5. Replaces the original file with a symlink pointing to the repository copy
 6. Saves the dependency to [`ai-rules-sync.json`](/reference/configuration)
 
-Now the rule lives in the repository and can be shared with other projects via `ais cursor add my-custom-rule`.
+Now the rule lives in the repository and can be shared with other projects via `ais cursor rules add my-custom-rule`.

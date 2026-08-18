@@ -11,13 +11,13 @@ Warp Rules 使用 [AGENTS.md 标准](https://agents.md/)，请使用 `agents-md`
 
 ```bash
 # 从仓库根目录添加 AGENTS.md（在 Warp 中全局生效）
-ais agents-md add .
+ais agents-md file add .
 
 # 添加目录特定规则
-ais agents-md add src
+ais agents-md file add src
 
 # 移除
-ais agents-md rm .
+ais agents-md file rm .
 ```
 
 ## Skills

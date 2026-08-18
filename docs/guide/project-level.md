@@ -1,6 +1,6 @@
 # Project-Level Sync
 
-Sync rules into a specific project directory. Dependencies are tracked in the project's [`ai-rules-sync.json`](/reference/configuration) and shared with your team via Git.
+Sync rules into a specific project directory. A project can pull from **many repositories**; a repository can feed **many projects**. Dependencies are tracked in [`ai-rules-sync.json`](/reference/configuration) and shared with your team via Git.
 
 ```
 Rules Repository                    Your Project (./your-project/)
@@ -19,7 +19,7 @@ Rules Repository                    Your Project (./your-project/)
 cd your-project
 
 # Add a rule to this project
-ais cursor add react -t https://github.com/org/rules.git
+ais cursor rules add react -t https://github.com/org/rules.git
 
 # Install all rules from ai-rules-sync.json
 ais install
@@ -66,7 +66,7 @@ git push
 
 # 2. Add to project
 cd your-project
-ais cursor add react -t https://github.com/you/my-rules-repo.git
+ais cursor rules add react -t https://github.com/you/my-rules-repo.git
 
 # 3. Commit config (ai-rules-sync.json) so team gets it
 git add ai-rules-sync.json && git commit -m "Add react rule via AIS"

@@ -1,6 +1,6 @@
-# 项目级别同步
+# 项目级同步
 
-将规则同步到特定项目目录。依赖关系记录在项目的 [`ai-rules-sync.json`](/zh/reference/configuration) 中，通过 Git 与团队共享。
+将资产同步到特定项目目录。一个项目可以从**多个仓库**取资产；一个仓库可以供给**多个项目**。依赖记录在 [`ai-rules-sync.json`](/zh/reference/configuration)，通过 Git 与团队共享。
 
 ```
 规则仓库                              你的项目 (./your-project/)
@@ -19,7 +19,7 @@
 cd your-project
 
 # 为此项目添加规则
-ais cursor add react -t https://github.com/org/rules.git
+ais cursor rules add react -t https://github.com/org/rules.git
 
 # 从 ai-rules-sync.json 安装所有规则
 ais install
@@ -66,7 +66,7 @@ git push
 
 # 2. 添加到项目
 cd your-project
-ais cursor add react -t https://github.com/you/my-rules-repo.git
+ais cursor rules add react -t https://github.com/you/my-rules-repo.git
 
 # 3. 提交配置（ai-rules-sync.json）供团队使用
 git add ai-rules-sync.json && git commit -m "Add react rule via AIS"

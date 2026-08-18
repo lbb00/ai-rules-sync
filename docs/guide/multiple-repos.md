@@ -1,73 +1,79 @@
 # Multiple Repositories
 
-AIS supports using rules from multiple Git repositories simultaneously. Use the `-t` flag to specify which repository to use:
+AIS is many-to-many: **each repository can feed many projects**, and **each project can compose many repositories**. `-t` selects the source; the project manifest records the mix.
 
 ```bash
-ais cursor add coding-standards -t company-rules
-ais cursor add react-best-practices -t https://github.com/community/rules.git
-ais cursor add my-utils -t personal-rules
+ais cursor rules add coding-standards -t company-rules
+ais cursor rules add react-best-practices -t https://github.com/community/rules.git
+ais cursor rules add my-utils -t personal-rules
 ```
 
-## Managing Repositories
+`ai-rules-sync.json` then lists every entry and which repo it came from. Teammates restore the same mix with `ais install`.
+
+## Register and switch
 
 ```bash
-# Add a repository
 ais use https://github.com/your-org/rules-repo.git
-
-# List all repositories
 ais ls
 # * company-rules (current)
 #   personal-rules
 #   community-rules
 
-# Switch current repository
 ais use personal-rules
 ```
 
-## Discover and Install All (`add-all`)
+Omit `-t` after the first add to use the current repository.
 
-Quickly install everything from a repository:
+## Mix tools from the same repo
+
+One cache clone can supply Cursor, Copilot, and Claude in the same project:
 
 ```bash
-# Install everything from current repository
+ais cursor rules add react -t https://github.com/org/rules.git
+ais copilot instructions add coding-standards -t https://github.com/org/rules.git
+ais claude skills add code-review -t https://github.com/org/rules.git
+
+ais use https://github.com/org/rules.git
+ais add-all --tools cursor,copilot,claude
+```
+
+## Remap directories
+
+Third-party repos and cross-tool layouts use a custom source path. Persistent mapping:
+
+```bash
+ais config repo set-source third-party cursor.rules custom/rules
+ais config repo show third-party
+```
+
+One-off:
+
+```bash
+ais cursor rules add-all -s custom/rules
+```
+
+Or set `sourceDir` in the **asset repo’s** `ai-rules-sync.json` (wildcards, file-mode rename, directory rename). See [Configuration](/reference/configuration) and [Monorepo & Custom Dirs](./monorepo).
+
+## Discover everything (`add-all`)
+
+```bash
 ais add-all
-
-# Install all Cursor rules
 ais cursor add-all
-
-# Preview before installing
 ais add-all --dry-run
-
-# Filter by tool
 ais add-all --tools cursor,copilot
-
-# Interactive mode
 ais cursor add-all --interactive
-
-# Force overwrite / skip existing
 ais add-all --force
 ais add-all --skip-existing
 ```
 
-## Repository Lifecycle
+## Keep cache repos current
 
 ```bash
-# Check whether repositories are behind upstream
 ais check
-
-# Preview updates without pulling
 ais update --dry-run
-
-# Pull updates and reinstall entries
 ais update
-
-# Initialize a rules repository template
 ais init
 ```
-
-## Git Commands
-
-Manage repository directly from CLI:
 
 ```bash
 ais git status

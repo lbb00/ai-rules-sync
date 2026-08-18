@@ -1,73 +1,79 @@
 # 多仓库
 
-AIS 支持同时使用多个 Git 仓库的规则。使用 `-t` 标志指定仓库：
+AIS 是多对多：**一个仓库可以供给多个项目**，**一个项目可以组合多个仓库**。`-t` 选择来源；项目清单记下这套组合。
 
 ```bash
-ais cursor add coding-standards -t company-rules
-ais cursor add react-best-practices -t https://github.com/community/rules.git
-ais cursor add my-utils -t personal-rules
+ais cursor rules add coding-standards -t company-rules
+ais cursor rules add react-best-practices -t https://github.com/community/rules.git
+ais cursor rules add my-utils -t personal-rules
 ```
 
-## 管理仓库
+`ai-rules-sync.json` 会列出每条资产及其来源仓库。同事用 `ais install` 恢复同一套组合。
+
+## 注册与切换
 
 ```bash
-# 添加仓库
 ais use https://github.com/your-org/rules-repo.git
-
-# 列出所有仓库
 ais ls
 # * company-rules (current)
 #   personal-rules
 #   community-rules
 
-# 切换当前仓库
 ais use personal-rules
 ```
 
-## 发现并安装全部（`add-all`）
+第一次 add 之后可省略 `-t`，使用当前仓库。
 
-从仓库快速安装所有内容：
+## 同一仓库供给多种工具
+
+缓存里的一次克隆，可以同时给项目提供 Cursor、Copilot 和 Claude：
 
 ```bash
-# 从当前仓库安装所有
+ais cursor rules add react -t https://github.com/org/rules.git
+ais copilot instructions add coding-standards -t https://github.com/org/rules.git
+ais claude skills add code-review -t https://github.com/org/rules.git
+
+ais use https://github.com/org/rules.git
+ais add-all --tools cursor,copilot,claude
+```
+
+## 映射目录
+
+第三方仓库或跨工具布局需要自定义源路径。持久配置：
+
+```bash
+ais config repo set-source third-party cursor.rules custom/rules
+ais config repo show third-party
+```
+
+一次性：
+
+```bash
+ais cursor rules add-all -s custom/rules
+```
+
+也可以在**资产仓库**的 `ai-rules-sync.json` 里写 `sourceDir`（通配符、文件重命名、目录重命名）。见 [配置](/zh/reference/configuration) 和 [Monorepo 与自定义目录](./monorepo)。
+
+## 发现并全部安装（`add-all`）
+
+```bash
 ais add-all
-
-# 安装所有 Cursor 规则
 ais cursor add-all
-
-# 安装前预览
 ais add-all --dry-run
-
-# 按工具过滤
 ais add-all --tools cursor,copilot
-
-# 交互模式
 ais cursor add-all --interactive
-
-# 强制覆盖 / 跳过已有
 ais add-all --force
 ais add-all --skip-existing
 ```
 
-## 仓库生命周期
+## 保持缓存仓库最新
 
 ```bash
-# 检查仓库是否落后于上游
 ais check
-
-# 预览更新
 ais update --dry-run
-
-# 拉取更新并重新安装
 ais update
-
-# 初始化规则仓库模板
 ais init
 ```
-
-## Git 命令
-
-从 CLI 直接管理仓库：
 
 ```bash
 ais git status

@@ -1,4 +1,4 @@
-# User Global-Level Sync
+# User-Level Sync
 
 Sync rules into your home directory (`$HOME`). Dependencies are tracked in `~/.config/ai-rules-sync/user.json` and apply to **all projects** on the machine.
 
@@ -28,15 +28,15 @@ ais gemini md add GEMINI --user
 ais codex md add AGENTS --user
 
 # Add user-level cursor rules (apply to all projects)
-ais cursor add my-style --user
+ais cursor rules add my-style --user
 
 # Install all user entries (perfect for new machine setup)
-ais user install
+ais install -g
 ```
 
 ## Comparison with Project-Level
 
-| | Project-Level | User Global-Level |
+| | Project-Level | User-Level |
 |---|---|---|
 | **Scope** | Single project directory | `$HOME` (all projects) |
 | **Flag** | (default) | `--user` / `-u` |
@@ -44,7 +44,7 @@ ais user install
 | **Shared via Git** | ✅ Yes | ❌ No (personal) |
 | **Gitignore managed** | ✅ Yes | ❌ Skipped |
 | **Typical content** | Team rules, project standards | Personal CLAUDE.md, GEMINI.md, coding style |
-| **Restore command** | `ais install` | `ais user install` |
+| **Restore command** | `ais install` | `ais install -g` |
 
 ## Multi-Machine Workflow
 
@@ -55,11 +55,11 @@ Combine user-level sync with a personal rules repository to keep your AI configu
 ais use git@github.com:me/my-rules.git
 ais claude md add CLAUDE --user
 ais gemini md add GEMINI --user
-ais cursor add my-style --user
+ais cursor rules add my-style --user
 
 # Machine B: one-command restore
 ais use git@github.com:me/my-rules.git
-ais user install
+ais install -g
 # Done! All personal AI configs are restored
 ```
 

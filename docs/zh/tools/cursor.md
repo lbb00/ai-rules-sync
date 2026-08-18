@@ -13,17 +13,17 @@ Cursor 规则同时支持文件和目录链接。
 
 ```bash
 # 添加 .mdc 文件
-ais cursor add react
-ais cursor add coding-standards.mdc
+ais cursor rules add react
+ais cursor rules add coding-standards.mdc
 
 # 添加 .md 文件
-ais cursor add readme.md
+ais cursor rules add readme.md
 
 # 添加规则目录
-ais cursor add my-rule-dir
+ais cursor rules add my-rule-dir
 
 # 移除
-ais cursor rm react
+ais cursor rules rm react
 ```
 
 ## Commands
