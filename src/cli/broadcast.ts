@@ -95,8 +95,15 @@ async function repoHasEntry(adapter: SyncAdapter, repoSourceDir: string, name: s
   if (adapter.mode === 'directory') {
     return isDirectory(targetPath);
   }
+
   if (adapter.mode === 'file') {
     const suffixes = adapter.fileSuffixes && adapter.fileSuffixes.length > 0 ? adapter.fileSuffixes : [''];
+    // name may already carry its suffix (e.g. "foo.md") — check the exact
+    // path before trying to append a suffix a second time (createSingleSuffixResolver
+    // does the same exact-match check for a name.endsWith(suffix) input).
+    if (suffixes.some(suffix => suffix && name.endsWith(suffix)) && await isFile(targetPath)) {
+      return true;
+    }
     for (const suffix of suffixes) {
       if (await isFile(`${targetPath}${suffix}`)) {
         return true;
@@ -104,8 +111,21 @@ async function repoHasEntry(adapter: SyncAdapter, repoSourceDir: string, name: s
     }
     return false;
   }
-  // hybrid: either a directory or a file at the un-suffixed path
-  return fs.pathExists(targetPath);
+
+  // hybrid: directory, or file possibly already carrying its suffix, else try
+  // each hybridFileSuffixes candidate — mirrors createMultiSuffixResolver's
+  // exact-path-first, then-each-suffix order. A bare pathExists(targetPath)
+  // alone would miss every entry stored only as "<name><hybridFileSuffix>"
+  // (e.g. cursor's "rules/x.mdc").
+  if (await fs.pathExists(targetPath)) {
+    return true;
+  }
+  for (const suffix of adapter.hybridFileSuffixes ?? []) {
+    if (await isFile(`${targetPath}${suffix}`)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /** Temporarily swallow console output — used around handlers that print unconditionally, for --json. */

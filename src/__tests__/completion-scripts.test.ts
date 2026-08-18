@@ -105,6 +105,33 @@ describe('completion scripts metadata generation', () => {
     }
   });
 
+  it('should not offer the deleted top-level add/remove/user commands', () => {
+    // `ais add`/`ais remove`/`ais user` were removed entirely (commit
+    // 5afa70f) — completion must stop suggesting them at the top level.
+    // (The nested per-subtype "add"/"remove" under e.g. `ais cursor rules`
+    // and the broadcast groups' own "add"/"remove" are unrelated and stay.)
+    const bashTopLevelBlock = bashScript.match(/COMPREPLY=\( \$\(compgen -W "([^"]*)" -- "\$cur"\) \)\n {4}return 0\n {2}fi\n\}/);
+    expect(bashTopLevelBlock).not.toBeNull();
+    const topLevelWords = (bashTopLevelBlock as RegExpMatchArray)[1].split(' ');
+    expect(topLevelWords).not.toContain('add');
+    expect(topLevelWords).not.toContain('remove');
+    expect(topLevelWords).not.toContain('user');
+
+    expect(zshScript).not.toContain("'user:");
+  });
+
+  it('should offer add/remove/list for every ais <subtype> broadcast group', () => {
+    for (const group of ['skills', 'agents', 'rules', 'commands', 'md', 'prompts']) {
+      expect(bashScript, `bash missing verb completion for group "${group}"`).toContain(`if [[ "$prev" == "${group}" ]]`);
+      expect(zshScript, `zsh missing subcommand array for group "${group}"`).toContain(`${group.replace(/-/g, '_')}_subcmds=(`);
+      expect(fishScript, `fish missing subcommand entries for group "${group}"`).toContain(`__fish_seen_subcommand_from ${group}; and not __fish_seen_subcommand_from add remove rm list ls`);
+    }
+
+    // Entry-name completion after `add` for a representative adapter in each group.
+    expect(bashScript).toContain('if [[ "$pprev" == "skills" && "$prev" == "add" ]]');
+    expect(zshScript).toContain('$words[3]" in\n            add)');
+  });
+
   it('should resolve an adapter for every completion type the generated scripts can emit', () => {
     // Any `ais _complete <type>` the bash/zsh/fish scripts can produce must resolve to a
     // real adapter, otherwise the shell silently gets no completions for that type.

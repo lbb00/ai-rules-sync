@@ -135,6 +135,78 @@ describe('buildAddPreviewRow origin resolution', () => {
     expect(row.hit).toBe(false);
     expect(row.action).toBe('skip: not-in-repo');
   });
+
+  it('finds a file-mode entry when the caller already passed the suffixed name', async () => {
+    await fs.ensureDir(path.join(repoDir, adapter.defaultSourceDir));
+    await fs.writeFile(path.join(repoDir, adapter.defaultSourceDir, 'ts-style.md'), '# rule');
+
+    const row = await buildAddPreviewRow(adapter, repo(), 'ts-style.md', undefined, false);
+    expect(row.hit).toBe(true);
+    expect(row.action).toBe('will-add');
+  });
+});
+
+describe('buildAddPreviewRow hybrid-mode entry detection', () => {
+  // cursor-rules is the only hybrid adapter (mode:'hybrid', hybridFileSuffixes:
+  // ['.mdc', '.md'], no plain `fileSuffixes`) — repoHasEntry's hybrid branch
+  // used to be a bare fs.pathExists on the un-suffixed path, so it always
+  // missed entries stored as "<name>.mdc" or "<name>.md".
+  let repoDir: string;
+  const adapter = getAdapter('cursor', 'rules');
+
+  beforeEach(async () => {
+    repoDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-broadcast-hybrid-'));
+  });
+
+  afterEach(async () => {
+    await fs.remove(repoDir);
+  });
+
+  function repo(): RepoConfig {
+    return { name: 'repo', url: 'https://example.com/repo.git', path: repoDir };
+  }
+
+  it('finds a hybrid entry stored under its first hybridFileSuffixes candidate (.mdc)', async () => {
+    await fs.ensureDir(path.join(repoDir, adapter.defaultSourceDir));
+    await fs.writeFile(path.join(repoDir, adapter.defaultSourceDir, 'ts-style.mdc'), '# rule');
+
+    const row = await buildAddPreviewRow(adapter, repo(), 'ts-style', undefined, false);
+    expect(row.hit).toBe(true);
+    expect(row.action).toBe('will-add');
+  });
+
+  it('finds a hybrid entry stored under a later hybridFileSuffixes candidate (.md)', async () => {
+    await fs.ensureDir(path.join(repoDir, adapter.defaultSourceDir));
+    await fs.writeFile(path.join(repoDir, adapter.defaultSourceDir, 'ts-style.md'), '# rule');
+
+    const row = await buildAddPreviewRow(adapter, repo(), 'ts-style', undefined, false);
+    expect(row.hit).toBe(true);
+    expect(row.action).toBe('will-add');
+  });
+
+  it('finds a hybrid entry given as a directory', async () => {
+    await fs.ensureDir(path.join(repoDir, adapter.defaultSourceDir, 'my-rule-dir'));
+    await fs.writeFile(path.join(repoDir, adapter.defaultSourceDir, 'my-rule-dir', 'index.mdc'), '# rule');
+
+    const row = await buildAddPreviewRow(adapter, repo(), 'my-rule-dir', undefined, false);
+    expect(row.hit).toBe(true);
+  });
+
+  it('finds a hybrid entry when the caller already passed the suffixed name', async () => {
+    await fs.ensureDir(path.join(repoDir, adapter.defaultSourceDir));
+    await fs.writeFile(path.join(repoDir, adapter.defaultSourceDir, 'ts-style.mdc'), '# rule');
+
+    const row = await buildAddPreviewRow(adapter, repo(), 'ts-style.mdc', undefined, false);
+    expect(row.hit).toBe(true);
+  });
+
+  it('reports not-in-repo for a hybrid entry that truly does not exist', async () => {
+    await fs.ensureDir(path.join(repoDir, adapter.defaultSourceDir));
+
+    const row = await buildAddPreviewRow(adapter, repo(), 'missing-rule', undefined, false);
+    expect(row.hit).toBe(false);
+    expect(row.action).toBe('skip: not-in-repo');
+  });
 });
 
 describe('selectStrictFailures', () => {

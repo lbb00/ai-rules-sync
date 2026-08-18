@@ -15,7 +15,7 @@ import chalk from 'chalk';
 import { Command } from 'commander';
 import { SyncAdapter } from '../adapters/types.js';
 import { adapterRegistry } from '../adapters/index.js';
-import { cliNameForTool } from '../adapters/cli-groups.js';
+import { cliNameForTool, broadcastGroupForSubtype } from '../adapters/cli-groups.js';
 import { registerAdapterCommands } from './register.js';
 import { parseSourceDirParams } from './source-dir-parser.js';
 import { handleImport } from '../commands/handlers.js';
@@ -80,14 +80,15 @@ async function isFile(targetPath: string): Promise<boolean> {
 
 /**
  * Find the adapter whose target path matches `name`, for `import` subtype
- * auto-detection. Must be type-aware (mode + fileSuffixes), not just
- * fs.pathExists — adapters can nest (e.g. cline-commands' targetDir
+ * auto-detection. Must be type-aware (mode + fileSuffixes/hybridFileSuffixes),
+ * not just fs.pathExists — adapters can nest (e.g. cline-commands' targetDir
  * `.clinerules/workflows` sits inside cline-rules' targetDir `.clinerules`),
  * so a plain existence check on the un-suffixed path can hit the wrong
  * adapter or miss a real match entirely (file-mode entries live at
- * `<targetDir>/<name><suffix>`, not `<targetDir>/<name>`).
+ * `<targetDir>/<name><suffix>`, not `<targetDir>/<name>`). Exported for
+ * direct testing without going through Commander/process.exit.
  */
-async function detectImportAdapter(
+export async function detectImportAdapter(
   adapters: SyncAdapter[],
   projectPath: string,
   name: string
@@ -101,14 +102,26 @@ async function detectImportAdapter(
       }
     } else if (adapter.mode === 'file') {
       const suffixes = adapter.fileSuffixes && adapter.fileSuffixes.length > 0 ? adapter.fileSuffixes : [''];
+      // name may already carry its suffix (e.g. "foo.md") — check the exact
+      // path before trying to append a suffix a second time.
+      if (suffixes.some(suffix => suffix && name.endsWith(suffix)) && await isFile(targetPath)) {
+        return adapter;
+      }
       for (const suffix of suffixes) {
         if (await isFile(`${targetPath}${suffix}`)) {
           return adapter;
         }
       }
     } else if (adapter.mode === 'hybrid') {
+      // directory, or file possibly already carrying its suffix, else try
+      // each hybridFileSuffixes candidate (mirrors createMultiSuffixResolver).
       if (await fs.pathExists(targetPath)) {
         return adapter;
+      }
+      for (const suffix of adapter.hybridFileSuffixes ?? []) {
+        if (await isFile(`${targetPath}${suffix}`)) {
+          return adapter;
+        }
       }
     }
   }
@@ -145,12 +158,15 @@ function printStubRedirect(options: {
   const defaultSubtype = adapters[0]?.subtype ?? '<subtype>';
   const subtypeList = adapters.map(a => a.subtype).join(', ');
   const localArgs = secondaryArg ? `${primaryArg} ${secondaryArg}` : primaryArg;
+  const broadcastGroup = broadcastGroupForSubtype(defaultSubtype);
 
   console.error(chalk.red(`\`ais ${cliName} ${action}\` no longer writes anything directly — pick a subtype.`));
   console.error(chalk.gray(`${cliName} subtypes: ${subtypeList}`));
   console.error(chalk.gray('Try one of:'));
   console.error(chalk.gray(`  ais ${cliName} ${defaultSubtype} ${action} ${localArgs}`));
-  console.error(chalk.gray(`  ais ${defaultSubtype} ${action} ${primaryArg} --tools ${cliName}`));
+  if (broadcastGroup) {
+    console.error(chalk.gray(`  ais ${broadcastGroup} ${action} ${primaryArg} --tools ${cliName}`));
+  }
 }
 
 /**

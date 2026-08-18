@@ -76,8 +76,9 @@ async function findOrCreateRepo(
  */
 export async function installEntriesForAdapter(
     adapter: SyncAdapter,
-    projectPath: string
-): Promise<void> {
+    projectPath: string,
+    options: { quiet?: boolean } = {}
+): Promise<boolean> {
     const globalConfig = await getConfig();
     const repos = globalConfig.repos || {};
 
@@ -88,22 +89,33 @@ export async function installEntriesForAdapter(
     const result = await manager.apply();
 
     if (result.linked.length === 0 && result.skipped.length === 0) {
-        console.log(chalk.yellow(`No ${adapter.tool} ${adapter.subtype} found in ai-rules-sync*.json.`));
-        return;
+        if (!options.quiet) {
+            console.log(chalk.yellow(`No ${adapter.tool} ${adapter.subtype} found in ai-rules-sync*.json.`));
+        }
+        return false;
     }
 
     console.log(chalk.green(`All ${adapter.tool} ${adapter.subtype} installed successfully.`));
+    return true;
 }
 
 /**
- * Install all entries for a tool (all subtypes)
+ * Install all entries for a tool (all subtypes). Per-adapter "nothing
+ * configured" messages are silenced here and folded into one summary line —
+ * with ~80 adapters across the registry, letting each print its own empty
+ * message drowns out the ones that actually did something.
  */
 export async function installEntriesForTool(
     adapters: SyncAdapter[],
     projectPath: string
 ): Promise<void> {
+    let anyEntries = false;
     for (const adapter of adapters) {
-        await installEntriesForAdapter(adapter, projectPath);
+        const hadEntries = await installEntriesForAdapter(adapter, projectPath, { quiet: true });
+        anyEntries = anyEntries || hadEntries;
+    }
+    if (!anyEntries) {
+        console.log(chalk.yellow('No entries found in ai-rules-sync*.json.'));
     }
 }
 

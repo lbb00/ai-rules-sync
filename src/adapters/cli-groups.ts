@@ -58,6 +58,22 @@ export const BROADCAST_GROUPS: Record<string, readonly string[]> = {
   prompts: ['prompts']
 };
 
+/** Reverse of BROADCAST_GROUPS, built once: subtype -> broadcast group name. */
+const SUBTYPE_TO_BROADCAST_GROUP: Record<string, string> = Object.fromEntries(
+  Object.entries(BROADCAST_GROUPS).flatMap(([groupName, subtypes]) =>
+    subtypes.map(subtype => [subtype, groupName])
+  )
+);
+
+/**
+ * Resolves an adapter's subtype to the broadcast group that covers it (e.g.
+ * 'file' -> 'md'), or undefined if that subtype has no group (single-tool
+ * subtypes like antigravity's "workflows" stay tool-scoped only).
+ */
+export function broadcastGroupForSubtype(subtype: string): string | undefined {
+  return SUBTYPE_TO_BROADCAST_GROUP[subtype];
+}
+
 /**
  * Concept near-synonym hints: when a broadcast group hard-errors because a
  * requested tool has no adapter for that subtype, but the tool has an
@@ -71,7 +87,8 @@ export const CONCEPT_HINTS: Record<string, Record<string, string>> = {
 
 /** Top-level commands a broadcast group name must never collide with. */
 const RESERVED_TOP_LEVEL_WORDS: readonly string[] = [
-  'use', 'init', 'list', 'ls', 'status', 'search', 'check', 'update', 'config', 'install', 'add-all', 'import'
+  'use', 'init', 'list', 'ls', 'status', 'search', 'check', 'update', 'config', 'install', 'add-all', 'import',
+  'git', 'completion', '_complete'
 ];
 
 /**

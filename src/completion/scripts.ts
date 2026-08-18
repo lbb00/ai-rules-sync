@@ -13,7 +13,7 @@
  */
 
 import { adapterRegistry } from '../adapters/index.js';
-import { cliNameForTool } from '../adapters/cli-groups.js';
+import { cliNameForTool, BROADCAST_GROUPS } from '../adapters/cli-groups.js';
 import { SyncAdapter } from '../adapters/types.js';
 
 interface CompletionEntry {
@@ -27,6 +27,14 @@ interface ToolCompletionSpec {
   rootSubcommands: CompletionEntry[];
   nestedSubcommands: Record<string, CompletionEntry[]>;
   nestedAddCompletionTypes?: Record<string, string>;
+}
+
+interface GroupCompletionSpec {
+  group: string;
+  description: string;
+  subcommands: CompletionEntry[];
+  /** adapter.name to pull entry names from for `add` completion, if any adapter in the group exists. */
+  addCompletionType?: string;
 }
 
 const COMMAND_ALIASES: Record<string, string[]> = {
@@ -109,6 +117,36 @@ function buildToolSpecs(): ToolCompletionSpec[] {
 const TOOL_SPECS: ToolCompletionSpec[] = buildToolSpecs();
 
 /**
+ * One spec per `ais <subtype>` broadcast group (registerBroadcastGroups in
+ * src/cli/broadcast.ts): `ais <group> add/remove/list --tools <list>|--all`.
+ * Entry-name completion for `add` uses one representative adapter from the
+ * group's member subtypes — entries under a shared subtype are the same
+ * conceptual thing across tools (that's what makes them broadcastable), so
+ * any one member adapter's repo listing is a reasonable stand-in. `remove`
+ * has no completion type, matching every per-tool `remove` in TOOL_SPECS.
+ */
+function buildGroupSpecs(): GroupCompletionSpec[] {
+  return Object.entries(BROADCAST_GROUPS).map(([group, subtypes]) => {
+    const representative = subtypes
+      .map(subtype => adapterRegistry.all().find(adapter => adapter.subtype === subtype))
+      .find((adapter): adapter is SyncAdapter => !!adapter);
+
+    return {
+      group,
+      description: `Manage ${group} across multiple tools`,
+      subcommands: [
+        { name: 'add', description: `Add a ${singularize(group)} to one or more tools` },
+        { name: 'remove', description: `Remove a ${singularize(group)} from one or more tools` },
+        { name: 'list', description: `List ${group} across configured tools` }
+      ],
+      addCompletionType: representative?.name
+    };
+  });
+}
+
+const GROUP_SPECS: GroupCompletionSpec[] = buildGroupSpecs();
+
+/**
  * Completion type strings used by shell completion scripts generated before
  * this file derived TOOL_SPECS from the adapter registry. Kept so already-
  * installed completion scripts (`ais completion install`) keep working until
@@ -138,9 +176,7 @@ const EXTRA_TOP_LEVEL_COMMANDS: CompletionEntry[] = [
   { name: 'use', description: 'Configure rules repository' },
   { name: 'list', description: 'List configured repositories' },
   { name: 'git', description: 'Run git commands in rules repository' },
-  { name: 'add', description: 'Add a rule (smart dispatch)' },
-  { name: 'remove', description: 'Remove a rule (smart dispatch)' },
-  { name: 'install', description: 'Install all rules (smart dispatch)' },
+  { name: 'install', description: 'Install all entries from config (project scope by default)' },
   { name: 'add-all', description: 'Install all entries from repository' },
   { name: 'import', description: 'Import entry to rules repository' },
   { name: 'status', description: 'Show repository and config status' },
@@ -149,12 +185,12 @@ const EXTRA_TOP_LEVEL_COMMANDS: CompletionEntry[] = [
   { name: 'update', description: 'Update repositories and reinstall entries' },
   { name: 'init', description: 'Initialize a rules repository template' },
   { name: 'config', description: 'Manage repository configuration' },
-  { name: 'user', description: 'Manage user-level AI config entries' },
   { name: 'completion', description: 'Output shell completion script' }
 ];
 
 const TOP_LEVEL_COMMANDS: CompletionEntry[] = [
   ...TOOL_SPECS.map(spec => ({ name: spec.tool, description: spec.description })),
+  ...GROUP_SPECS.map(spec => ({ name: spec.group, description: spec.description })),
   ...EXTRA_TOP_LEVEL_COMMANDS
 ];
 
@@ -224,6 +260,16 @@ function buildBashScript(): string {
     }
   }
 
+  for (const spec of GROUP_SPECS) {
+    if (!spec.addCompletionType) continue;
+    lines.push(`  # ${spec.group} add`);
+    lines.push(`  if [[ "$pprev" == "${spec.group}" && "$prev" == "add" ]]; then`);
+    lines.push(`    COMPREPLY=( $(compgen -W "$(ais _complete ${spec.addCompletionType} 2>/dev/null)" -- "$cur") )`);
+    lines.push('    return 0');
+    lines.push('  fi');
+    lines.push('');
+  }
+
   for (const spec of TOOL_SPECS) {
     for (const [nested, nestedSubcommands] of Object.entries(spec.nestedSubcommands)) {
       lines.push(`  # ${spec.tool} ${nested}`);
@@ -239,6 +285,15 @@ function buildBashScript(): string {
     lines.push(`  # ${spec.tool}`);
     lines.push(`  if [[ "$prev" == "${spec.tool}" ]]; then`);
     lines.push(`    COMPREPLY=( $(compgen -W "${quotedNames(spec.rootSubcommands)}" -- "$cur") )`);
+    lines.push('    return 0');
+    lines.push('  fi');
+    lines.push('');
+  }
+
+  for (const spec of GROUP_SPECS) {
+    lines.push(`  # ${spec.group}`);
+    lines.push(`  if [[ "$prev" == "${spec.group}" ]]; then`);
+    lines.push(`    COMPREPLY=( $(compgen -W "${quotedNames(spec.subcommands)}" -- "$cur") )`);
     lines.push('    return 0');
     lines.push('  fi');
     lines.push('');
@@ -276,6 +331,9 @@ function buildZshScript(): string {
       variableNames.push(`${toVarName(spec.tool)}_${toVarName(nested)}_subcmds`);
     }
   }
+  for (const spec of GROUP_SPECS) {
+    variableNames.push(`${toVarName(spec.group)}_subcmds`);
+  }
 
   lines.push(`  local -a ${variableNames.join(' ')}`);
   for (const spec of TOOL_SPECS) {
@@ -285,6 +343,10 @@ function buildZshScript(): string {
       const nestedVar = `${toVarName(spec.tool)}_${toVarName(nested)}_subcmds`;
       lines.push(`  ${nestedVar}=(${buildZshDescribeItems(nestedEntries)})`);
     }
+  }
+  for (const spec of GROUP_SPECS) {
+    const groupVar = `${toVarName(spec.group)}_subcmds`;
+    lines.push(`  ${groupVar}=(${buildZshDescribeItems(spec.subcommands)})`);
   }
   lines.push('');
 
@@ -307,6 +369,12 @@ function buildZshScript(): string {
     lines.push(`          _describe 'subcommand' ${toolVar}`);
     lines.push('          ;;');
   }
+  for (const spec of GROUP_SPECS) {
+    const groupVar = `${toVarName(spec.group)}_subcmds`;
+    lines.push(`        ${spec.group})`);
+    lines.push(`          _describe 'subcommand' ${groupVar}`);
+    lines.push('          ;;');
+  }
   lines.push('      esac');
   lines.push('      ;;');
   lines.push('    subsubcommand)');
@@ -326,6 +394,17 @@ function buildZshScript(): string {
 
     lines.push('            *)');
     lines.push(`              _describe 'subsubcommand' ${toolVar}`);
+    lines.push('              ;;');
+    lines.push('          esac');
+    lines.push('          ;;');
+  }
+
+  for (const spec of GROUP_SPECS) {
+    if (!spec.addCompletionType) continue;
+    lines.push(`        ${spec.group})`);
+    lines.push('          case "$words[3]" in');
+    lines.push('            add)');
+    lines.push(...buildZshCompleteTypeBlock(spec.addCompletionType, '              '));
     lines.push('              ;;');
     lines.push('          esac');
     lines.push('          ;;');
@@ -418,6 +497,27 @@ function buildFishScript(): string {
       for (const [nested, completeType] of Object.entries(spec.nestedAddCompletionTypes)) {
         lines.push(`complete -c ais -n "__fish_seen_subcommand_from ${spec.tool}; and __fish_seen_subcommand_from ${nested}; and __fish_seen_subcommand_from add" -a "(ais _complete ${completeType} 2>/dev/null)"`);
       }
+    }
+  }
+
+  // Group names can equal a subtype string used elsewhere (e.g. "skills" is
+  // both a broadcast group and many tools' subtype), and __fish_seen_subcommand_from
+  // matches any token on the line regardless of position — so these rules can
+  // overlap with a tool's nested-subtype rules above (e.g. "ais claude skills <TAB>"
+  // may also offer the group's "list"). Harmless duplication, not a wrong answer.
+  for (const spec of GROUP_SPECS) {
+    const groupEntries = expandEntriesWithAliases(spec.subcommands);
+    const allGroupSubcommands = groupEntries.map(entry => entry.name).join(' ');
+    lines.push(`# ${spec.group} subcommands`);
+    for (const subcommand of groupEntries) {
+      lines.push(`complete -c ais -n "__fish_seen_subcommand_from ${spec.group}; and not __fish_seen_subcommand_from ${allGroupSubcommands}" -a "${subcommand.name}" -d "${subcommand.description}"`);
+    }
+    lines.push('');
+  }
+
+  for (const spec of GROUP_SPECS) {
+    if (spec.addCompletionType) {
+      lines.push(`complete -c ais -n "__fish_seen_subcommand_from ${spec.group}; and __fish_seen_subcommand_from add" -a "(ais _complete ${spec.addCompletionType} 2>/dev/null)"`);
     }
   }
 

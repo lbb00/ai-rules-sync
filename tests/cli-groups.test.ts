@@ -4,6 +4,7 @@ import {
   BROADCAST_GROUPS,
   resolveToolByCliName,
   cliNameForTool,
+  broadcastGroupForSubtype,
   assertNoBroadcastGroupNameCollisions
 } from '../src/adapters/cli-groups.js';
 import { adapterRegistry } from '../src/adapters/index.js';
@@ -98,6 +99,26 @@ describe('cli-groups', () => {
       expect(() =>
         assertNoBroadcastGroupNameCollisions(['install'], ['claude', 'cursor'], ['install'])
       ).toThrow(/collides with a reserved/);
+    });
+  });
+
+  describe('broadcastGroupForSubtype', () => {
+    it('resolves a grouped subtype to its broadcast group name', () => {
+      expect(broadcastGroupForSubtype('skills')).toBe('skills');
+      expect(broadcastGroupForSubtype('rules')).toBe('rules');
+    });
+
+    it('resolves agents-md\'s "file" subtype to the "md" group', () => {
+      // BROADCAST_GROUPS.md = ['md', 'file'] — 'file' is agents-md's subtype,
+      // folded under the 'md' broadcast group for UX (AGENTS.md is "the md
+      // file" to users). A stub redirect that used the raw subtype name would
+      // suggest a nonexistent `ais file ...` command instead.
+      expect(broadcastGroupForSubtype('file')).toBe('md');
+    });
+
+    it('returns undefined for a subtype with no broadcast group', () => {
+      expect(broadcastGroupForSubtype('instructions')).toBeUndefined();
+      expect(broadcastGroupForSubtype('workflows')).toBeUndefined();
     });
   });
 });
