@@ -364,6 +364,103 @@ describe('buildAddPreviewRow hybrid-mode entry detection', () => {
   });
 });
 
+describe('buildAddPreviewRow agents-md config-key detection', () => {
+  // agents-md is the one adapter whose `tool`/`subtype` ('agents-md'/'file')
+  // differ from its `configPath` (['agentsMd', 'file']) — the project
+  // manifest is written under configPath, so an already-configured check
+  // keyed by tool/subtype always missed it and reported "will-add" forever.
+  let repoDir: string;
+  let projectPath: string;
+  let originalCwd: string;
+  const adapter = getAdapter('agents-md', 'file');
+
+  beforeEach(async () => {
+    originalCwd = process.cwd();
+    repoDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-broadcast-agentsmd-'));
+    projectPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-broadcast-agentsmd-proj-'));
+    process.chdir(projectPath);
+    await fs.writeFile(path.join(repoDir, 'AGENTS.md'), '# agents');
+  });
+
+  afterEach(async () => {
+    process.chdir(originalCwd);
+    await fs.remove(repoDir);
+    await fs.remove(projectPath);
+  });
+
+  function repo(): RepoConfig {
+    return { name: 'repo', url: 'https://example.com/repo.git', path: repoDir };
+  }
+
+  it('reports "skip: already-configured" when the entry is stored under configPath (agentsMd.file), not tool/subtype', async () => {
+    await fs.writeJson(path.join(projectPath, 'ai-rules-sync.json'), {
+      version: 1,
+      agentsMd: { file: { 'AGENTS.md': repo().url } }
+    });
+
+    const row = await buildAddPreviewRow(adapter, repo(), 'AGENTS.md', undefined, false);
+    expect(row.action).toBe('skip: already-configured');
+  });
+
+  it('still reports "will-add" when truly not configured', async () => {
+    await fs.writeJson(path.join(projectPath, 'ai-rules-sync.json'), { version: 1 });
+
+    const row = await buildAddPreviewRow(adapter, repo(), 'AGENTS.md', undefined, false);
+    expect(row.action).toBe('will-add');
+  });
+});
+
+describe('buildAddPreviewRow surfaces the real resolveSource error instead of a generic "not found"', () => {
+  // repoHasEntry used to swallow every resolveSource rejection as a bare
+  // "not found", including errors that mean the entry DOES exist but is
+  // ambiguous (copilot: both suffix variants present) or invalid (agents-md:
+  // name doesn't look like an AGENTS.md file) — masking an actionable error
+  // behind a misleading "not in repository" message.
+  let repoDir: string;
+
+  beforeEach(async () => {
+    repoDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-broadcast-resolve-error-'));
+  });
+
+  afterEach(async () => {
+    await fs.remove(repoDir);
+  });
+
+  function repo(): RepoConfig {
+    return { name: 'repo', url: 'https://example.com/repo.git', path: repoDir };
+  }
+
+  it('surfaces the suffix-ambiguity error when both copilot instruction variants exist', async () => {
+    const adapter = getAdapter('copilot', 'instructions');
+    await fs.ensureDir(path.join(repoDir, adapter.defaultSourceDir));
+    await fs.writeFile(path.join(repoDir, adapter.defaultSourceDir, 'my-rule.instructions.md'), '# a');
+    await fs.writeFile(path.join(repoDir, adapter.defaultSourceDir, 'my-rule.md'), '# b');
+
+    const row = await buildAddPreviewRow(adapter, repo(), 'my-rule', undefined, false);
+    expect(row.hit).toBe(false);
+    expect(row.action).toBe('skip: not-in-repo');
+    expect(row.error).toMatch(/specify the suffix explicitly/);
+  });
+
+  it('surfaces the agents-md validation error for a non-AGENTS.md name, instead of a bare "not found"', async () => {
+    const adapter = getAdapter('agents-md', 'file');
+
+    const row = await buildAddPreviewRow(adapter, repo(), 'other-file.md', undefined, false);
+    expect(row.hit).toBe(false);
+    expect(row.action).toBe('skip: not-in-repo');
+    expect(row.error).toMatch(/Only AGENTS.md files are supported/);
+  });
+
+  it('leaves error unset for a genuine not-found case', async () => {
+    const adapter = getAdapter('claude', 'rules');
+    await fs.ensureDir(path.join(repoDir, adapter.defaultSourceDir));
+
+    const row = await buildAddPreviewRow(adapter, repo(), 'missing-rule', undefined, false);
+    expect(row.hit).toBe(false);
+    expect(row.error).toBeUndefined();
+  });
+});
+
 describe('selectStrictFailures', () => {
   it('keeps "skip: not-in-repo" rows as warnings when --strict is not given', async () => {
     const repoDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-broadcast-strict-'));

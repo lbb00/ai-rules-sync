@@ -83,23 +83,43 @@ function didYouMean(input: string, candidates: string[], maxDistance = 2): strin
  * GitSource.resolve() would otherwise do (this only needs the already-cloned
  * local repo on disk, which is all a preview should touch).
  */
+interface RepoEntryCheck {
+  hit: boolean;
+  /**
+   * Set when resolveSource threw something other than its "not found"
+   * message — e.g. copilot's suffix-ambiguity error, or agents-md's
+   * "only AGENTS.md files are supported" validation error. Every
+   * resolveSource implementation's genuine-absence errors consistently say
+   * "not found" (base.ts's suffix resolvers, claude-md, codebuddy-md,
+   * agents-md); anything else means the entry situation isn't a clean
+   * absence, so callers should surface this message instead of a generic
+   * "not found in repository".
+   */
+  error?: string;
+}
+
 async function repoHasEntry(
   adapter: SyncAdapter,
   repoDir: string,
   sourceDir: string,
   name: string,
   overrides: { sourceFileOverride?: string; sourceDirOverride?: string } = {}
-): Promise<boolean> {
+): Promise<RepoEntryCheck> {
   if (adapter.resolveSource) {
     try {
       await adapter.resolveSource(repoDir, sourceDir, name, overrides);
-      return true;
-    } catch {
-      return false;
+      return { hit: true };
+    } catch (error: any) {
+      const message = error?.message ?? String(error);
+      if (/not found/i.test(message)) {
+        return { hit: false };
+      }
+      return { hit: false, error: message };
     }
   }
   const effectiveName = overrides.sourceDirOverride ?? name;
-  return fs.pathExists(path.join(repoDir, sourceDir, effectiveName));
+  const exists = await fs.pathExists(path.join(repoDir, sourceDir, effectiveName));
+  return { hit: exists };
 }
 
 /** Temporarily swallow console output — used around handlers that print unconditionally, for --json. */
@@ -209,15 +229,23 @@ export function resolveScopeAdapters(
  * suffix-resolved targetName, src/dotany/manager.ts), so a bare exact-key
  * lookup misses an entry added as "foo.md" when re-checking with "foo" —
  * mirrors handleAdd's own suffix-variant pre-check (src/commands/handlers.ts).
+ *
+ * Reads by adapter.configPath, not [adapter.tool, adapter.subtype] — for
+ * every adapter but one they're identical, but agents-md's project-config
+ * key is ['agentsMd', 'file'] while its tool/subtype are 'agents-md'/'file'
+ * (the config namespace and the repo sourceDir namespace use different
+ * keys for that one adapter; resolveSourceDir's repoConfig reads elsewhere
+ * in this file are correctly keyed by tool/subtype, a separate config).
  */
 function isEntryConfigured(projectConfig: ProjectConfig, adapter: SyncAdapter, key: string): boolean {
-  if (getEntryConfig(projectConfig, adapter.tool, adapter.subtype, key)) {
+  const [topLevel, subLevel] = adapter.configPath;
+  if (getEntryConfig(projectConfig, topLevel, subLevel, key)) {
     return true;
   }
   const suffixes = adapter.fileSuffixes ?? adapter.hybridFileSuffixes ?? [];
   return suffixes.some(suffix => {
     const keyWithSuffix = key.endsWith(suffix) ? key : `${key}${suffix}`;
-    return !!getEntryConfig(projectConfig, adapter.tool, adapter.subtype, keyWithSuffix);
+    return !!getEntryConfig(projectConfig, topLevel, subLevel, keyWithSuffix);
   });
 }
 
@@ -230,6 +258,8 @@ export interface AddPreviewRow {
   configured: boolean;
   action: 'will-add' | 'skip: not-in-repo' | 'skip: already-configured';
   targetPath: string;
+  /** The real resolveSource error, when `action` is 'skip: not-in-repo' for a reason other than plain absence (see RepoEntryCheck). */
+  error?: string;
 }
 
 /**
@@ -253,7 +283,7 @@ export async function buildAddPreviewRow(
     sourceFileOverride: getSourceFileOverride(repoConfig, adapter.tool, adapter.subtype),
     sourceDirOverride: getSourceDirOverride(repoConfig, adapter.tool, adapter.subtype)
   };
-  const hit = await repoHasEntry(adapter, repo.path, dir, name, overrides);
+  const { hit, error: resolveError } = await repoHasEntry(adapter, repo.path, dir, name, overrides);
 
   const configKey = alias || name;
   const projectConfig = isGlobal ? await getUserProjectConfig() : await getCombinedProjectConfig(process.cwd());
@@ -276,7 +306,8 @@ export async function buildAddPreviewRow(
     hit,
     configured,
     action,
-    targetPath: path.join(adapter.targetDir, configKey)
+    targetPath: path.join(adapter.targetDir, configKey),
+    ...(resolveError ? { error: resolveError } : {})
   };
 }
 
@@ -294,8 +325,9 @@ function printAddPreviewTable(groupName: string, rows: AddPreviewRow[]): void {
   console.log(chalk.bold(`\n[DRY RUN] ais ${groupName} add — preview:\n`));
   for (const row of rows) {
     const color = row.action === 'will-add' ? chalk.green : chalk.yellow;
+    const suffix = row.error ? chalk.red(` (${row.error})`) : '';
     console.log(
-      `  ${row.cliName.padEnd(12)} (${row.origin.padEnd(8)}) ${color(row.action.padEnd(24))} -> ${row.targetPath}`
+      `  ${row.cliName.padEnd(12)} (${row.origin.padEnd(8)}) ${color(row.action.padEnd(24))} -> ${row.targetPath}${suffix}`
     );
   }
 }
@@ -336,7 +368,7 @@ async function runAdd(
           group: groupName,
           dryRun: true,
           results: rows,
-          errors: strictFailures.map(r => ({ tool: r.tool, error: 'not found in repository' })),
+          errors: strictFailures.map(r => ({ tool: r.tool, error: r.error ?? 'not found in repository' })),
           installed: rows.filter(r => r.action === 'will-add').length,
           skipped: rows.filter(r => r.action !== 'will-add').length
         }, null, 2));
@@ -367,11 +399,11 @@ async function runAdd(
         sourceFileOverride: getSourceFileOverride(repoConfig, adapter.tool, adapter.subtype),
         sourceDirOverride: getSourceDirOverride(repoConfig, adapter.tool, adapter.subtype)
       };
-      const hit = await repoHasEntry(adapter, repo.path, dir, name, overrides);
+      const { hit, error: resolveError } = await repoHasEntry(adapter, repo.path, dir, name, overrides);
 
       if (!hit) {
+        const message = resolveError ?? `entry "${name}" not found in repository (checked ${repoSourceDir})`;
         if (options.strict) {
-          const message = `entry "${name}" not found in repository (checked ${repoSourceDir})`;
           errors.push({ entry: `${cliName}/${name}`, error: message });
           results.push({ tool: adapter.tool, cliName, hit: false, action: 'error', error: message });
           if (!options.json) {
@@ -379,9 +411,9 @@ async function runAdd(
           }
         } else {
           skipped++;
-          results.push({ tool: adapter.tool, cliName, hit: false, action: 'skipped: not-in-repo' });
+          results.push({ tool: adapter.tool, cliName, hit: false, action: 'skipped: not-in-repo', ...(resolveError ? { error: resolveError } : {}) });
           if (!options.json) {
-            console.log(chalk.yellow(`${cliName}: skipped, "${name}" not found in repository.`));
+            console.log(chalk.yellow(`${cliName}: skipped, ${message}`));
           }
         }
         continue;
@@ -525,7 +557,9 @@ async function runList(
     const config = isGlobal ? await getUserProjectConfig() : await getCombinedProjectConfig(process.cwd());
 
     const rows = targets.map(adapter => {
-      const section = getConfigSectionWithFallback(config, adapter.tool, adapter.subtype);
+      // adapter.configPath, not [adapter.tool, adapter.subtype] — see the
+      // comment on isEntryConfigured above for why (agents-md).
+      const section = getConfigSectionWithFallback(config, adapter.configPath[0], adapter.configPath[1]);
       return {
         tool: adapter.tool,
         cliName: cliNameForTool(adapter.tool),
