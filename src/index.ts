@@ -27,6 +27,7 @@ import { parseCsvOption } from './cli/csv-option.js';
 import { setRepoSourceDir, clearRepoSourceDir, showRepoConfig, listRepos, handleUserConfigShow, handleUserConfigSet, handleUserConfigReset } from './commands/config.js';
 import { getFormattedVersion } from './commands/version.js';
 import { checkRepositories, updateRepositories, initRulesRepository } from './commands/lifecycle.js';
+import { runDoctor } from './commands/doctor.js';
 
 // Intercept version flags to show detailed version info before Commander processes them
 if (process.argv.includes('-v') || process.argv.includes('--version')) {
@@ -520,6 +521,49 @@ program
       }
     } catch (error: any) {
       console.error(chalk.red('Error checking repositories:'), error.message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('doctor')
+  .description('Verify configured entries have healthy symlinks (read-only)')
+  .option('-u, --user', 'Also check user config entries')
+  .option('--json', 'Output results as JSON')
+  .action(async (cmdOptions: { user?: boolean; json?: boolean }) => {
+    try {
+      const globalConfig = await getConfig();
+      const result = await runDoctor(adapterRegistry.all(), process.cwd(), globalConfig.repos || {}, { user: cmdOptions.user });
+
+      if (cmdOptions.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else if (result.entries.length === 0) {
+        console.log(chalk.yellow('No configured entries found.'));
+      } else {
+        const problems = result.entries.filter(e => e.status !== 'ok');
+        if (problems.length === 0) {
+          console.log(chalk.green(`All ${result.entries.length} entries are healthy.`));
+        } else {
+          console.log(chalk.bold(`${problems.length} of ${result.entries.length} entries need attention:\n`));
+          for (const entry of problems) {
+            const label =
+              entry.status === 'missing' ? chalk.yellow('missing ') :
+              entry.status === 'conflict' ? chalk.red('conflict') :
+              chalk.yellow('stale   ');
+            const scope = entry.scope === 'user' ? ' (user)' : '';
+            console.log(`  ${label}  ${entry.tool}/${entry.subtype} ${entry.alias}${scope} -> ${entry.targetPath}`);
+          }
+          console.log(chalk.gray('\nmissing: run "ais install" (or "ais install -g" for user entries) to relink.'));
+          console.log(chalk.gray('conflict: a real file/dir sits where a symlink should be — resolve manually before installing.'));
+          console.log(chalk.gray('stale: the symlink points to something other than the current repo source, or the source repo isn\'t available to verify.'));
+        }
+      }
+
+      if (result.counts.missing > 0 || result.counts.conflict > 0 || result.counts.stale > 0) {
+        process.exit(1);
+      }
+    } catch (error: any) {
+      console.error(chalk.red('Error running doctor:'), error.message);
       process.exit(1);
     }
   });

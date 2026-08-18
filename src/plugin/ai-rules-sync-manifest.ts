@@ -1,6 +1,32 @@
 import { ManifestStore, ManifestEntry } from '../dotany/types.js';
 import { getCombinedProjectConfig, getConfigSectionWithFallback, addDependencyGeneric, removeDependencyGeneric } from '../project-config.js';
-import type { RuleEntry } from '../project-config.js';
+import type { ProjectConfig, RuleEntry } from '../project-config.js';
+
+/** Shared by AiRulesSyncManifest and UserRulesSyncManifest — both store entries in the same tool.subtype.entry shape. */
+export function parseManifestSection(section: Record<string, RuleEntry>): Record<string, ManifestEntry> {
+    if (Object.keys(section).length === 0) return {};
+
+    const result: Record<string, ManifestEntry> = {};
+    for (const [key, value] of Object.entries(section)) {
+        if (typeof value === 'string') {
+            result[key] = {
+                sourceName: key,
+                meta: { repoUrl: value },
+            };
+        } else if (value && typeof value === 'object') {
+            const entry = value as { url: string; rule?: string; targetDir?: string };
+            result[key] = {
+                sourceName: entry.rule || key,
+                meta: {
+                    repoUrl: entry.url,
+                    ...(entry.targetDir ? { targetDir: entry.targetDir } : {}),
+                    ...(entry.rule && entry.rule !== key ? { alias: key } : {}),
+                },
+            };
+        }
+    }
+    return result;
+}
 
 /**
  * ManifestStore implementation that reads/writes ai-rules-sync.json.
@@ -17,29 +43,7 @@ export class AiRulesSyncManifest implements ManifestStore {
         const config = await getCombinedProjectConfig(this.projectPath);
         const [topLevel, subLevel] = this.configPath;
         const section = getConfigSectionWithFallback(config, topLevel, subLevel);
-
-        if (Object.keys(section).length === 0) return {};
-
-        const result: Record<string, ManifestEntry> = {};
-        for (const [key, value] of Object.entries(section)) {
-            if (typeof value === 'string') {
-                result[key] = {
-                    sourceName: key,
-                    meta: { repoUrl: value },
-                };
-            } else if (value && typeof value === 'object') {
-                const entry = value as { url: string; rule?: string; targetDir?: string };
-                result[key] = {
-                    sourceName: entry.rule || key,
-                    meta: {
-                        repoUrl: entry.url,
-                        ...(entry.targetDir ? { targetDir: entry.targetDir } : {}),
-                        ...(entry.rule && entry.rule !== key ? { alias: key } : {}),
-                    },
-                };
-            }
-        }
-        return result;
+        return parseManifestSection(section);
     }
 
     async write(key: string, value: ManifestEntry): Promise<void> {

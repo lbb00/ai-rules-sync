@@ -6,6 +6,7 @@ import { addDependencyGeneric, removeDependencyGeneric } from '../project-config
 import { dotfile } from '../dotany/index.js';
 import { GitRepoSource } from '../plugin/git-repo-source.js';
 import { AiRulesSyncManifest } from '../plugin/ai-rules-sync-manifest.js';
+import { UserRulesSyncManifest } from '../plugin/user-rules-sync-manifest.js';
 import type { DotfileManager } from '../dotany/manager.js';
 import { RepoConfig } from '../config.js';
 import type { RepoResolverFn } from '../dotany/types.js';
@@ -47,14 +48,17 @@ export function createBaseAdapter(config: AdapterConfig): SyncAdapter {
         resolveSource: config.resolveSource,
         resolveTargetName: config.resolveTargetName,
 
-        forProject(projectPath: string, repoOrResolver: RepoConfig | RepoResolverFn | null, isLocal?: boolean): DotfileManager {
+        forProject(projectPath: string, repoOrResolver: RepoConfig | RepoResolverFn | null, isLocal?: boolean, isUser?: boolean): DotfileManager {
             return dotfile.create({
                 name: config.name,
                 source: new GitRepoSource(repoOrResolver, config),
-                targetDir: config.targetDir,
+                targetDir: isUser && config.userTargetDir ? config.userTargetDir : config.targetDir,
                 targetRoot: projectPath,
-                manifest: new AiRulesSyncManifest(projectPath, config.configPath, isLocal),
+                manifest: isUser
+                    ? new UserRulesSyncManifest(config.configPath)
+                    : new AiRulesSyncManifest(projectPath, config.configPath, isLocal),
                 resolveTargetName: config.resolveTargetName,
+                knownSuffixes: config.mode === 'hybrid' ? config.hybridFileSuffixes : config.fileSuffixes,
             });
         },
 

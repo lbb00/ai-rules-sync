@@ -19,6 +19,13 @@
 - `ais init` now generates a `sourceDir` wildcard (`"*"`) entry for subtypes shared across tools (skills/agents/rules/commands/prompts) instead of one explicit line per tool; per-tool file subtypes (md, instructions, workflows, ...) stay explicit since their content differs by tool.
 - `ais install` gained `-g/--global` (alias `-u/--user`) and `--json`.
 - Top-level `--help` collapses the 30 tool-group commands into a single index line instead of burying the core commands and broadcast groups under them.
+- New `ais doctor` command: read-only check of every configured entry's symlink health (`ok`/`missing`/`conflict`/`stale`), with `--user` and `--json`. Exits non-zero when something needs attention, so it's usable as a CI gate. Makes no changes and never clones a repo.
+
+**Fixed:**
+
+- `GitSource` (the fallback resolver used by directory-mode adapters without a custom `resolveSource`) ran a bare `git pull` any time the repo's `.git` directory existed, which fails on a purely local repo that has no upstream tracking branch — e.g. `ais claude skills add` against a `git init`'d-but-never-pushed rules repo errored out instead of resolving locally. Now checks for an upstream first and skips the pull if there isn't one, matching the existing behavior of the other repo-update path.
+- `DotfileManager.diff()`'s "is this symlink stale" check compared a relative `readlink()` result against an absolute expected path as a raw string, so every entry with a relative symlink (the default) was misclassified — this is what `ais doctor` relies on to distinguish `ok` from `stale`.
+- `DotfileManager.status()`/`diff()` (and by extension `remove()`, which shared the same gap for suffix types it didn't know about) checked the on-disk filename using the raw manifest key, without accounting for the suffix a hybrid/file-mode adapter appends at link time. Entries added with the documented string-shorthand config format (`"react": "<repo-url>"`, no suffix in the key) on an adapter like `cursor`'s `rules` (which links `react` as `react.mdc`) showed as `missing` in `ais doctor` even though they were correctly linked. Now resolves suffixed variants before concluding an entry is absent.
 
 **Migration:**
 

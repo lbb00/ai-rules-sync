@@ -232,9 +232,21 @@ export class DotfileManager {
             const targetDirPath = entry.meta?.targetDir
                 ? path.normalize(entry.meta.targetDir as string)
                 : this.opts.targetDir;
-            const targetPath = path.join(absoluteRoot, targetDirPath, alias);
+            const targetDirAbsolute = path.join(absoluteRoot, targetDirPath);
+            let targetPath = path.join(targetDirAbsolute, alias);
 
-            const lstats = await fs.lstat(targetPath).catch(() => null);
+            let lstats = await fs.lstat(targetPath).catch(() => null);
+            if (!lstats) {
+                // The manifest alias may lack a suffix the adapter appends at
+                // link time (e.g. the string-shorthand config format for a
+                // suffix-appending adapter) — check suffixed variants before
+                // concluding the entry is actually missing.
+                const found = await this.findWithCommonSuffix(targetDirAbsolute, alias);
+                if (found) {
+                    targetPath = found;
+                    lstats = await fs.lstat(targetPath).catch(() => null);
+                }
+            }
             if (!lstats) {
                 toCreate.push(alias);
                 continue;
@@ -256,8 +268,21 @@ export class DotfileManager {
                     });
                     expectedSource = resolved.path;
                 }
-                const currentTarget = await fs.readlink(targetPath);
-                if (currentTarget !== expectedSource) {
+                // readlink() returns the link's literal target, which may be
+                // relative (linkany prefers relative symlinks) — resolve it
+                // against the link's own directory before comparing. Then
+                // realpath both sides so a path alias (e.g. macOS's /var ->
+                // /private/var) can't produce a false "stale" mismatch
+                // between two strings that name the same file.
+                const currentTargetRaw = await fs.readlink(targetPath);
+                const currentTargetAbs = path.isAbsolute(currentTargetRaw)
+                    ? currentTargetRaw
+                    : path.resolve(path.dirname(targetPath), currentTargetRaw);
+                const [currentReal, expectedReal] = await Promise.all([
+                    fs.realpath(currentTargetAbs),
+                    fs.realpath(expectedSource)
+                ]);
+                if (currentReal !== expectedReal) {
                     toUpdate.push(alias);
                 }
             } catch {
@@ -284,9 +309,17 @@ export class DotfileManager {
             const targetDirPath = entry.meta?.targetDir
                 ? path.normalize(entry.meta.targetDir as string)
                 : this.opts.targetDir;
-            const targetPath = path.join(absoluteRoot, targetDirPath, alias);
+            const targetDirAbsolute = path.join(absoluteRoot, targetDirPath);
+            let targetPath = path.join(targetDirAbsolute, alias);
 
-            const lstats = await fs.lstat(targetPath).catch(() => null);
+            let lstats = await fs.lstat(targetPath).catch(() => null);
+            if (!lstats) {
+                const found = await this.findWithCommonSuffix(targetDirAbsolute, alias);
+                if (found) {
+                    targetPath = found;
+                    lstats = await fs.lstat(targetPath).catch(() => null);
+                }
+            }
             let status: 'linked' | 'missing' | 'conflict';
             if (!lstats) {
                 status = 'missing';
@@ -408,7 +441,7 @@ export class DotfileManager {
     }
 
     private async findWithCommonSuffix(targetDir: string, alias: string): Promise<string | undefined> {
-        const suffixes = ['.md', '.instructions.md', '.mdc'];
+        const suffixes = this.opts.knownSuffixes ?? [];
         for (const suffix of suffixes) {
             if (!alias.endsWith(suffix)) {
                 const candidate = path.join(targetDir, `${alias}${suffix}`);

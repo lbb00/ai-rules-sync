@@ -87,7 +87,7 @@ export const CONCEPT_HINTS: Record<string, Record<string, string>> = {
 
 /** Top-level commands a broadcast group name must never collide with. */
 const RESERVED_TOP_LEVEL_WORDS: readonly string[] = [
-  'use', 'init', 'list', 'ls', 'status', 'search', 'check', 'update', 'config', 'install', 'add-all', 'import',
+  'use', 'init', 'list', 'ls', 'status', 'search', 'check', 'doctor', 'update', 'config', 'install', 'add-all', 'import',
   'git', 'completion', '_complete'
 ];
 

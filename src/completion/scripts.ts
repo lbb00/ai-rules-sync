@@ -182,6 +182,7 @@ const EXTRA_TOP_LEVEL_COMMANDS: CompletionEntry[] = [
   { name: 'status', description: 'Show repository and config status' },
   { name: 'search', description: 'Search entries in repository' },
   { name: 'check', description: 'Check repository update status' },
+  { name: 'doctor', description: 'Verify configured entries have healthy symlinks' },
   { name: 'update', description: 'Update repositories and reinstall entries' },
   { name: 'init', description: 'Initialize a rules repository template' },
   { name: 'config', description: 'Manage repository configuration' },
