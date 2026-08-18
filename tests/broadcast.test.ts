@@ -146,6 +146,161 @@ describe('buildAddPreviewRow origin resolution', () => {
   });
 });
 
+describe('buildAddPreviewRow already-configured detection with suffix variants', () => {
+  // manager.add() writes the project manifest under the suffix-resolved
+  // targetName ("ts-style.md"), so re-checking "already configured" with the
+  // bare un-suffixed name the user typed used to always report false — dry-run
+  // said "will-add" forever, even after a successful add.
+  let repoDir: string;
+  let projectPath: string;
+  let originalCwd: string;
+  const adapter = getAdapter('claude', 'rules'); // mode: 'file', fileSuffixes: ['.md']
+
+  beforeEach(async () => {
+    originalCwd = process.cwd();
+    repoDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-broadcast-configured-'));
+    projectPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-broadcast-configured-proj-'));
+    process.chdir(projectPath);
+    await fs.ensureDir(path.join(repoDir, adapter.defaultSourceDir));
+    await fs.writeFile(path.join(repoDir, adapter.defaultSourceDir, 'ts-style.md'), '# rule');
+  });
+
+  afterEach(async () => {
+    process.chdir(originalCwd);
+    await fs.remove(repoDir);
+    await fs.remove(projectPath);
+  });
+
+  function repo(): RepoConfig {
+    return { name: 'repo', url: 'https://example.com/repo.git', path: repoDir };
+  }
+
+  it('reports "skip: already-configured" when the config key carries the suffix but the query name does not', async () => {
+    await fs.writeJson(path.join(projectPath, 'ai-rules-sync.json'), {
+      version: 1,
+      claude: { rules: { 'ts-style.md': repo().url } }
+    });
+
+    const row = await buildAddPreviewRow(adapter, repo(), 'ts-style', undefined, false);
+    expect(row.action).toBe('skip: already-configured');
+  });
+
+  it('still reports "will-add" when truly not configured', async () => {
+    await fs.writeJson(path.join(projectPath, 'ai-rules-sync.json'), { version: 1 });
+
+    const row = await buildAddPreviewRow(adapter, repo(), 'ts-style', undefined, false);
+    expect(row.action).toBe('will-add');
+  });
+});
+
+describe('buildAddPreviewRow file-mode adapter using createMultiSuffixResolver', () => {
+  // cline-rules is mode:'file' but uses createMultiSuffixResolver (multiple
+  // fileSuffixes + directory-entry support), not createSingleSuffixResolver
+  // — a hand-rolled repoHasEntry keyed only on adapter.mode would treat it
+  // like every other file-mode adapter and never check for a directory.
+  // Delegating straight to adapter.resolveSource sidesteps that distinction.
+  let repoDir: string;
+  const adapter = getAdapter('cline', 'rules');
+
+  beforeEach(async () => {
+    repoDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-broadcast-multisuffix-'));
+  });
+
+  afterEach(async () => {
+    await fs.remove(repoDir);
+  });
+
+  function repo(): RepoConfig {
+    return { name: 'repo', url: 'https://example.com/repo.git', path: repoDir };
+  }
+
+  it('finds a directory-shaped entry even though the adapter is mode:"file"', async () => {
+    await fs.ensureDir(path.join(repoDir, adapter.defaultSourceDir, 'my-rule-dir'));
+    await fs.writeFile(path.join(repoDir, adapter.defaultSourceDir, 'my-rule-dir', 'index.md'), '# rule');
+
+    const row = await buildAddPreviewRow(adapter, repo(), 'my-rule-dir', undefined, false);
+    expect(row.hit).toBe(true);
+    expect(row.action).toBe('will-add');
+  });
+});
+
+describe('buildAddPreviewRow file-mode entry detection without a resolveSource', () => {
+  // ~30 file-mode adapters (e.g. cline-commands) declare `fileSuffixes` but no
+  // `resolveSource`, so their real add resolves through the generic
+  // GitRepoSource path -> GitSource.resolve(), an exact un-suffixed match with
+  // no suffix awareness. repoHasEntry used to always try appending
+  // fileSuffixes regardless, so dry-run could say "will-add" for a name the
+  // real add would then fail to find.
+  let repoDir: string;
+  const adapter = getAdapter('cline', 'commands'); // mode: 'file', fileSuffixes: ['.md'], no resolveSource
+
+  beforeEach(async () => {
+    repoDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-broadcast-nosuffix-'));
+  });
+
+  afterEach(async () => {
+    await fs.remove(repoDir);
+  });
+
+  function repo(): RepoConfig {
+    return { name: 'repo', url: 'https://example.com/repo.git', path: repoDir };
+  }
+
+  it('does not confirm an unsuffixed name reads a stored file that only exists suffixed', async () => {
+    await fs.ensureDir(path.join(repoDir, adapter.defaultSourceDir));
+    await fs.writeFile(path.join(repoDir, adapter.defaultSourceDir, 'my-workflow.md'), '# workflow');
+
+    const row = await buildAddPreviewRow(adapter, repo(), 'my-workflow', undefined, false);
+    expect(row.hit).toBe(false);
+    expect(row.action).toBe('skip: not-in-repo');
+  });
+
+  it('confirms the exact stored (already-suffixed) name', async () => {
+    await fs.ensureDir(path.join(repoDir, adapter.defaultSourceDir));
+    await fs.writeFile(path.join(repoDir, adapter.defaultSourceDir, 'my-workflow.md'), '# workflow');
+
+    const row = await buildAddPreviewRow(adapter, repo(), 'my-workflow.md', undefined, false);
+    expect(row.hit).toBe(true);
+    expect(row.action).toBe('will-add');
+  });
+});
+
+describe('buildAddPreviewRow honors sourceFileOverride', () => {
+  // claude-md has a custom resolveSource that reads sourceDir's sourceFile
+  // override (e.g. use a shared "common/AGENTS.md" as CLAUDE.md's source).
+  // repoHasEntry used to check only "<dir>/<name><suffix>" directly, ignoring
+  // the override entirely, so dry-run reported "skip: not-in-repo" even
+  // though the real add (which calls resolveSource) would succeed.
+  let repoDir: string;
+  const adapter = getAdapter('claude', 'md');
+
+  beforeEach(async () => {
+    repoDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-broadcast-override-'));
+  });
+
+  afterEach(async () => {
+    await fs.remove(repoDir);
+  });
+
+  function repo(): RepoConfig {
+    return { name: 'repo', url: 'https://example.com/repo.git', path: repoDir };
+  }
+
+  it('finds the entry at the overridden sourceFile, not the un-overridden name', async () => {
+    await fs.writeJson(path.join(repoDir, 'ai-rules-sync.json'), {
+      version: 1,
+      sourceDir: { claude: { md: { mode: 'file', dir: 'common', sourceFile: 'AGENTS.md' } } }
+    });
+    await fs.ensureDir(path.join(repoDir, 'common'));
+    await fs.writeFile(path.join(repoDir, 'common', 'AGENTS.md'), '# shared');
+    // no CLAUDE.md written anywhere
+
+    const row = await buildAddPreviewRow(adapter, repo(), 'CLAUDE', undefined, false);
+    expect(row.hit).toBe(true);
+    expect(row.action).toBe('will-add');
+  });
+});
+
 describe('buildAddPreviewRow hybrid-mode entry detection', () => {
   // cursor-rules is the only hybrid adapter (mode:'hybrid', hybridFileSuffixes:
   // ['.mdc', '.md'], no plain `fileSuffixes`) — repoHasEntry's hybrid branch

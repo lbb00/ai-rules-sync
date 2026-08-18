@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import { execa } from 'execa';
 import { adapterRegistry } from '../adapters/index.js';
+import { resolveToolByCliName } from '../adapters/cli-groups.js';
 import { RepoConfig, getConfig, setConfig, getReposBaseDir, getUserProjectConfig } from '../config.js';
 import { cloneOrUpdateRepo } from '../git.js';
 import { ProjectConfig, RuleEntry, SourceDirConfig, getCombinedProjectConfig, getRuleSection, CURRENT_CONFIG_VERSION, WILDCARD_TOOL } from '../project-config.js';
@@ -447,13 +448,26 @@ export async function updateRepositories(options: CheckOptions & { dryRun?: bool
   };
 }
 
+/**
+ * Resolves a user-typed --only/--exclude value to the adapter registry's
+ * internal tool name, accepting a CLI group name (e.g. "agy") the same way
+ * add-all's --tools and the broadcast groups' --tools already do
+ * (resolveToolByCliName in src/adapters/cli-groups.js) — otherwise
+ * `--only agy` silently matches nothing since no adapter's `tool` field is
+ * literally "agy".
+ */
+function toAdapterToolName(value: string): string {
+  const lowered = value.toLowerCase();
+  return resolveToolByCliName(lowered) ?? lowered;
+}
+
 function getFilteredAdapters(only?: string[], exclude?: string[]) {
   let adapters = adapterRegistry.all();
   if (only && only.length > 0) {
-    const set = new Set(only.map(t => t.toLowerCase()));
+    const set = new Set(only.map(toAdapterToolName));
     adapters = adapters.filter(a => set.has(a.tool));
   } else if (exclude && exclude.length > 0) {
-    const set = new Set(exclude.map(t => t.toLowerCase()));
+    const set = new Set(exclude.map(toAdapterToolName));
     adapters = adapters.filter(a => !set.has(a.tool));
   }
   return adapters;

@@ -133,6 +133,24 @@ describe('initRulesRepository', () => {
     expect(tools).toContain('claude');
   });
 
+  it('should accept a CLI group name (not just the internal tool field) for --only', async () => {
+    // "agy" is antigravity-cli's CLI command word (CLI_GROUP_TOOL_MAP in
+    // cli-groups.ts) — the adapter registry's `tool` field is
+    // "antigravity-cli". --only used to compare verbatim against `tool`, so
+    // `--only agy` silently matched nothing.
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-init-only-cli-alias-'));
+    const result = await initRulesRepository({
+      cwd,
+      name: 'only-agy-test',
+      only: ['agy']
+    });
+
+    const config = await fs.readJson(result.configPath);
+    const tools = Object.keys(config.sourceDir);
+    expect(tools).toContain('antigravity-cli');
+    expect(tools).not.toContain('claude');
+  });
+
   it('should only create directories for filtered tools', async () => {
     const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-init-dirs-'));
     const result = await initRulesRepository({

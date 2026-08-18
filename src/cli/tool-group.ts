@@ -78,6 +78,18 @@ async function isFile(targetPath: string): Promise<boolean> {
   }
 }
 
+export interface ImportDetectionResult {
+  adapter: SyncAdapter;
+  /**
+   * The actual on-disk file/directory name matched — may differ from the
+   * name the user typed when a suffix was appended to find it (e.g. typed
+   * "foo", matched "foo.mdc"). importEntry()/manager.import() require the
+   * exact on-disk name (no suffix resolution of their own), so callers must
+   * pass this through instead of the user's raw input.
+   */
+  resolvedName: string;
+}
+
 /**
  * Find the adapter whose target path matches `name`, for `import` subtype
  * auto-detection. Must be type-aware (mode + fileSuffixes/hybridFileSuffixes),
@@ -92,35 +104,35 @@ export async function detectImportAdapter(
   adapters: SyncAdapter[],
   projectPath: string,
   name: string
-): Promise<SyncAdapter | null> {
+): Promise<ImportDetectionResult | null> {
   for (const adapter of adapters) {
     const targetPath = path.join(projectPath, adapter.targetDir, name);
 
     if (adapter.mode === 'directory') {
       if (await isDirectory(targetPath)) {
-        return adapter;
+        return { adapter, resolvedName: name };
       }
     } else if (adapter.mode === 'file') {
       const suffixes = adapter.fileSuffixes && adapter.fileSuffixes.length > 0 ? adapter.fileSuffixes : [''];
       // name may already carry its suffix (e.g. "foo.md") — check the exact
       // path before trying to append a suffix a second time.
       if (suffixes.some(suffix => suffix && name.endsWith(suffix)) && await isFile(targetPath)) {
-        return adapter;
+        return { adapter, resolvedName: name };
       }
       for (const suffix of suffixes) {
         if (await isFile(`${targetPath}${suffix}`)) {
-          return adapter;
+          return { adapter, resolvedName: `${name}${suffix}` };
         }
       }
     } else if (adapter.mode === 'hybrid') {
       // directory, or file possibly already carrying its suffix, else try
       // each hybridFileSuffixes candidate (mirrors createMultiSuffixResolver).
       if (await fs.pathExists(targetPath)) {
-        return adapter;
+        return { adapter, resolvedName: name };
       }
       for (const suffix of adapter.hybridFileSuffixes ?? []) {
         if (await isFile(`${targetPath}${suffix}`)) {
-          return adapter;
+          return { adapter, resolvedName: `${name}${suffix}` };
         }
       }
     }
@@ -288,15 +300,16 @@ export function registerToolGroup(program: Command, tool: string): void {
       try {
         const projectPath = process.cwd();
         const repo = await getTargetRepo(program.opts());
-        const foundAdapter = await detectImportAdapter(adapters, projectPath, name);
+        const detected = await detectImportAdapter(adapters, projectPath, name);
 
-        if (!foundAdapter) {
+        if (!detected) {
           const dirs = formatTargetDirList(adapters.map(a => a.targetDir));
           throw new Error(`Entry "${name}" not found in ${dirs}.`);
         }
 
-        console.log(chalk.gray(`Detected ${foundAdapter.subtype}: ${name}`));
-        await handleImport(foundAdapter, { projectPath, repo, isLocal: options.local || false }, name, options);
+        const { adapter: foundAdapter, resolvedName } = detected;
+        console.log(chalk.gray(`Detected ${foundAdapter.subtype}: ${resolvedName}`));
+        await handleImport(foundAdapter, { projectPath, repo, isLocal: options.local || false }, resolvedName, options);
       } catch (error: any) {
         console.error(chalk.red(`Error importing ${label} entry:`), error.message);
         process.exit(1);

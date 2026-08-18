@@ -24,7 +24,10 @@ import {
   getCombinedProjectConfig,
   getConfigSectionWithFallback,
   getEntryConfig,
-  SourceDirOrigin
+  getSourceFileOverride,
+  getSourceDirOverride,
+  SourceDirOrigin,
+  ProjectConfig
 } from '../project-config.js';
 import { RepoConfig, getUserProjectConfig } from '../config.js';
 import { handleAdd, handleRemove, CommandContext, AddOptions } from '../commands/handlers.js';
@@ -66,66 +69,37 @@ function didYouMean(input: string, candidates: string[], maxDistance = 2): strin
     .map(({ candidate }) => candidate);
 }
 
-async function isDirectory(targetPath: string): Promise<boolean> {
-  try {
-    return (await fs.stat(targetPath)).isDirectory();
-  } catch {
-    return false;
-  }
-}
-
-async function isFile(targetPath: string): Promise<boolean> {
-  try {
-    return (await fs.stat(targetPath)).isFile();
-  } catch {
-    return false;
-  }
-}
-
 /**
- * Mode-aware existence check on the *repo* side (mirrors detectImportAdapter
- * in tool-group.ts, which does the same thing on the project side). Kept as
- * a separate copy rather than a shared helper — same shape, different side
- * of the sync, and coupling the two would make future mode-specific changes
- * on either side harder to reason about in isolation.
+ * Existence check on the *repo* side, for `ais <group> add --dry-run`/preview.
+ * Delegates to the adapter's own resolveSource when it has one
+ * (createSingleSuffixResolver/createMultiSuffixResolver in src/adapters/base.ts)
+ * — the exact function real add() calls via GitRepoSource
+ * (src/plugin/git-repo-source.ts) — so "would add succeed" and "does
+ * dry-run say hit" can't drift apart the way two hand-written copies of the
+ * same mode/suffix logic did. Adapters without resolveSource (mostly
+ * directory-mode, plus ~30 file-mode adapters that were never given one)
+ * resolve through GitRepoSource's own generic path instead: a bare,
+ * override-aware exact-name match, mirrored here without the git clone/pull
+ * GitSource.resolve() would otherwise do (this only needs the already-cloned
+ * local repo on disk, which is all a preview should touch).
  */
-async function repoHasEntry(adapter: SyncAdapter, repoSourceDir: string, name: string): Promise<boolean> {
-  const targetPath = path.join(repoSourceDir, name);
-
-  if (adapter.mode === 'directory') {
-    return isDirectory(targetPath);
-  }
-
-  if (adapter.mode === 'file') {
-    const suffixes = adapter.fileSuffixes && adapter.fileSuffixes.length > 0 ? adapter.fileSuffixes : [''];
-    // name may already carry its suffix (e.g. "foo.md") — check the exact
-    // path before trying to append a suffix a second time (createSingleSuffixResolver
-    // does the same exact-match check for a name.endsWith(suffix) input).
-    if (suffixes.some(suffix => suffix && name.endsWith(suffix)) && await isFile(targetPath)) {
+async function repoHasEntry(
+  adapter: SyncAdapter,
+  repoDir: string,
+  sourceDir: string,
+  name: string,
+  overrides: { sourceFileOverride?: string; sourceDirOverride?: string } = {}
+): Promise<boolean> {
+  if (adapter.resolveSource) {
+    try {
+      await adapter.resolveSource(repoDir, sourceDir, name, overrides);
       return true;
-    }
-    for (const suffix of suffixes) {
-      if (await isFile(`${targetPath}${suffix}`)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // hybrid: directory, or file possibly already carrying its suffix, else try
-  // each hybridFileSuffixes candidate — mirrors createMultiSuffixResolver's
-  // exact-path-first, then-each-suffix order. A bare pathExists(targetPath)
-  // alone would miss every entry stored only as "<name><hybridFileSuffix>"
-  // (e.g. cursor's "rules/x.mdc").
-  if (await fs.pathExists(targetPath)) {
-    return true;
-  }
-  for (const suffix of adapter.hybridFileSuffixes ?? []) {
-    if (await isFile(`${targetPath}${suffix}`)) {
-      return true;
+    } catch {
+      return false;
     }
   }
-  return false;
+  const effectiveName = overrides.sourceDirOverride ?? name;
+  return fs.pathExists(path.join(repoDir, sourceDir, effectiveName));
 }
 
 /** Temporarily swallow console output — used around handlers that print unconditionally, for --json. */
@@ -228,6 +202,25 @@ export function resolveScopeAdapters(
   return resolved;
 }
 
+/**
+ * Whether `key` (or a suffixed variant of it) is already configured for this
+ * adapter. File/hybrid-mode entries are stored in config under their
+ * suffix-appended name (manager.add() writes the manifest under the
+ * suffix-resolved targetName, src/dotany/manager.ts), so a bare exact-key
+ * lookup misses an entry added as "foo.md" when re-checking with "foo" —
+ * mirrors handleAdd's own suffix-variant pre-check (src/commands/handlers.ts).
+ */
+function isEntryConfigured(projectConfig: ProjectConfig, adapter: SyncAdapter, key: string): boolean {
+  if (getEntryConfig(projectConfig, adapter.tool, adapter.subtype, key)) {
+    return true;
+  }
+  const suffixes = adapter.fileSuffixes ?? adapter.hybridFileSuffixes ?? [];
+  return suffixes.some(suffix => {
+    const keyWithSuffix = key.endsWith(suffix) ? key : `${key}${suffix}`;
+    return !!getEntryConfig(projectConfig, adapter.tool, adapter.subtype, keyWithSuffix);
+  });
+}
+
 export interface AddPreviewRow {
   tool: string;
   cliName: string;
@@ -256,11 +249,15 @@ export async function buildAddPreviewRow(
   const repoConfig = await getRepoSourceConfig(repo.path);
   const { dir, origin } = resolveSourceDir(repoConfig, adapter.tool, adapter.subtype, adapter.defaultSourceDir);
   const repoSourceDir = path.join(repo.path, dir);
-  const hit = await repoHasEntry(adapter, repoSourceDir, name);
+  const overrides = {
+    sourceFileOverride: getSourceFileOverride(repoConfig, adapter.tool, adapter.subtype),
+    sourceDirOverride: getSourceDirOverride(repoConfig, adapter.tool, adapter.subtype)
+  };
+  const hit = await repoHasEntry(adapter, repo.path, dir, name, overrides);
 
   const configKey = alias || name;
   const projectConfig = isGlobal ? await getUserProjectConfig() : await getCombinedProjectConfig(process.cwd());
-  const configured = !!getEntryConfig(projectConfig, adapter.tool, adapter.subtype, configKey);
+  const configured = isEntryConfigured(projectConfig, adapter, configKey);
 
   let action: AddPreviewRow['action'];
   if (!hit) {
@@ -366,7 +363,11 @@ async function runAdd(
       const repoConfig = await getRepoSourceConfig(repo.path);
       const { dir } = resolveSourceDir(repoConfig, adapter.tool, adapter.subtype, adapter.defaultSourceDir);
       const repoSourceDir = path.join(repo.path, dir);
-      const hit = await repoHasEntry(adapter, repoSourceDir, name);
+      const overrides = {
+        sourceFileOverride: getSourceFileOverride(repoConfig, adapter.tool, adapter.subtype),
+        sourceDirOverride: getSourceDirOverride(repoConfig, adapter.tool, adapter.subtype)
+      };
+      const hit = await repoHasEntry(adapter, repo.path, dir, name, overrides);
 
       if (!hit) {
         if (options.strict) {
@@ -579,6 +580,7 @@ export function registerBroadcastGroups(program: Command): void {
 
     group
       .command('remove <alias>')
+      .alias('rm')
       .description(`Remove a ${groupName} entry from one or more tools`)
       .option('--tools <list>', 'Comma-separated CLI tool names, repeatable', collectTools)
       .option('--all', `Target every tool with a ${groupName} adapter`)
@@ -590,6 +592,7 @@ export function registerBroadcastGroups(program: Command): void {
 
     group
       .command('list')
+      .alias('ls')
       .description(`List configured ${groupName} entries per tool`)
       .option('--tools <list>', 'Comma-separated CLI tool names, repeatable', collectTools)
       .option('--all', `Target every tool with a ${groupName} adapter`)
