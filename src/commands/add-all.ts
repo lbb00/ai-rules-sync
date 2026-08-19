@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import readline from 'readline';
 import { RepoConfig } from '../config.js';
 import { SyncAdapter, AdapterRegistry } from '../adapters/types.js';
-import { getRepoSourceConfig, getSourceDir, getCombinedProjectConfig, getConfigSectionWithFallback, ProjectConfig } from '../project-config.js';
+import { getRepoSourceConfig, getSourceDir, getCombinedProjectConfig, getConfigSectionWithFallback, isSourceNameConfigured, ProjectConfig } from '../project-config.js';
 import { resolveToolByCliName, cliNameForTool } from '../adapters/cli-groups.js';
 import { manageEntryIgnore, manageLocalConfigIgnore } from './handlers.js';
 
@@ -166,7 +166,7 @@ export async function discoverEntriesForAdapter(
 
             // Strip suffix to get entry name
             const entryName = matchedSuffix ? item.slice(0, -matchedSuffix.length) : item;
-            const alreadyInConfig = entryName in configSection;
+            const alreadyInConfig = isSourceNameConfigured(configSection, entryName);
 
             entries.push({
                 adapter,
@@ -181,7 +181,7 @@ export async function discoverEntriesForAdapter(
             // Directory mode: only include directories
             if (!isDirectory) continue;
 
-            const alreadyInConfig = item in configSection;
+            const alreadyInConfig = isSourceNameConfigured(configSection, item);
 
             entries.push({
                 adapter,
@@ -197,7 +197,7 @@ export async function discoverEntriesForAdapter(
 
             if (isDirectory) {
                 // Directory
-                const alreadyInConfig = item in configSection;
+                const alreadyInConfig = isSourceNameConfigured(configSection, item);
 
                 entries.push({
                     adapter,
@@ -224,7 +224,7 @@ export async function discoverEntriesForAdapter(
 
                 // Strip suffix to get entry name
                 const entryName = matchedSuffix ? item.slice(0, -matchedSuffix.length) : item;
-                const alreadyInConfig = entryName in configSection;
+                const alreadyInConfig = isSourceNameConfigured(configSection, entryName);
 
                 entries.push({
                     adapter,

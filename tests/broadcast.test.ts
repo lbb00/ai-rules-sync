@@ -5,6 +5,7 @@ import { describe, expect, it, afterEach, beforeEach } from 'vitest';
 import { resolveScopeAdapters, buildAddPreviewRow, selectStrictFailures } from '../src/cli/broadcast.js';
 import { BROADCAST_GROUPS, cliNameForTool } from '../src/adapters/cli-groups.js';
 import { adapterRegistry, getAdapter } from '../src/adapters/index.js';
+import { createBaseAdapter } from '../src/adapters/base.js';
 import { RepoConfig } from '../src/config.js';
 
 function groupMembers(groupName: keyof typeof BROADCAST_GROUPS) {
@@ -225,14 +226,27 @@ describe('buildAddPreviewRow file-mode adapter using createMultiSuffixResolver',
 });
 
 describe('buildAddPreviewRow file-mode entry detection without a resolveSource', () => {
-  // ~30 file-mode adapters (e.g. cline-commands) declare `fileSuffixes` but no
-  // `resolveSource`, so their real add resolves through the generic
-  // GitRepoSource path -> GitSource.resolve(), an exact un-suffixed match with
-  // no suffix awareness. repoHasEntry used to always try appending
-  // fileSuffixes regardless, so dry-run could say "will-add" for a name the
-  // real add would then fail to find.
+  // A file-mode adapter with `fileSuffixes` but no `resolveSource` resolves
+  // its real add through the generic GitRepoSource path ->
+  // GitSource.resolve(), an exact un-suffixed match with no suffix
+  // awareness. repoHasEntry used to always try appending fileSuffixes
+  // regardless, so dry-run could say "will-add" for a name the real add
+  // would then fail to find. Every real adapter in the registry now has a
+  // resolveSource (each file-mode one uses createMultiSuffixResolver, so its
+  // real add already resolves suffix-less names) — this fixture stands in
+  // for the "no resolveSource" shape so the underlying honesty guard in
+  // repoHasEntry stays covered regardless of the current registry's state.
   let repoDir: string;
-  const adapter = getAdapter('cline', 'commands'); // mode: 'file', fileSuffixes: ['.md'], no resolveSource
+  const adapter = createBaseAdapter({
+    name: 'fixture-no-resolver',
+    tool: 'fixture',
+    subtype: 'commands',
+    configPath: ['fixture', 'commands'],
+    defaultSourceDir: '.fixture/commands',
+    targetDir: '.fixture/commands',
+    mode: 'file',
+    fileSuffixes: ['.md'],
+  }); // mode: 'file', fileSuffixes: ['.md'], no resolveSource
 
   beforeEach(async () => {
     repoDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-broadcast-nosuffix-'));

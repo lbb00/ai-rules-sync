@@ -1,4 +1,4 @@
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
 export const clineAgentsAdapter = createBaseAdapter({
   name: 'cline-agents',
@@ -9,4 +9,6 @@ export const clineAgentsAdapter = createBaseAdapter({
   targetDir: '.cline/agents',
   mode: 'file',
   fileSuffixes: ['.yaml', '.yml'],
+  resolveSource: createMultiSuffixResolver(['.yaml', '.yml'], 'Agent'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.yaml', '.yml']),
 });

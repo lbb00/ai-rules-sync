@@ -1,4 +1,4 @@
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
 export const kiloAgentsAdapter = createBaseAdapter({
   name: 'kilo-agents',
@@ -9,4 +9,6 @@ export const kiloAgentsAdapter = createBaseAdapter({
   targetDir: '.kilo/agents',
   mode: 'file',
   fileSuffixes: ['.md'],
+  resolveSource: createMultiSuffixResolver(['.md'], 'Agent'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
 });

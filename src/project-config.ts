@@ -266,6 +266,20 @@ export function deleteAtPath(obj: unknown, configPath: ConfigPath, key: string):
 }
 
 /**
+ * Whether a given repo-side source name is already configured in a section —
+ * either as a plain (non-aliased) key, or as the `rule` an aliased entry
+ * points back to (`"my-alias": { url, rule: sourceName }`). A raw
+ * `sourceName in section` check misses aliased entries entirely, since their
+ * config key is the alias, not the source name.
+ */
+export function isSourceNameConfigured(section: Record<string, RuleEntry>, sourceName: string): boolean {
+    if (sourceName in section) return true;
+    return Object.values(section).some(
+        entry => typeof entry === 'object' && entry !== null && entry.rule === sourceName
+    );
+}
+
+/**
  * Get a config section (tool.subtype) with fallback to * when tool-specific section is not found.
  * Use this when reading dependency records (rules, skills, etc.) from project config.
  */

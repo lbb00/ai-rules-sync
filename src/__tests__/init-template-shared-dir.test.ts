@@ -5,8 +5,24 @@ import { describe, expect, it } from 'vitest';
 import { initRulesRepository } from '../commands/lifecycle.js';
 import { discoverEntriesForAdapter } from '../commands/add-all.js';
 import { codexAgentsAdapter } from '../adapters/codex-agents.js';
-import { claudeAgentsAdapter } from '../adapters/claude-agents.js';
+import { createBaseAdapter } from '../adapters/base.js';
 import { RepoConfig } from '../config.js';
+
+// Fixture: a directory-mode adapter sharing the 'agents' source dir with
+// codex-agents (mode: 'file'). Every real agents adapter in the registry is
+// now mode: 'file' (Claude Code subagents, the previous example here, are
+// single .md files, not directories) — this stands in for "some directory-
+// mode adapter" so the shared-directory disambiguation mechanism itself
+// stays covered.
+const directoryModeAgentsAdapter = createBaseAdapter({
+  name: 'fixture-directory-agents',
+  tool: 'fixture',
+  subtype: 'agents',
+  configPath: ['fixture', 'agents'],
+  defaultSourceDir: 'agents',
+  targetDir: '.fixture/agents',
+  mode: 'directory',
+});
 
 /**
  * §3.4 integration acceptance: an `ais init`-generated repo puts multiple
@@ -37,9 +53,8 @@ describe('ais init shared template directory - per-adapter disambiguation', () =
 
     // A well-formed codex-agents entry (matches fileSuffixes: ['.toml'])...
     await fs.writeFile(path.join(repoDir, 'agents', 'reviewer.toml'), '# codex agent config');
-    // ...and a file that only makes sense for a different adapter (claude-agents
-    // is directory-mode; this is neither a .toml file nor a directory claude
-    // would use, it's here purely to prove codex-agents' suffix filter works).
+    // ...and a file that shouldn't count as a codex-agents hit (wrong suffix),
+    // here purely to prove codex-agents' suffix filter works.
     await fs.writeFile(path.join(repoDir, 'agents', 'notes.md'), '# not a codex agent');
 
     const projectPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-project-shared-agents-'));
@@ -52,7 +67,7 @@ describe('ais init shared template directory - per-adapter disambiguation', () =
     expect(entryNames).not.toContain('notes');
   });
 
-  it('lets claude-agents (directory mode) discover a subdirectory in the same shared directory', async () => {
+  it('lets a directory-mode adapter discover a subdirectory in the same shared directory', async () => {
     const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-init-shared-agents-dir-'));
     const repoResult = await initRulesRepository({ cwd, name: 'shared-agents-repo' });
     const repoDir = repoResult.projectPath;
@@ -65,7 +80,7 @@ describe('ais init shared template directory - per-adapter disambiguation', () =
     const projectPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-project-shared-agents-dir-'));
     const repo: RepoConfig = { name: 'repo', url: 'https://example.com/repo.git', path: repoDir };
 
-    const entries = await discoverEntriesForAdapter(claudeAgentsAdapter, repo, projectPath);
+    const entries = await discoverEntriesForAdapter(directoryModeAgentsAdapter, repo, projectPath);
     const entryNames = entries.map(e => e.entryName);
 
     expect(entryNames).toContain('code-reviewer');

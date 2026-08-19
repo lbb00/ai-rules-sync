@@ -1,4 +1,4 @@
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
 export const factorydroidAgentsAdapter = createBaseAdapter({
   name: 'factorydroid-agents',
@@ -9,4 +9,6 @@ export const factorydroidAgentsAdapter = createBaseAdapter({
   targetDir: '.factory/droids',
   mode: 'file',
   fileSuffixes: ['.md'],
+  resolveSource: createMultiSuffixResolver(['.md'], 'Agent'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
 });

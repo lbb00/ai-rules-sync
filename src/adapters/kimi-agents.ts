@@ -1,4 +1,4 @@
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
 export const kimiAgentsAdapter = createBaseAdapter({
   name: 'kimi-agents',
@@ -9,4 +9,6 @@ export const kimiAgentsAdapter = createBaseAdapter({
   targetDir: '.kimi-code/agents',
   mode: 'file',
   fileSuffixes: ['.md'],
+  resolveSource: createMultiSuffixResolver(['.md'], 'Agent'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
 });

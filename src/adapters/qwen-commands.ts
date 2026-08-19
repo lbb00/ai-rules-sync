@@ -1,4 +1,4 @@
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
 export const qwenCommandsAdapter = createBaseAdapter({
   name: 'qwen-commands',
@@ -9,4 +9,6 @@ export const qwenCommandsAdapter = createBaseAdapter({
   targetDir: '.qwen/commands',
   mode: 'file',
   fileSuffixes: ['.md'],
+  resolveSource: createMultiSuffixResolver(['.md'], 'Command'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
 });

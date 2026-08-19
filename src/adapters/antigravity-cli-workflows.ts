@@ -1,4 +1,4 @@
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
 export const antigravityWorkflowsAdapter = createBaseAdapter({
   name: 'antigravity-cli-workflows',
@@ -9,4 +9,6 @@ export const antigravityWorkflowsAdapter = createBaseAdapter({
   targetDir: '.agents/workflows',
   mode: 'file',
   fileSuffixes: ['.md'],
+  resolveSource: createMultiSuffixResolver(['.md'], 'Workflow'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
 });

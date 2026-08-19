@@ -23,7 +23,7 @@ import {
   getRepoSourceConfig,
   getCombinedProjectConfig,
   getConfigSectionWithFallback,
-  getEntryConfig,
+  isSourceNameConfigured,
   getSourceFileOverride,
   getSourceDirOverride,
   SourceDirOrigin,
@@ -230,6 +230,9 @@ export function resolveScopeAdapters(
  * suffix-resolved targetName, src/dotany/manager.ts), so a bare exact-key
  * lookup misses an entry added as "foo.md" when re-checking with "foo" —
  * mirrors handleAdd's own suffix-variant pre-check (src/commands/handlers.ts).
+ * Also checks isSourceNameConfigured so an entry added under an alias
+ * (`"my-alias": { url, rule: key }`) is recognized too — a bare key lookup
+ * only finds config entries keyed by their own source name.
  *
  * Reads by adapter.configPath, not [adapter.tool, adapter.subtype] — for
  * every adapter but one they're identical, but agents-md's project-config
@@ -240,13 +243,14 @@ export function resolveScopeAdapters(
  */
 function isEntryConfigured(projectConfig: ProjectConfig, adapter: SyncAdapter, key: string): boolean {
   const [topLevel, subLevel] = adapter.configPath;
-  if (getEntryConfig(projectConfig, topLevel, subLevel, key)) {
+  const section = getConfigSectionWithFallback(projectConfig, topLevel, subLevel);
+  if (isSourceNameConfigured(section, key)) {
     return true;
   }
   const suffixes = adapter.fileSuffixes ?? adapter.hybridFileSuffixes ?? [];
   return suffixes.some(suffix => {
     const keyWithSuffix = key.endsWith(suffix) ? key : `${key}${suffix}`;
-    return !!getEntryConfig(projectConfig, topLevel, subLevel, keyWithSuffix);
+    return isSourceNameConfigured(section, keyWithSuffix);
   });
 }
 

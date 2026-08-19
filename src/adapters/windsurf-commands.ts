@@ -1,4 +1,4 @@
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
 export const windsurfCommandsAdapter = createBaseAdapter({
   name: 'windsurf-commands',
@@ -9,4 +9,6 @@ export const windsurfCommandsAdapter = createBaseAdapter({
   targetDir: '.windsurf/workflows',
   mode: 'file',
   fileSuffixes: ['.md'],
+  resolveSource: createMultiSuffixResolver(['.md'], 'Command'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
 });

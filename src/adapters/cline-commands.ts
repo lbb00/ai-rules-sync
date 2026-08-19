@@ -1,4 +1,4 @@
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
 export const clineCommandsAdapter = createBaseAdapter({
   name: 'cline-commands',
@@ -9,4 +9,6 @@ export const clineCommandsAdapter = createBaseAdapter({
   targetDir: '.clinerules/workflows',
   mode: 'file',
   fileSuffixes: ['.md'],
+  resolveSource: createMultiSuffixResolver(['.md'], 'Command'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
 });
