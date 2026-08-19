@@ -27,7 +27,9 @@ describe('AI Tool Adapters', () => {
       expect(cursorAgentsAdapter.configPath).toEqual(['cursor', 'agents']);
       expect(cursorAgentsAdapter.defaultSourceDir).toBe('.cursor/agents');
       expect(cursorAgentsAdapter.targetDir).toBe('.cursor/agents');
-      expect(cursorAgentsAdapter.mode).toBe('directory');
+      // Cursor subagents are single .md files, not directories.
+      expect(cursorAgentsAdapter.mode).toBe('file');
+      expect(cursorAgentsAdapter.fileSuffixes).toEqual(['.md']);
     });
   });
 
