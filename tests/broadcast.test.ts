@@ -195,11 +195,16 @@ describe('buildAddPreviewRow already-configured detection with suffix variants',
 });
 
 describe('buildAddPreviewRow file-mode adapter using createMultiSuffixResolver', () => {
-  // cline-rules is mode:'file' but uses createMultiSuffixResolver (multiple
-  // fileSuffixes + directory-entry support), not createSingleSuffixResolver
-  // — a hand-rolled repoHasEntry keyed only on adapter.mode would treat it
-  // like every other file-mode adapter and never check for a directory.
-  // Delegating straight to adapter.resolveSource sidesteps that distinction.
+  // cline-rules is mode:'file' and uses createMultiSuffixResolver (multiple
+  // fileSuffixes), not createSingleSuffixResolver, but — unlike cursor-rules
+  // — does NOT pass allowDirectoryMatch: a same-named directory in the repo
+  // must NOT count as a hit here. A shared sourceDir can hold a
+  // directory-shaped entry for one tool alongside a file-shaped entry for
+  // another under the same bare name; matching the directory would preview
+  // (and later really link) the wrong entry. This also checks that
+  // buildAddPreviewRow delegates straight to adapter.resolveSource rather
+  // than a hand-rolled mode-keyed check, so it stays honest about the real
+  // add's resolution behavior.
   let repoDir: string;
   const adapter = getAdapter('cline', 'rules');
 
@@ -215,13 +220,14 @@ describe('buildAddPreviewRow file-mode adapter using createMultiSuffixResolver',
     return { name: 'repo', url: 'https://example.com/repo.git', path: repoDir };
   }
 
-  it('finds a directory-shaped entry even though the adapter is mode:"file"', async () => {
+  it('does not treat a directory-shaped entry as a hit for a mode:"file" adapter', async () => {
     await fs.ensureDir(path.join(repoDir, adapter.defaultSourceDir, 'my-rule-dir'));
     await fs.writeFile(path.join(repoDir, adapter.defaultSourceDir, 'my-rule-dir', 'index.md'), '# rule');
 
     const row = await buildAddPreviewRow(adapter, repo(), 'my-rule-dir', undefined, false);
-    expect(row.hit).toBe(true);
-    expect(row.action).toBe('will-add');
+    expect(row.hit).toBe(false);
+    expect(row.action).toBe('skip: not-in-repo');
+    expect(row.error).toMatch(/expects a single/);
   });
 });
 

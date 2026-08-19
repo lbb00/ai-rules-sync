@@ -33,7 +33,11 @@ describe('Cursor Rules Hybrid Mode', () => {
     });
 
     describe('resolveSource - createMultiSuffixResolver', () => {
-        const resolver = createMultiSuffixResolver(['.mdc', '.md'], 'Rule');
+        // cursor-rules is the one adapter that passes allowDirectoryMatch:
+        // true (mode: 'hybrid' — a rule can genuinely be either a directory
+        // or a suffixed file). Match that here so this suite reflects real
+        // cursor-rules resolution, not the file-mode default.
+        const resolver = createMultiSuffixResolver(['.mdc', '.md'], 'Rule', { allowDirectoryMatch: true });
 
         it('should link directory when source is a directory', async () => {
             const dirPath = path.join(mockRepoPath, sourceDir, 'my-rule-dir');
