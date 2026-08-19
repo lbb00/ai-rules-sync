@@ -147,6 +147,17 @@ export async function handleAdd(
       targetDir: options?.targetDir,
       skipIgnore: ctx.skipIgnore
     });
+    // Mirror project mode's DotfileManager.add(), which returns before writing
+    // to the manifest on conflict: don't record a dependency the filesystem
+    // doesn't actually reflect (a real, non-symlink file/dir sat at the target
+    // and adapter.link() refused to touch it — see DotfileManager.add() in dotany/manager.ts).
+    if (!result.linked) {
+      return {
+        sourceName: result.sourceName,
+        targetName: result.targetName,
+        linked: false
+      };
+    }
     const depAlias = alias || (result.targetName === result.sourceName ? undefined : result.targetName);
     await addUserDependency(
       adapter.configPath,

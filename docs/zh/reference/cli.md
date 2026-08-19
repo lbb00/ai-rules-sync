@@ -198,9 +198,13 @@ ais cursor rules import my-rule         # 同上，显式指定子类型
 ```bash
 ais skills add my-skill --tools claude,cursor,codex
 ais skills add my-skill --all               # 所有带 skills 适配器的工具
+ais skills add a,b,c --tools claude,cursor  # <name> 逗号分隔即可一次添加多个
 ais skills remove my-skill --tools claude   # 别名：rm
+ais skills remove a,b,c --tools claude      # remove 同样支持逗号分隔的多个名称
 ais skills list                             # 查看每个工具的配置情况
 ais skills add my-skill --all --dry-run     # 预览：will-add / skip: not-in-repo / skip: already-configured
+ais skills add-all --tools claude,cursor    # 发现仓库里所有 skill 并添加到每个列出的工具
+ais skills add-all --all --dry-run          # 预览 add-all，不实际安装
 ```
 
 ```bash
@@ -211,9 +215,11 @@ ais md add AGENTS.md --tools agents-md,claude
 ais prompts add release-notes --tools copilot
 ```
 
-每个 `<group> add/remove/list` 都接受 `--tools <list>`（逗号分隔，可重复传）或 `--all`，以及表示用户作用域的 `-g/--global`（别名 `-u/--user`）和 `--json`。`add` 还额外支持 `-l/--local`、`--dry-run` 和 `--strict`（某个工具在仓库中没有匹配条目时直接报错退出，而不是只警告）。
+每个 `<group> add/remove/list` 都接受 `--tools <list>`（逗号分隔，可重复传）或 `--all`，以及表示用户作用域的 `-g/--global`（别名 `-u/--user`）和 `--json`。`add` 和 `remove` 还都支持用逗号分隔多个条目名称/别名一次处理多个——`add` 的可选 alias 参数只在只给一个名称时才生效。`add` 还额外支持 `-l/--local`、`--dry-run` 和 `--strict`（某个工具在仓库中没有匹配条目时直接报错退出，而不是只警告）。
 
-无法识别的 `--tools` 名称会给出「你是不是想输入」的建议；如果某个工具在该组里没有对应适配器、但存在已知的等价物（例如 Copilot 用 `instructions` 对应 `rules` 组），会直接提示对应的替代命令，而不是悄无声息地什么都不做。
+`<group> add-all` 会发现仓库里该子类型下的所有条目，把每个尚未配置过的条目添加到每个目标工具——是单工具 `ais <tool> add-all` 在广播命令组层面的对应版本。它接受同样的 `--tools`/`--all`、`-g/--global`、`-l/--local`、`--dry-run`、`--json`，外加 `-f/--force` 用于重新添加已经配置过的条目。
+
+无法识别的 `--tools` 名称会给出「你是不是想输入」的建议；如果某个工具在该组里没有对应适配器、但存在已知的等价物（例如 Copilot 用 `instructions` 对应 `rules` 组），会直接提示对应的替代命令，而不是悄无声息地什么都不做。如果目标位置已经存在一个真实的、非符号链接的文件或目录，`add` 会拒绝覆盖它，报告 `skip: conflict`，而不是谎称成功。
 
 ## 其他命令
 

@@ -198,9 +198,13 @@ Push one entry to several tools in a single command, instead of repeating `ais <
 ```bash
 ais skills add my-skill --tools claude,cursor,codex
 ais skills add my-skill --all               # every tool with a skills adapter
+ais skills add a,b,c --tools claude,cursor  # comma-separate <name> to add several at once
 ais skills remove my-skill --tools claude   # alias: rm
+ais skills remove a,b,c --tools claude      # remove also takes a comma-separated list
 ais skills list                             # what's configured, per tool
 ais skills add my-skill --all --dry-run     # preview: will-add / skip: not-in-repo / skip: already-configured
+ais skills add-all --tools claude,cursor    # discover and add every skill the repo has, to every listed tool
+ais skills add-all --all --dry-run          # preview add-all without installing
 ```
 
 ```bash
@@ -211,9 +215,11 @@ ais md add AGENTS.md --tools agents-md,claude
 ais prompts add release-notes --tools copilot
 ```
 
-Every `<group> add/remove/list` takes `--tools <list>` (comma-separated, repeatable) or `--all`, plus `-g/--global` (alias `-u/--user`) for user scope and `--json`. `add` additionally takes `-l/--local`, `--dry-run`, and `--strict` (fail instead of warn when a tool has no matching repo entry).
+Every `<group> add/remove/list` takes `--tools <list>` (comma-separated, repeatable) or `--all`, plus `-g/--global` (alias `-u/--user`) for user scope and `--json`. `add` and `remove` additionally accept a comma-separated list of entry names/aliases to act on several at once — `add`'s optional alias argument only applies when a single name is given. `add` also takes `-l/--local`, `--dry-run`, and `--strict` (fail instead of warn when a tool has no matching repo entry).
 
-An unrecognized `--tools` name gets a "did you mean" suggestion; a tool with no adapter in that group but a known equivalent (e.g. Copilot's `instructions` for the `rules` group) is pointed at the exact replacement command instead of silently doing nothing.
+`<group> add-all` discovers every entry the repository has for that subtype and adds each one not already configured, across every targeted tool — the broadcast-group equivalent of the per-tool `ais <tool> add-all`. It takes the same `--tools`/`--all`, `-g/--global`, `-l/--local`, `--dry-run`, and `--json` options, plus `-f/--force` to re-add entries that are already configured.
+
+An unrecognized `--tools` name gets a "did you mean" suggestion; a tool with no adapter in that group but a known equivalent (e.g. Copilot's `instructions` for the `rules` group) is pointed at the exact replacement command instead of silently doing nothing. If a target's `add` finds a real, non-symlink file or directory already sitting at the destination, it refuses to overwrite it and reports `skip: conflict` instead of claiming success.
 
 ## Other Commands
 

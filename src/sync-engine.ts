@@ -161,17 +161,20 @@ export async function unlinkEntry(
     // Try to find the actual file - it may have a suffix added
     let actualFileName = alias;
     let targetPath = path.join(targetDir, alias);
+    let targetStats = await fs.lstat(targetPath).catch(() => null);
 
-    if (!await fs.pathExists(targetPath)) {
+    if (!targetStats) {
         // Try with common suffixes for file-based adapters
         const suffixes = adapter.fileSuffixes || adapter.hybridFileSuffixes;
         if (suffixes) {
             for (const suffix of suffixes) {
                 if (!alias.endsWith(suffix)) {
                     const candidatePath = path.join(targetDir, `${alias}${suffix}`);
-                    if (await fs.pathExists(candidatePath)) {
+                    const candidateStats = await fs.lstat(candidatePath).catch(() => null);
+                    if (candidateStats) {
                         actualFileName = `${alias}${suffix}`;
                         targetPath = candidatePath;
+                        targetStats = candidateStats;
                         break;
                     }
                 }
@@ -179,8 +182,11 @@ export async function unlinkEntry(
         }
     }
 
-    // Remove symlink/file
-    if (await fs.pathExists(targetPath)) {
+    // Remove symlink only — never a real file/directory that happens to sit at the target path
+    // (e.g. a targetDir collision with content ais doesn't manage).
+    if (targetStats && !targetStats.isSymbolicLink()) {
+        console.log(chalk.red(`"${alias}" at ${targetPath} is a real file/directory, not a symlink — refusing to delete it. Remove it manually if intended.`));
+    } else if (targetStats) {
         await fs.remove(targetPath);
         console.log(chalk.green(`Removed "${alias}" from project.`));
     } else {
