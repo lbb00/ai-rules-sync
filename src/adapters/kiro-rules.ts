@@ -1,4 +1,4 @@
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
 export const kiroRulesAdapter = createBaseAdapter({
   name: 'kiro-rules',
@@ -9,4 +9,6 @@ export const kiroRulesAdapter = createBaseAdapter({
   targetDir: '.kiro/steering',
   mode: 'file',
   fileSuffixes: ['.md'],
+  resolveSource: createMultiSuffixResolver(['.md'], 'Rule'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
 });

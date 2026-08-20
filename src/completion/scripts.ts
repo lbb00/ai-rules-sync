@@ -1,17 +1,19 @@
 /**
  * Shell completion scripts for bash, zsh, and fish
  *
- * The tool/subtype list and the `ais _complete <type>` names below are derived
- * from adapterRegistry so every registered adapter automatically gets
- * completion support. What can't be derived from the registry (the literal CLI
- * command word when it differs from `adapter.tool`, and which tools expose a
- * flattened root-level `add` in addition to their nested `<subtype> add`) is
- * kept as a small explicit table, mirroring the hand-written command tree in
- * src/index.ts. See resolveCompletionAdapter() for the matching lookup used by
- * the `_complete` command.
+ * Every tool now gets the same command tree (registerToolGroup in
+ * src/cli/tool-group.ts): `ais <tool> <subtype> add/remove/install/import`,
+ * plus a tool-wide `install`/`add-all`/`import`. There's no longer any
+ * hand-written divergence between tools to describe, so TOOL_SPECS below is
+ * derived directly from adapterRegistry (for the tool/subtype list) and
+ * cliNameForTool (for the two tools — antigravity-cli/"agy" and
+ * factorydroid/"droid" — whose CLI command word differs from adapter.tool).
+ * See resolveCompletionAdapter() for the matching lookup used by the
+ * `_complete` command.
  */
 
 import { adapterRegistry } from '../adapters/index.js';
+import { cliNameForTool, BROADCAST_GROUPS } from '../adapters/cli-groups.js';
 import { SyncAdapter } from '../adapters/types.js';
 
 interface CompletionEntry {
@@ -24,81 +26,21 @@ interface ToolCompletionSpec {
   description: string;
   rootSubcommands: CompletionEntry[];
   nestedSubcommands: Record<string, CompletionEntry[]>;
-  rootAddCompletionType?: string;
   nestedAddCompletionTypes?: Record<string, string>;
+}
+
+interface GroupCompletionSpec {
+  group: string;
+  description: string;
+  subcommands: CompletionEntry[];
+  /** adapter.name to pull entry names from for `add` completion, if any adapter in the group exists. */
+  addCompletionType?: string;
 }
 
 const COMMAND_ALIASES: Record<string, string[]> = {
   list: ['ls'],
   remove: ['rm']
 };
-
-/**
- * CLI-tree facts that aren't part of the adapter model: the literal command
- * word typed at the root (only differs from adapter.tool for antigravity-cli
- * -> "agy" and factorydroid -> "droid"), and which tools additionally expose a
- * flattened `<tool> add` shortcut for one default subtype (cursor, windsurf,
- * cline, agents-md — see registerRulesAndSkillsToolGroup and the cursor/
- * agents-md command blocks in src/index.ts).
- */
-interface ToolCliGroup {
-  cliCommand: string;
-  registryTool: string;
-  displayName: string;
-  flattenedAddSubtype?: string;
-  /** agents-md registers add/remove/install/import directly on the tool root — it has a single subtype and no nested subcommand group. */
-  rootOnly?: boolean;
-}
-
-const TOOL_CLI_GROUPS: ToolCliGroup[] = [
-  { cliCommand: 'cursor', registryTool: 'cursor', displayName: 'Cursor', flattenedAddSubtype: 'rules' },
-  { cliCommand: 'copilot', registryTool: 'copilot', displayName: 'GitHub Copilot' },
-  { cliCommand: 'claude', registryTool: 'claude', displayName: 'Claude' },
-  { cliCommand: 'trae', registryTool: 'trae', displayName: 'Trae' },
-  { cliCommand: 'opencode', registryTool: 'opencode', displayName: 'OpenCode' },
-  { cliCommand: 'codex', registryTool: 'codex', displayName: 'Codex' },
-  { cliCommand: 'gemini', registryTool: 'gemini', displayName: 'Gemini' },
-  { cliCommand: 'warp', registryTool: 'warp', displayName: 'Warp' },
-  { cliCommand: 'windsurf', registryTool: 'windsurf', displayName: 'Windsurf', flattenedAddSubtype: 'rules' },
-  { cliCommand: 'cline', registryTool: 'cline', displayName: 'Cline', flattenedAddSubtype: 'rules' },
-  { cliCommand: 'agents-md', registryTool: 'agents-md', displayName: 'AGENTS.md', rootOnly: true },
-  { cliCommand: 'codebuddy', registryTool: 'codebuddy', displayName: 'CodeBuddy' },
-  { cliCommand: 'pi', registryTool: 'pi', displayName: 'Pi' },
-  { cliCommand: 'agy', registryTool: 'antigravity-cli', displayName: 'Antigravity CLI' },
-  { cliCommand: 'workbuddy', registryTool: 'workbuddy', displayName: 'WorkBuddy' },
-  { cliCommand: 'deepseek', registryTool: 'deepseek', displayName: 'DeepSeek' },
-  { cliCommand: 'droid', registryTool: 'factorydroid', displayName: 'Factory Droid' },
-  { cliCommand: 'kimi', registryTool: 'kimi', displayName: 'Kimi Code' },
-  { cliCommand: 'kilo', registryTool: 'kilo', displayName: 'Kilo Code' },
-  { cliCommand: 'hermes', registryTool: 'hermes', displayName: 'Hermes' },
-  { cliCommand: 'junie', registryTool: 'junie', displayName: 'Junie' },
-  { cliCommand: 'kiro', registryTool: 'kiro', displayName: 'Kiro' },
-  { cliCommand: 'qwen', registryTool: 'qwen', displayName: 'Qwen Code' },
-  { cliCommand: 'augment', registryTool: 'augment', displayName: 'Augment Code' },
-  { cliCommand: 'deepagents', registryTool: 'deepagents', displayName: 'DeepAgents' },
-  { cliCommand: 'continue', registryTool: 'continue', displayName: 'Continue' },
-  { cliCommand: 'aider', registryTool: 'aider', displayName: 'Aider' },
-  { cliCommand: 'zed', registryTool: 'zed', displayName: 'Zed' },
-  { cliCommand: 'goose', registryTool: 'goose', displayName: 'Goose' },
-  { cliCommand: 'amp', registryTool: 'amp', displayName: 'Amp' }
-];
-
-/**
- * Adapters registered but not yet wired to a CLI command — remove entries
- * here as they get wired. adapterRegistry knows nothing about src/index.ts's
- * hand-written command tree, so completion would otherwise suggest running
- * subcommands (e.g. `ais cline commands ...`) that Commander never registered
- * and that fail with "unknown command". Excluded from every completion
- * surface derived from TOOL_SPECS, and from resolveCompletionAdapter so
- * `ais _complete <type>` stays consistent with what the scripts emit.
- */
-export const UNWIRED_ADAPTER_NAMES: Set<string> = new Set([
-  'cline-commands',
-  'cline-agents',
-  'windsurf-commands',
-  'opencode-rules',
-  'codex-agents'
-]);
 
 function singularize(subtype: string): string {
   return subtype.endsWith('s') ? subtype.slice(0, -1) : subtype;
@@ -115,48 +57,56 @@ function buildEntityCommands(displayName: string, adapter: SyncAdapter): Complet
   ];
 }
 
+/**
+ * Human-readable label for descriptions, derived from the CLI group name
+ * (not the internal `tool` field) so it matches what the user actually
+ * types. Mirrors humanize() in src/cli/tool-group.ts.
+ */
+function humanize(cliName: string): string {
+  return cliName
+    .split(/[-_]/)
+    .map(part => (part.length > 0 ? part[0].toUpperCase() + part.slice(1) : part))
+    .join(' ');
+}
+
+/**
+ * Every tool gets the same shape, generated straight from whatever adapters
+ * adapterRegistry has for it (registerToolGroup in src/cli/tool-group.ts):
+ * `ais <tool> install/add-all/import` plus one `<subtype>` subgroup per
+ * adapter. The hidden `<tool> add`/`<tool> remove` stubs are deliberately
+ * left off rootSubcommands — they're not real actions, so completion
+ * shouldn't suggest them.
+ */
 function buildToolSpecs(): ToolCompletionSpec[] {
   const specs: ToolCompletionSpec[] = [];
+  const tools = Array.from(new Set(adapterRegistry.all().map(adapter => adapter.tool)));
 
-  for (const group of TOOL_CLI_GROUPS) {
-    const adapters = adapterRegistry.getForTool(group.registryTool)
-      .filter(adapter => !UNWIRED_ADAPTER_NAMES.has(adapter.name));
+  for (const tool of tools) {
+    const adapters = adapterRegistry.getForTool(tool);
     if (adapters.length === 0) continue;
 
-    if (group.rootOnly) {
-      const adapter = adapters[0];
-      specs.push({
-        tool: group.cliCommand,
-        description: `Manage ${group.displayName} entries`,
-        rootSubcommands: buildEntityCommands(group.displayName, adapter),
-        nestedSubcommands: {},
-        rootAddCompletionType: adapter.name
-      });
-      continue;
-    }
+    const cliName = cliNameForTool(tool);
+    const displayName = humanize(cliName);
 
     const rootSubcommands: CompletionEntry[] = [
-      { name: 'install', description: `Install all ${group.displayName} entries` },
-      ...adapters.map(adapter => ({ name: adapter.subtype, description: `Manage ${group.displayName} ${adapter.subtype}` }))
+      { name: 'install', description: `Install all ${displayName} entries` },
+      { name: 'add-all', description: `Add all ${displayName} entries from repository` },
+      { name: 'import', description: `Import ${displayName} entry from project to repository` },
+      ...adapters.map(adapter => ({ name: adapter.subtype, description: `Manage ${displayName} ${adapter.subtype}` }))
     ];
 
     const nestedSubcommands: Record<string, CompletionEntry[]> = {};
     const nestedAddCompletionTypes: Record<string, string> = {};
     for (const adapter of adapters) {
-      nestedSubcommands[adapter.subtype] = buildEntityCommands(group.displayName, adapter);
+      nestedSubcommands[adapter.subtype] = buildEntityCommands(displayName, adapter);
       nestedAddCompletionTypes[adapter.subtype] = adapter.name;
     }
 
-    const flattenedAdapter = group.flattenedAddSubtype
-      ? adapters.find(adapter => adapter.subtype === group.flattenedAddSubtype)
-      : undefined;
-
     specs.push({
-      tool: group.cliCommand,
-      description: `Manage ${group.displayName} entries`,
+      tool: cliName,
+      description: `Manage ${displayName} assets in a project`,
       rootSubcommands,
       nestedSubcommands,
-      rootAddCompletionType: flattenedAdapter?.name,
       nestedAddCompletionTypes
     });
   }
@@ -165,6 +115,36 @@ function buildToolSpecs(): ToolCompletionSpec[] {
 }
 
 const TOOL_SPECS: ToolCompletionSpec[] = buildToolSpecs();
+
+/**
+ * One spec per `ais <subtype>` broadcast group (registerBroadcastGroups in
+ * src/cli/broadcast.ts): `ais <group> add/remove/list --tools <list>|--all`.
+ * Entry-name completion for `add` uses one representative adapter from the
+ * group's member subtypes — entries under a shared subtype are the same
+ * conceptual thing across tools (that's what makes them broadcastable), so
+ * any one member adapter's repo listing is a reasonable stand-in. `remove`
+ * has no completion type, matching every per-tool `remove` in TOOL_SPECS.
+ */
+function buildGroupSpecs(): GroupCompletionSpec[] {
+  return Object.entries(BROADCAST_GROUPS).map(([group, subtypes]) => {
+    const representative = subtypes
+      .map(subtype => adapterRegistry.all().find(adapter => adapter.subtype === subtype))
+      .find((adapter): adapter is SyncAdapter => !!adapter);
+
+    return {
+      group,
+      description: `Manage ${group} across multiple tools`,
+      subcommands: [
+        { name: 'add', description: `Add a ${singularize(group)} to one or more tools` },
+        { name: 'remove', description: `Remove a ${singularize(group)} from one or more tools` },
+        { name: 'list', description: `List ${group} across configured tools` }
+      ],
+      addCompletionType: representative?.name
+    };
+  });
+}
+
+const GROUP_SPECS: GroupCompletionSpec[] = buildGroupSpecs();
 
 /**
  * Completion type strings used by shell completion scripts generated before
@@ -185,9 +165,6 @@ const LEGACY_COMPLETION_ALIASES: Record<string, [tool: string, subtype: string]>
  * the way the old hand-written TOOL_SPECS and switch statement did.
  */
 export function resolveCompletionAdapter(type: string): SyncAdapter | undefined {
-  if (UNWIRED_ADAPTER_NAMES.has(type)) {
-    return undefined;
-  }
   const legacy = LEGACY_COMPLETION_ALIASES[type];
   if (legacy) {
     return adapterRegistry.get(legacy[0], legacy[1]);
@@ -199,23 +176,22 @@ const EXTRA_TOP_LEVEL_COMMANDS: CompletionEntry[] = [
   { name: 'use', description: 'Configure rules repository' },
   { name: 'list', description: 'List configured repositories' },
   { name: 'git', description: 'Run git commands in rules repository' },
-  { name: 'add', description: 'Add a rule (smart dispatch)' },
-  { name: 'remove', description: 'Remove a rule (smart dispatch)' },
-  { name: 'install', description: 'Install all rules (smart dispatch)' },
+  { name: 'install', description: 'Install all entries from config (project scope by default)' },
   { name: 'add-all', description: 'Install all entries from repository' },
   { name: 'import', description: 'Import entry to rules repository' },
   { name: 'status', description: 'Show repository and config status' },
   { name: 'search', description: 'Search entries in repository' },
   { name: 'check', description: 'Check repository update status' },
+  { name: 'doctor', description: 'Verify configured entries have healthy symlinks' },
   { name: 'update', description: 'Update repositories and reinstall entries' },
   { name: 'init', description: 'Initialize a rules repository template' },
   { name: 'config', description: 'Manage repository configuration' },
-  { name: 'user', description: 'Manage user-level AI config entries' },
   { name: 'completion', description: 'Output shell completion script' }
 ];
 
 const TOP_LEVEL_COMMANDS: CompletionEntry[] = [
   ...TOOL_SPECS.map(spec => ({ name: spec.tool, description: spec.description })),
+  ...GROUP_SPECS.map(spec => ({ name: spec.group, description: spec.description })),
   ...EXTRA_TOP_LEVEL_COMMANDS
 ];
 
@@ -274,17 +250,6 @@ function buildBashScript(): string {
   ];
 
   for (const spec of TOOL_SPECS) {
-    if (spec.rootAddCompletionType) {
-      lines.push(`  # ${spec.tool} add`);
-      lines.push(`  if [[ "$pprev" == "${spec.tool}" && "$prev" == "add" ]]; then`);
-      lines.push(`    COMPREPLY=( $(compgen -W "$(ais _complete ${spec.rootAddCompletionType} 2>/dev/null)" -- "$cur") )`);
-      lines.push('    return 0');
-      lines.push('  fi');
-      lines.push('');
-    }
-  }
-
-  for (const spec of TOOL_SPECS) {
     if (!spec.nestedAddCompletionTypes) continue;
     for (const [subcommand, completeType] of Object.entries(spec.nestedAddCompletionTypes)) {
       lines.push(`  # ${spec.tool} ${subcommand} add`);
@@ -294,6 +259,16 @@ function buildBashScript(): string {
       lines.push('  fi');
       lines.push('');
     }
+  }
+
+  for (const spec of GROUP_SPECS) {
+    if (!spec.addCompletionType) continue;
+    lines.push(`  # ${spec.group} add`);
+    lines.push(`  if [[ "$pprev" == "${spec.group}" && "$prev" == "add" ]]; then`);
+    lines.push(`    COMPREPLY=( $(compgen -W "$(ais _complete ${spec.addCompletionType} 2>/dev/null)" -- "$cur") )`);
+    lines.push('    return 0');
+    lines.push('  fi');
+    lines.push('');
   }
 
   for (const spec of TOOL_SPECS) {
@@ -311,6 +286,15 @@ function buildBashScript(): string {
     lines.push(`  # ${spec.tool}`);
     lines.push(`  if [[ "$prev" == "${spec.tool}" ]]; then`);
     lines.push(`    COMPREPLY=( $(compgen -W "${quotedNames(spec.rootSubcommands)}" -- "$cur") )`);
+    lines.push('    return 0');
+    lines.push('  fi');
+    lines.push('');
+  }
+
+  for (const spec of GROUP_SPECS) {
+    lines.push(`  # ${spec.group}`);
+    lines.push(`  if [[ "$prev" == "${spec.group}" ]]; then`);
+    lines.push(`    COMPREPLY=( $(compgen -W "${quotedNames(spec.subcommands)}" -- "$cur") )`);
     lines.push('    return 0');
     lines.push('  fi');
     lines.push('');
@@ -348,6 +332,9 @@ function buildZshScript(): string {
       variableNames.push(`${toVarName(spec.tool)}_${toVarName(nested)}_subcmds`);
     }
   }
+  for (const spec of GROUP_SPECS) {
+    variableNames.push(`${toVarName(spec.group)}_subcmds`);
+  }
 
   lines.push(`  local -a ${variableNames.join(' ')}`);
   for (const spec of TOOL_SPECS) {
@@ -357,6 +344,10 @@ function buildZshScript(): string {
       const nestedVar = `${toVarName(spec.tool)}_${toVarName(nested)}_subcmds`;
       lines.push(`  ${nestedVar}=(${buildZshDescribeItems(nestedEntries)})`);
     }
+  }
+  for (const spec of GROUP_SPECS) {
+    const groupVar = `${toVarName(spec.group)}_subcmds`;
+    lines.push(`  ${groupVar}=(${buildZshDescribeItems(spec.subcommands)})`);
   }
   lines.push('');
 
@@ -379,6 +370,12 @@ function buildZshScript(): string {
     lines.push(`          _describe 'subcommand' ${toolVar}`);
     lines.push('          ;;');
   }
+  for (const spec of GROUP_SPECS) {
+    const groupVar = `${toVarName(spec.group)}_subcmds`;
+    lines.push(`        ${spec.group})`);
+    lines.push(`          _describe 'subcommand' ${groupVar}`);
+    lines.push('          ;;');
+  }
   lines.push('      esac');
   lines.push('      ;;');
   lines.push('    subsubcommand)');
@@ -388,11 +385,6 @@ function buildZshScript(): string {
     const toolVar = `${toVarName(spec.tool)}_subcmds`;
     lines.push(`        ${spec.tool})`);
     lines.push('          case "$words[3]" in');
-    if (spec.rootAddCompletionType) {
-      lines.push('            add)');
-      lines.push(...buildZshCompleteTypeBlock(spec.rootAddCompletionType, '              '));
-      lines.push('              ;;');
-    }
 
     for (const nested of Object.keys(spec.nestedSubcommands)) {
       const nestedVar = `${toVarName(spec.tool)}_${toVarName(nested)}_subcmds`;
@@ -408,6 +400,17 @@ function buildZshScript(): string {
     lines.push('          ;;');
   }
 
+  for (const spec of GROUP_SPECS) {
+    if (!spec.addCompletionType) continue;
+    lines.push(`        ${spec.group})`);
+    lines.push('          case "$words[3]" in');
+    lines.push('            add)');
+    lines.push(...buildZshCompleteTypeBlock(spec.addCompletionType, '              '));
+    lines.push('              ;;');
+    lines.push('          esac');
+    lines.push('          ;;');
+  }
+
   lines.push('      esac');
   lines.push('      ;;');
   lines.push('    name)');
@@ -415,18 +418,12 @@ function buildZshScript(): string {
 
   for (const spec of TOOL_SPECS) {
     const hasNestedCompletions = !!spec.nestedAddCompletionTypes && Object.keys(spec.nestedAddCompletionTypes).length > 0;
-    if (!spec.rootAddCompletionType && !hasNestedCompletions) {
+    if (!hasNestedCompletions) {
       continue;
     }
 
     lines.push(`        ${spec.tool})`);
     lines.push('          case "$words[3]" in');
-
-    if (spec.rootAddCompletionType) {
-      lines.push('            add)');
-      lines.push(...buildZshCompleteTypeBlock(spec.rootAddCompletionType, '              '));
-      lines.push('              ;;');
-    }
 
     if (spec.nestedAddCompletionTypes) {
       for (const [nested, completeType] of Object.entries(spec.nestedAddCompletionTypes)) {
@@ -497,13 +494,31 @@ function buildFishScript(): string {
   }
 
   for (const spec of TOOL_SPECS) {
-    if (spec.rootAddCompletionType) {
-      lines.push(`complete -c ais -n "__fish_seen_subcommand_from ${spec.tool}; and __fish_seen_subcommand_from add" -a "(ais _complete ${spec.rootAddCompletionType} 2>/dev/null)"`);
-    }
     if (spec.nestedAddCompletionTypes) {
       for (const [nested, completeType] of Object.entries(spec.nestedAddCompletionTypes)) {
         lines.push(`complete -c ais -n "__fish_seen_subcommand_from ${spec.tool}; and __fish_seen_subcommand_from ${nested}; and __fish_seen_subcommand_from add" -a "(ais _complete ${completeType} 2>/dev/null)"`);
       }
+    }
+  }
+
+  // Group names can equal a subtype string used elsewhere (e.g. "skills" is
+  // both a broadcast group and many tools' subtype), and __fish_seen_subcommand_from
+  // matches any token on the line regardless of position — so these rules can
+  // overlap with a tool's nested-subtype rules above (e.g. "ais claude skills <TAB>"
+  // may also offer the group's "list"). Harmless duplication, not a wrong answer.
+  for (const spec of GROUP_SPECS) {
+    const groupEntries = expandEntriesWithAliases(spec.subcommands);
+    const allGroupSubcommands = groupEntries.map(entry => entry.name).join(' ');
+    lines.push(`# ${spec.group} subcommands`);
+    for (const subcommand of groupEntries) {
+      lines.push(`complete -c ais -n "__fish_seen_subcommand_from ${spec.group}; and not __fish_seen_subcommand_from ${allGroupSubcommands}" -a "${subcommand.name}" -d "${subcommand.description}"`);
+    }
+    lines.push('');
+  }
+
+  for (const spec of GROUP_SPECS) {
+    if (spec.addCompletionType) {
+      lines.push(`complete -c ais -n "__fish_seen_subcommand_from ${spec.group}; and __fish_seen_subcommand_from add" -a "(ais _complete ${spec.addCompletionType} 2>/dev/null)"`);
     }
   }
 

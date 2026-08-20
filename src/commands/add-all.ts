@@ -4,20 +4,9 @@ import chalk from 'chalk';
 import readline from 'readline';
 import { RepoConfig } from '../config.js';
 import { SyncAdapter, AdapterRegistry } from '../adapters/types.js';
-import { getRepoSourceConfig, getSourceDir, getCombinedProjectConfig, getConfigSectionWithFallback, ProjectConfig } from '../project-config.js';
+import { getRepoSourceConfig, getSourceDir, getCombinedProjectConfig, getConfigSectionWithFallback, isSourceNameConfigured, ProjectConfig } from '../project-config.js';
+import { resolveToolByCliName, cliNameForTool } from '../adapters/cli-groups.js';
 import { manageEntryIgnore, manageLocalConfigIgnore } from './handlers.js';
-
-/**
- * Maps a CLI command group name to its underlying adapter tool name, for cases
- * where they diverge (e.g. "agy" group -> "antigravity-cli" adapter tool,
- * "droid" group -> "factorydroid" adapter tool). Used to resolve --tools
- * filter values in discoverAllEntries. Mirrors TOOL_CLI_GROUPS in
- * src/completion/scripts.ts, which tracks the same facts for completion.
- */
-const TOOL_CLI_ALIASES: Record<string, string> = {
-    agy: 'antigravity-cli',
-    droid: 'factorydroid'
-};
 
 /**
  * Simple yes/no prompt using readline
@@ -177,7 +166,7 @@ export async function discoverEntriesForAdapter(
 
             // Strip suffix to get entry name
             const entryName = matchedSuffix ? item.slice(0, -matchedSuffix.length) : item;
-            const alreadyInConfig = entryName in configSection;
+            const alreadyInConfig = isSourceNameConfigured(configSection, entryName);
 
             entries.push({
                 adapter,
@@ -192,7 +181,7 @@ export async function discoverEntriesForAdapter(
             // Directory mode: only include directories
             if (!isDirectory) continue;
 
-            const alreadyInConfig = item in configSection;
+            const alreadyInConfig = isSourceNameConfigured(configSection, item);
 
             entries.push({
                 adapter,
@@ -208,7 +197,7 @@ export async function discoverEntriesForAdapter(
 
             if (isDirectory) {
                 // Directory
-                const alreadyInConfig = item in configSection;
+                const alreadyInConfig = isSourceNameConfigured(configSection, item);
 
                 entries.push({
                     adapter,
@@ -235,7 +224,7 @@ export async function discoverEntriesForAdapter(
 
                 // Strip suffix to get entry name
                 const entryName = matchedSuffix ? item.slice(0, -matchedSuffix.length) : item;
-                const alreadyInConfig = entryName in configSection;
+                const alreadyInConfig = isSourceNameConfigured(configSection, entryName);
 
                 entries.push({
                     adapter,
@@ -279,16 +268,18 @@ export async function discoverAllEntries(
             adapters.push(found);
         }
     } else if (options?.tools && options.tools.length > 0) {
-        // Filter by tools (resolving CLI-group aliases like "agy" -> "antigravity-cli")
+        // Filter by tools (resolving CLI-group aliases like "agy" -> "antigravity-cli").
+        // Unknown names are a hard error, aligned with broadcast groups'
+        // resolveScopeAdapters — --tools is a primary entry point here too, so
+        // silently skipping a typo'd name is worse than failing loudly.
         adapters = [];
         for (const rawTool of options.tools) {
-            const tool = TOOL_CLI_ALIASES[rawTool] ?? rawTool;
-            const toolAdapters = adapterRegistry.getForTool(tool);
-            if (toolAdapters.length === 0) {
-                console.warn(chalk.yellow(`Warning: no adapters found for tool "${rawTool}".`));
-                continue;
+            const tool = resolveToolByCliName(rawTool);
+            if (!tool) {
+                const supported = Array.from(new Set(adapterRegistry.all().map(a => cliNameForTool(a.tool)))).sort();
+                throw new Error(`Unknown tool "${rawTool}" for --tools.\nSupported tools: ${supported.join(', ')}`);
             }
-            adapters.push(...toolAdapters);
+            adapters.push(...adapterRegistry.getForTool(tool));
         }
     } else {
         // All adapters

@@ -15,7 +15,7 @@
 | `user.json` | `~/.config/ai-rules-sync/user.json` | 用户级配置（适用于所有项目） |
 
 ::: tip
-大多数用户无需直接编辑这些文件 — CLI（`ais add`、`ais rm` 等）会自动管理。仅在高级场景下手动编辑：别名、自定义 `targetDir` 或规则仓库中的自定义 `sourceDir`。
+大多数用户无需直接编辑这些文件 — CLI（`ais <tool> <subtype> add`、`ais <tool> <subtype> remove` 等）会自动管理。仅在高级场景下手动编辑：别名、自定义 `targetDir` 或规则仓库中的自定义 `sourceDir`。
 :::
 
 ## Schema 版本
@@ -224,7 +224,7 @@ AIS 在读取时会自动迁移不含 `version` 的旧格式配置。
 }
 ```
 
-所有工具（`copilot`、`trae`、`opencode`、`codex`、`gemini`、`warp`、`windsurf`、`cline`）遵循相同的 `工具 → 子类型 → 条目` 结构。
+所有适配器遵循相同的 `工具 → 子类型 → 条目` 结构。见[支持的工具](/zh/reference/supported-tools)。
 
 ### 条目格式
 
@@ -269,7 +269,7 @@ AIS 在读取时会自动迁移不含 `version` 的旧格式配置。
 使用 `ai-rules-sync.local.json` 管理不想提交的规则：
 
 ```bash
-ais cursor add company-secrets --local
+ais cursor rules add company-secrets --local
 ```
 
 - 结构与 `ai-rules-sync.json` 相同
@@ -277,6 +277,25 @@ ais cursor add company-secrets --local
 - 与主配置合并（冲突时本地优先）
 
 ---
+
+## 全局配置路径与兼容性
+
+AIS 在每次命令执行时按下面的优先级解析全局状态目录：
+
+1. `AIS_CONFIG_HOME`：直接使用该目录。
+2. `XDG_CONFIG_HOME`：使用 `<XDG_CONFIG_HOME>/ai-rules-sync`。
+3. 默认：`~/.config/ai-rules-sync`。
+
+测试和隔离环境因此不必访问真实用户配置。配置文件的 schema `version` 高于当前 AIS 支持版本时会直接报错，不会静默误读。依赖配置还可以声明最低 CLI 版本：
+
+```json
+{
+  "version": 1,
+  "requiresAis": ">=1.0.0"
+}
+```
+
+`ais status --user` 会报告不支持的工具、子类型和版本要求，同时保留未知条目。
 
 ## 用户级配置（user.json）
 

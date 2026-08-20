@@ -1,4 +1,4 @@
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
 export const codexAgentsAdapter = createBaseAdapter({
   name: 'codex-agents',
@@ -9,4 +9,6 @@ export const codexAgentsAdapter = createBaseAdapter({
   targetDir: '.codex/agents',
   mode: 'file',
   fileSuffixes: ['.toml'],
+  resolveSource: createMultiSuffixResolver(['.toml'], 'Agent'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.toml']),
 });

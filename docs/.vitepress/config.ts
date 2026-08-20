@@ -1,6 +1,7 @@
 import { defineConfig } from "vitepress";
 
 const toolsSidebar = [
+  { text: "Overview", link: "/guide/tool-guides" },
   { text: "Cursor", link: "/tools/cursor" },
   { text: "GitHub Copilot", link: "/tools/copilot" },
   { text: "Claude Code", link: "/tools/claude" },
@@ -15,6 +16,7 @@ const toolsSidebar = [
 ];
 
 const toolsSidebarZh = [
+  { text: "概览", link: "/zh/guide/tool-guides" },
   { text: "Cursor", link: "/zh/tools/cursor" },
   { text: "GitHub Copilot", link: "/zh/tools/copilot" },
   { text: "Claude Code", link: "/zh/tools/claude" },
@@ -36,11 +38,10 @@ const guideSidebar = [
       { text: "Getting Started", link: "/guide/getting-started" },
       { text: "Core Concepts", link: "/guide/core-concepts" },
       { text: "Project-Level Sync", link: "/guide/project-level" },
-      { text: "User Global-Level Sync", link: "/guide/user-level" },
+      { text: "User-Level Sync", link: "/guide/user-level" },
       { text: "Multiple Repositories", link: "/guide/multiple-repos" },
-      { text: "Import Rules", link: "/guide/import-rules" },
+      { text: "Import Assets", link: "/guide/import-rules" },
       { text: "Monorepo & Custom Dirs", link: "/guide/monorepo" },
-      { text: "Advanced Features", link: "/guide/advanced-features" },
       { text: "Troubleshooting", link: "/guide/troubleshooting" },
     ],
   },
@@ -57,12 +58,11 @@ const guideSidebarZh = [
       { text: "什么是 AIS？", link: "/zh/guide/what-is-ais" },
       { text: "快速开始", link: "/zh/guide/getting-started" },
       { text: "核心概念", link: "/zh/guide/core-concepts" },
-      { text: "项目级别同步", link: "/zh/guide/project-level" },
-      { text: "用户全局级别同步", link: "/zh/guide/user-level" },
+      { text: "项目级同步", link: "/zh/guide/project-level" },
+      { text: "用户级同步", link: "/zh/guide/user-level" },
       { text: "多仓库", link: "/zh/guide/multiple-repos" },
-      { text: "导入规则", link: "/zh/guide/import-rules" },
+      { text: "导入资产", link: "/zh/guide/import-rules" },
       { text: "Monorepo 与自定义目录", link: "/zh/guide/monorepo" },
-      { text: "高级功能", link: "/zh/guide/advanced-features" },
       { text: "故障排查", link: "/zh/guide/troubleshooting" },
     ],
   },
@@ -72,12 +72,32 @@ const guideSidebarZh = [
   },
 ];
 
+const referenceSidebar = [
+  {
+    text: "Reference",
+    items: [
+      { text: "CLI Commands", link: "/reference/cli" },
+      { text: "ai-rules-sync.json", link: "/reference/configuration" },
+      { text: "Supported Tools", link: "/reference/supported-tools" },
+    ],
+  },
+];
 
+const referenceSidebarZh = [
+  {
+    text: "参考",
+    items: [
+      { text: "CLI 命令", link: "/zh/reference/cli" },
+      { text: "ai-rules-sync.json", link: "/zh/reference/configuration" },
+      { text: "支持的工具", link: "/zh/reference/supported-tools" },
+    ],
+  },
+];
 
 export default defineConfig({
   title: "AI Rules Sync",
   description:
-    "Synchronize, manage, and share your AI agent rules across projects and teams.",
+    "Asset federation toolkit for native agent skills, rules, commands, and agents — many Git repos, many projects, via symbolic links.",
   base: "/ai-rules-sync/",
 
   head: [
@@ -97,28 +117,14 @@ export default defineConfig({
       lang: "en",
       themeConfig: {
         nav: [
-          { text: "Guide", link: "/guide/getting-started" },
-          { text: "API", link: "/reference/cli" },
+          { text: "Guide", link: "/guide/what-is-ais" },
+          { text: "Tools", link: "/guide/tool-guides" },
+          { text: "Reference", link: "/reference/cli" },
         ],
         sidebar: {
           "/guide/": guideSidebar,
           "/tools/": guideSidebar,
-          "/reference/": [
-            {
-              text: "API",
-              items: [
-                { text: "CLI Commands", link: "/reference/cli" },
-                {
-                  text: "ai-rules-sync.json",
-                  link: "/reference/configuration",
-                },
-                {
-                  text: "Supported Tools",
-                  link: "/reference/supported-tools",
-                },
-              ],
-            },
-          ],
+          "/reference/": referenceSidebar,
         },
       },
     },
@@ -127,28 +133,14 @@ export default defineConfig({
       lang: "zh-CN",
       themeConfig: {
         nav: [
-          { text: "指南", link: "/zh/guide/getting-started" },
-          { text: "API", link: "/zh/reference/cli" },
+          { text: "指南", link: "/zh/guide/what-is-ais" },
+          { text: "工具", link: "/zh/guide/tool-guides" },
+          { text: "参考", link: "/zh/reference/cli" },
         ],
         sidebar: {
           "/zh/guide/": guideSidebarZh,
           "/zh/tools/": guideSidebarZh,
-          "/zh/reference/": [
-            {
-              text: "API",
-              items: [
-                { text: "CLI 命令", link: "/zh/reference/cli" },
-                {
-                  text: "ai-rules-sync.json",
-                  link: "/zh/reference/configuration",
-                },
-                {
-                  text: "支持的工具",
-                  link: "/zh/reference/supported-tools",
-                },
-              ],
-            },
-          ],
+          "/zh/reference/": referenceSidebarZh,
         },
       },
     },

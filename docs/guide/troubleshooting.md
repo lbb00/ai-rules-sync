@@ -11,7 +11,7 @@ Common issues and solutions when using AIS.
 **Solution:** On the first `add` in a project (or when no current repo is set), specify the repository:
 
 ```bash
-ais cursor add react -t https://github.com/your-org/rules-repo.git
+ais cursor rules add react -t https://github.com/your-org/rules-repo.git
 ```
 
 After that, `ais use` remembers the repo and you can omit `-t`.
@@ -24,17 +24,21 @@ After that, `ais use` remembers the repo and you can omit `-t`.
 
 ## Symlinks
 
+### Checking symlink health across the board
+
+Run `ais doctor` to scan every configured entry and report which ones are `missing`, `conflict`, or `stale` (read-only — it doesn't change anything). It's the fastest way to find the two symptoms below without checking entries one by one.
+
 ### Broken symlinks after git clone
 
 **Symptom:** After cloning a project, `.cursor/rules/` shows broken symlinks.
 
-**Solution:** Run `ais install` in the project root. AIS reads `ai-rules-sync.json` and recreates all symlinks.
+**Solution:** Run `ais doctor` to confirm they're `missing`, then `ais install` in the project root. AIS reads `ai-rules-sync.json` and recreates all symlinks.
 
 ### Symlinks point to wrong location
 
 **Symptom:** Rules don't update when you change the source repository.
 
-**Solution:** Check that the symlink target exists. Run `ais status` to verify. If the repo was moved, run `ais use <correct-repo>` and `ais install`.
+**Solution:** Run `ais doctor` — a `stale` entry confirms the symlink doesn't match the current repo source. Check that the symlink target exists, and run `ais status` to verify. If the repo was moved, run `ais use <correct-repo>` and `ais install`.
 
 ## Repositories
 
@@ -47,7 +51,7 @@ After that, `ais use` remembers the repo and you can omit `-t`.
 ```bash
 ais ls                    # List all repos
 ais use correct-repo      # Switch current repo
-ais cursor add react -t https://github.com/org/correct-repo.git  # Or specify -t explicitly
+ais cursor rules add react -t https://github.com/org/correct-repo.git  # Or specify -t explicitly
 ```
 
 ### Repository behind upstream
@@ -64,16 +68,16 @@ ais update --dry-run      # Preview without applying
 
 ## User-Level Config
 
-### `ais user install` does nothing
+### `ais install -g` does nothing
 
-**Symptom:** Running `ais user install` completes but no files appear in `~/.claude/`, etc.
+**Symptom:** Running `ais install -g` completes but no files appear in `~/.claude/`, etc.
 
 **Solution:** Ensure `~/.config/ai-rules-sync/user.json` has entries. Add them first:
 
 ```bash
 ais use https://github.com/me/my-rules.git
 ais claude md add CLAUDE --user
-ais user install
+ais install -g
 ```
 
 ### User config path
@@ -96,8 +100,8 @@ ais config user show      # Verify
 **Solution:** Use aliases so the same repo entry maps to different local names:
 
 ```bash
-ais cursor add auth-rules -d packages/frontend/.cursor/rules
-ais cursor add auth-rules backend-auth -d packages/backend/.cursor/rules
+ais cursor rules add auth-rules -d packages/frontend/.cursor/rules
+ais cursor rules add auth-rules backend-auth -d packages/backend/.cursor/rules
 ```
 
 ## Getting Help

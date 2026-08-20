@@ -8,17 +8,17 @@
 
 ```bash
 # 从根目录添加
-ais agents-md add .
+ais agents-md file add .
 
 # 从子目录添加
-ais agents-md add frontend
+ais agents-md file add frontend
 
 # 带别名添加（区分多个 AGENTS.md 文件）
-ais agents-md add frontend fe-agents
-ais agents-md add backend be-agents
+ais agents-md file add frontend fe-agents
+ais agents-md file add backend be-agents
 
 # 移除
-ais agents-md rm fe-agents
+ais agents-md file rm fe-agents
 ```
 
 ## 参考

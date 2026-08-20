@@ -61,8 +61,10 @@ export interface SyncAdapter {
      * Create a DotfileManager bound to a specific project and repo.
      * Provides the full dotfile API (add, remove, apply, diff, status, import, readManifest).
      * Pass null as repo for remove-only operations (no source resolution needed).
+     * isUser reads/writes user.json (via UserRulesSyncManifest) and targets
+     * userTargetDir instead of targetDir, mirroring link()'s skipIgnore branch.
      */
-    forProject(projectPath: string, repo: RepoConfig | RepoResolverFn | null, isLocal?: boolean): DotfileManager;
+    forProject(projectPath: string, repo: RepoConfig | RepoResolverFn | null, isLocal?: boolean, isUser?: boolean): DotfileManager;
 
     /** Add a dependency to project config */
     addDependency(

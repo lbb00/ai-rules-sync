@@ -17,6 +17,6 @@ export const cursorRulesAdapter: SyncAdapter = createBaseAdapter({
     mode: 'hybrid',
     hybridFileSuffixes: SUFFIXES,
 
-    resolveSource: createMultiSuffixResolver(SUFFIXES, 'Rule'),
+    resolveSource: createMultiSuffixResolver(SUFFIXES, 'Rule', { allowDirectoryMatch: true }),
     resolveTargetName: createSuffixAwareTargetResolver(SUFFIXES)
 });

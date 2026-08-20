@@ -54,4 +54,27 @@ describe('handleRemove user mode', () => {
     expect(stats).toBeNull();
     expect(result.removedFrom).toEqual(['user.json']);
   });
+
+  it('refuses to delete a real (non-symlink) file/directory sitting at the target path', async () => {
+    const fakeHome = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-remove-user-conflict-'));
+    userConfigPath = path.join(fakeHome, 'user.json');
+    const alias = 'my-skill';
+
+    await fs.writeJson(userConfigPath, {
+      opencode: { skills: { [alias]: 'https://example.com/repo.git' } }
+    }, { spaces: 2 });
+
+    // A real directory (not a symlink ais created) happens to occupy the target path —
+    // e.g. two adapters sharing a userTargetDir, or unrelated user content.
+    const userTargetPath = path.join(fakeHome, opencodeSkillsAdapter.userTargetDir!, alias);
+    await fs.ensureDir(userTargetPath);
+    await fs.writeFile(path.join(userTargetPath, 'real-content.txt'), 'do not delete me');
+
+    await handleRemove(opencodeSkillsAdapter, fakeHome, alias, true);
+
+    const stats = await fs.lstat(userTargetPath).catch(() => null);
+    expect(stats).not.toBeNull();
+    expect(stats!.isSymbolicLink()).toBe(false);
+    expect(await fs.pathExists(path.join(userTargetPath, 'real-content.txt'))).toBe(true);
+  });
 });

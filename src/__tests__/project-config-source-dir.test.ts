@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
-import { getRepoSourceConfig, getSourceDir, getSourceFileOverride, getSourceDirOverride, getTargetFileOverride, getTargetNameOverride, getEntryConfig, getRuleSection, getConfigSectionWithFallback, removeDependencyGeneric } from '../project-config.js';
+import { getRepoSourceConfig, getSourceDir, resolveSourceDir, getSourceFileOverride, getSourceDirOverride, getTargetFileOverride, getTargetNameOverride, getEntryConfig, getRuleSection, getConfigSectionWithFallback, removeDependencyGeneric } from '../project-config.js';
 import type { ProjectConfig, RepoSourceConfig, SourceDirConfig } from '../project-config.js';
 
 describe('project-config source directory resolution', () => {
@@ -242,5 +242,132 @@ describe('wildcard (*) config fallback', () => {
 
     const after = await fs.readJson(path.join(tempDir, 'ai-rules-sync.json'));
     expect(after['*']?.skills?.['wild-skill']).toBeUndefined();
+  });
+});
+
+describe('resolveSourceDir origin tagging', () => {
+  it('should tag override as origin when globalOverride hits, and skip rootPath prefix', () => {
+    const repoConfig: RepoSourceConfig = {
+      rootPath: 'repo-root',
+      windsurf: {
+        skills: '.windsurf/repo-skills'
+      }
+    };
+    const override: SourceDirConfig = {
+      windsurf: {
+        skills: '.windsurf/override-skills'
+      }
+    };
+
+    const result = resolveSourceDir(repoConfig, 'windsurf', 'skills', '.windsurf/skills', override);
+    expect(result).toEqual({ dir: '.windsurf/override-skills', origin: 'override' });
+  });
+
+  it('should tag explicit as origin when repo has a tool-specific entry, prefixed with rootPath', () => {
+    const repoConfig: RepoSourceConfig = {
+      rootPath: 'repo-root',
+      cursor: {
+        rules: '.cursor/rules'
+      }
+    };
+
+    const result = resolveSourceDir(repoConfig, 'cursor', 'rules', '.cursor/default-rules');
+    expect(result).toEqual({ dir: path.join('repo-root', '.cursor/rules'), origin: 'explicit' });
+  });
+
+  it('should tag wildcard as origin when only "*" is configured, prefixed with rootPath', () => {
+    const repoConfig: RepoSourceConfig = {
+      rootPath: 'repo-root',
+      '*': {
+        skills: 'common/skills'
+      }
+    };
+
+    const result = resolveSourceDir(repoConfig, 'cursor', 'skills', '.cursor/skills');
+    expect(result).toEqual({ dir: path.join('repo-root', 'common/skills'), origin: 'wildcard' });
+  });
+
+  it('should tag default as origin when nothing is configured, prefixed with rootPath', () => {
+    const repoConfig: RepoSourceConfig = { rootPath: 'repo-root' };
+
+    const result = resolveSourceDir(repoConfig, 'cursor', 'skills', '.cursor/skills');
+    expect(result).toEqual({ dir: path.join('repo-root', '.cursor/skills'), origin: 'default' });
+  });
+
+  it('should produce a default dir with no rootPath prefix when rootPath is unset', () => {
+    const repoConfig: RepoSourceConfig = {};
+
+    const result = resolveSourceDir(repoConfig, 'cursor', 'skills', '.cursor/skills');
+    expect(result).toEqual({ dir: '.cursor/skills', origin: 'default' });
+  });
+
+  it('should let an explicit tool entry beat "*" even when both are object-form SourceDirValues', () => {
+    // Mirrors the design doc §3.2 schema example: "*" gives a shared default,
+    // explicit per-tool entries (including object-form ones) still win.
+    const repoConfig: RepoSourceConfig = {
+      rootPath: 'rules-root',
+      '*': {
+        skills: 'skills',
+        rules: 'rules'
+      },
+      claude: {
+        skills: 'claude-only-skills'
+      },
+      codex: {
+        md: { mode: 'file', dir: 'common', sourceFile: 'AGENTS.md' }
+      }
+    };
+
+    // claude.skills is an explicit string entry that beats "*".skills
+    expect(resolveSourceDir(repoConfig, 'claude', 'skills', '.claude/skills')).toEqual({
+      dir: path.join('rules-root', 'claude-only-skills'),
+      origin: 'explicit'
+    });
+
+    // codex.md is an explicit object-form entry that beats "*" (which has no md subtype at all)
+    expect(resolveSourceDir(repoConfig, 'codex', 'md', '.codex/md')).toEqual({
+      dir: path.join('rules-root', 'common'),
+      origin: 'explicit'
+    });
+
+    // codex has no "rules" entry of its own, so it falls back to "*".rules
+    expect(resolveSourceDir(repoConfig, 'codex', 'rules', '.codex/rules')).toEqual({
+      dir: path.join('rules-root', 'rules'),
+      origin: 'wildcard'
+    });
+
+    // cursor has nothing explicit at all, only "*".skills applies
+    expect(resolveSourceDir(repoConfig, 'cursor', 'skills', '.cursor/skills')).toEqual({
+      dir: path.join('rules-root', 'skills'),
+      origin: 'wildcard'
+    });
+  });
+
+  it('should resolve an object-form "*" entry (dir field) as the wildcard origin', () => {
+    const repoConfig: RepoSourceConfig = {
+      rootPath: 'rules-root',
+      '*': {
+        md: { mode: 'file', dir: 'common', sourceFile: 'AGENTS.md' }
+      }
+    };
+
+    const result = resolveSourceDir(repoConfig, 'gemini', 'md', '.gemini/md');
+    expect(result).toEqual({ dir: path.join('rules-root', 'common'), origin: 'wildcard' });
+  });
+
+  it('getSourceDir should stay a thin wrapper returning only the dir from resolveSourceDir', () => {
+    const repoConfig: RepoSourceConfig = {
+      rootPath: 'repo-root',
+      '*': { skills: 'common/skills' },
+      cursor: { rules: '.cursor/rules' }
+    };
+    const override: SourceDirConfig = { cursor: { rules: '.cursor/override-rules' } };
+
+    expect(getSourceDir(repoConfig, 'cursor', 'rules', '.cursor/default', override))
+      .toBe(resolveSourceDir(repoConfig, 'cursor', 'rules', '.cursor/default', override).dir);
+    expect(getSourceDir(repoConfig, 'copilot', 'skills', '.github/skills'))
+      .toBe(resolveSourceDir(repoConfig, 'copilot', 'skills', '.github/skills').dir);
+    expect(getSourceDir(repoConfig, 'windsurf', 'skills', '.windsurf/skills'))
+      .toBe(resolveSourceDir(repoConfig, 'windsurf', 'skills', '.windsurf/skills').dir);
   });
 });

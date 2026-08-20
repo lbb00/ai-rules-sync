@@ -49,7 +49,7 @@ export function registerAdapterCommands(options: RegisterCommandsOptions): void 
         const repo = await getTargetRepo(programOpts());
         const isUser = cmdOptions.user || false;
         const projectPath = isUser ? os.homedir() : process.cwd();
-        await handleAdd(adapter, {
+        const result = await handleAdd(adapter, {
           projectPath,
           repo,
           isLocal: cmdOptions.local || false,
@@ -60,6 +60,9 @@ export function registerAdapterCommands(options: RegisterCommandsOptions): void 
           user: isUser,
           targetDir: cmdOptions.targetDir
         });
+        if (!result.linked) {
+          process.exit(1);
+        }
       } catch (error: any) {
         console.error(chalk.red(`Error adding ${adapter.tool} ${entityName}:`), error.message);
         process.exit(1);

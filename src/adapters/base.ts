@@ -6,6 +6,7 @@ import { addDependencyGeneric, removeDependencyGeneric } from '../project-config
 import { dotfile } from '../dotany/index.js';
 import { GitRepoSource } from '../plugin/git-repo-source.js';
 import { AiRulesSyncManifest } from '../plugin/ai-rules-sync-manifest.js';
+import { UserRulesSyncManifest } from '../plugin/user-rules-sync-manifest.js';
 import type { DotfileManager } from '../dotany/manager.js';
 import { RepoConfig } from '../config.js';
 import type { RepoResolverFn } from '../dotany/types.js';
@@ -47,14 +48,17 @@ export function createBaseAdapter(config: AdapterConfig): SyncAdapter {
         resolveSource: config.resolveSource,
         resolveTargetName: config.resolveTargetName,
 
-        forProject(projectPath: string, repoOrResolver: RepoConfig | RepoResolverFn | null, isLocal?: boolean): DotfileManager {
+        forProject(projectPath: string, repoOrResolver: RepoConfig | RepoResolverFn | null, isLocal?: boolean, isUser?: boolean): DotfileManager {
             return dotfile.create({
                 name: config.name,
                 source: new GitRepoSource(repoOrResolver, config),
-                targetDir: config.targetDir,
+                targetDir: isUser && config.userTargetDir ? config.userTargetDir : config.targetDir,
                 targetRoot: projectPath,
-                manifest: new AiRulesSyncManifest(projectPath, config.configPath, isLocal),
+                manifest: isUser
+                    ? new UserRulesSyncManifest(config.configPath)
+                    : new AiRulesSyncManifest(projectPath, config.configPath, isLocal),
                 resolveTargetName: config.resolveTargetName,
+                knownSuffixes: config.mode === 'hybrid' ? config.hybridFileSuffixes : config.fileSuffixes,
             });
         },
 
@@ -126,28 +130,48 @@ export function createSingleSuffixResolver(suffix: string, entityName: string) {
 }
 
 /**
- * Create a multi-suffix resolver for hybrid mode adapters
- * Supports both files (with multiple possible suffixes) and directories.
+ * Create a multi-suffix resolver for file mode adapters (or hybrid, with
+ * `allowDirectoryMatch`). Supports files with multiple possible suffixes;
+ * a bare directory of the exact entry name only counts as a match when
+ * `allowDirectoryMatch` is set.
  * When sourceDirOverride is set (from rules repo sourceDir), resolves to that directory.
+ *
+ * A plain `mode: 'file'` adapter must NOT match a same-named directory: a
+ * shared sourceDir (`sourceDir['*'].agents`) can hold a directory-shaped
+ * entry for one tool (e.g. deepagents' `<name>/AGENTS.md`) alongside a
+ * file-shaped entry for another (e.g. claude's `<name>.md`) under the same
+ * bare name — matching the directory here would silently link the wrong
+ * entry instead of the correctly-suffixed file. Only `cursor-rules`
+ * (mode: 'hybrid') genuinely accepts either shape for the same entry.
  */
-export function createMultiSuffixResolver(suffixes: string[], entityName: string) {
+export function createMultiSuffixResolver(
+    suffixes: string[],
+    entityName: string,
+    options: { allowDirectoryMatch?: boolean } = {}
+) {
+    const { allowDirectoryMatch = false } = options;
     return async (
         repoDir: string,
         rootPath: string,
         name: string,
-        options?: { sourceDirOverride?: string }
+        resolveOptions?: { sourceDirOverride?: string }
     ): Promise<ResolvedSource> => {
-        const effectiveName = options?.sourceDirOverride ?? name;
+        const effectiveName = resolveOptions?.sourceDirOverride ?? name;
         const basePath = path.join(repoDir, rootPath, effectiveName);
+        let baseIsDirectory = false;
 
         // 1. Check exact name first - could be directory or file with suffix
         if (await fs.pathExists(basePath)) {
             const stats = await fs.stat(basePath);
-            if (stats.isDirectory()) {
-                return { sourceName: effectiveName, sourcePath: basePath, suffix: undefined };
+            baseIsDirectory = stats.isDirectory();
+            if (baseIsDirectory) {
+                if (allowDirectoryMatch) {
+                    return { sourceName: effectiveName, sourcePath: basePath, suffix: undefined };
+                }
+            } else {
+                const matchedSuffix = suffixes.find(s => effectiveName.endsWith(s));
+                return { sourceName: effectiveName, sourcePath: basePath, suffix: matchedSuffix };
             }
-            const matchedSuffix = suffixes.find(s => effectiveName.endsWith(s));
-            return { sourceName: effectiveName, sourcePath: basePath, suffix: matchedSuffix };
         }
 
         // 2. Name doesn't have suffix - try each suffix in order
@@ -157,6 +181,12 @@ export function createMultiSuffixResolver(suffixes: string[], entityName: string
             if (await fs.pathExists(candPath)) {
                 return { sourceName: candName, sourcePath: candPath, suffix };
             }
+        }
+
+        if (baseIsDirectory) {
+            throw new Error(
+                `${entityName} "${effectiveName}" exists in the repository as a directory, but this tool expects a single ${suffixes.join('/')} file — the repository doesn't provide a file-shaped entry for it.`
+            );
         }
 
         throw new Error(`${entityName} "${effectiveName}" not found in repository.`);

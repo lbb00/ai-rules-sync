@@ -1,4 +1,4 @@
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
 export const piPromptsAdapter = createBaseAdapter({
   name: 'pi-prompts',
@@ -9,4 +9,6 @@ export const piPromptsAdapter = createBaseAdapter({
   targetDir: '.pi/prompts',
   mode: 'file',
   fileSuffixes: ['.md'],
+  resolveSource: createMultiSuffixResolver(['.md'], 'Prompt'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
 });

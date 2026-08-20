@@ -6,6 +6,7 @@
 | Skills | directory | `.opencode/skills/` | - | [Docs](https://opencode.ai/docs/skills/) |
 | Agents | file | `.opencode/agents/` | `.md` | [Docs](https://opencode.ai/docs/agents/) |
 | Tools | file | `.opencode/tools/` | `.ts`, `.js` | [Docs](https://opencode.ai/docs/tools/) |
+| Rules | file | `.opencode/rules/` | `.md` | [Docs](https://opencode.ai) |
 
 ## Commands
 

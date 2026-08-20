@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import { describe, expect, it } from 'vitest';
 import { initRulesRepository } from '../commands/lifecycle.js';
+import { WILDCARD_TOOL, getRepoSourceConfig, resolveSourceDir } from '../project-config.js';
 
 describe('initRulesRepository', () => {
   it('should create a repository template with sourceDir config', async () => {
@@ -16,12 +17,80 @@ describe('initRulesRepository', () => {
     expect(configExists).toBe(true);
 
     const config = await fs.readJson(result.configPath);
-    expect(config.sourceDir?.cursor?.rules).toBe('.cursor/rules');
+    // Subtypes shared by >=2 tools collapse to a single wildcard entry.
+    expect(config.sourceDir?.[WILDCARD_TOOL]?.skills).toBe('skills');
+    expect(config.sourceDir?.[WILDCARD_TOOL]?.agents).toBe('agents');
+    expect(config.sourceDir?.[WILDCARD_TOOL]?.rules).toBe('rules');
+    expect(config.sourceDir?.[WILDCARD_TOOL]?.commands).toBe('commands');
+    expect(config.sourceDir?.[WILDCARD_TOOL]?.prompts).toBe('prompts');
+    // Tool-specific / content-diverging subtypes stay explicit per tool.
     expect(config.sourceDir?.copilot?.instructions).toBe('.github/instructions');
+    expect(config.sourceDir?.claude?.md).toBe('.claude');
+    expect(config.sourceDir?.codex?.md).toBe('.codex');
+    // No tool ends up with an explicit entry for a shareable subtype.
+    expect(config.sourceDir?.cursor?.rules).toBeUndefined();
+    expect(config.sourceDir?.claude?.skills).toBeUndefined();
 
-    const cursorDir = path.join(result.projectPath, '.cursor', 'rules');
-    expect(await fs.pathExists(cursorDir)).toBe(true);
+    const rulesDir = path.join(result.projectPath, 'rules');
+    expect(await fs.pathExists(rulesDir)).toBe(true);
+    const skillsDir = path.join(result.projectPath, 'skills');
+    expect(await fs.pathExists(skillsDir)).toBe(true);
+    const claudeMdDir = path.join(result.projectPath, '.claude');
+    expect(await fs.pathExists(claudeMdDir)).toBe(true);
     expect(result.createdDirectories.length).toBeGreaterThan(0);
+  });
+
+  it('should resolve the generated wildcard entry via resolveSourceDir with origin "wildcard"', async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-init-resolve-'));
+    const result = await initRulesRepository({
+      cwd,
+      name: 'resolve-template'
+    });
+
+    const repoConfig = await getRepoSourceConfig(result.projectPath);
+    const resolved = resolveSourceDir(repoConfig, 'claude', 'skills', '.claude/skills');
+    expect(resolved.origin).toBe('wildcard');
+    expect(resolved.dir).toBe('skills');
+  });
+
+  it('should fall back to explicit per-tool entries when a shareable subtype has only one tool left after filtering', async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-init-only-single-'));
+    const result = await initRulesRepository({
+      cwd,
+      name: 'only-claude-template',
+      only: ['claude']
+    });
+
+    const config = await fs.readJson(result.configPath);
+    expect(config.sourceDir?.[WILDCARD_TOOL]).toBeUndefined();
+    expect(config.sourceDir?.claude?.skills).toBe('.claude/skills');
+    expect(config.sourceDir?.claude?.agents).toBe('.claude/agents');
+    expect(config.sourceDir?.claude?.rules).toBe('.claude/rules');
+    expect(config.sourceDir?.claude?.md).toBe('.claude');
+  });
+
+  it('should build createDirs from the generated sourceDir config (wildcard -> shared dir, explicit -> per-tool dir)', async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-init-createdirs-'));
+    const result = await initRulesRepository({
+      cwd,
+      name: 'createdirs-template'
+    });
+
+    const config = await fs.readJson(result.configPath);
+    const expectedDirs = new Set<string>();
+    for (const toolSection of Object.values(config.sourceDir as Record<string, Record<string, unknown>>)) {
+      for (const value of Object.values(toolSection)) {
+        const dir = typeof value === 'string' ? value : (value as { dir: string }).dir;
+        if (dir && dir !== '.') {
+          expectedDirs.add(dir);
+        }
+      }
+    }
+
+    const actualDirs = new Set(
+      result.createdDirectories.map(dir => path.relative(result.projectPath, dir))
+    );
+    expect(actualDirs).toEqual(expectedDirs);
   });
 
   it('should throw if ai-rules-sync.json exists and force is not enabled', async () => {
@@ -62,6 +131,24 @@ describe('initRulesRepository', () => {
     expect(tools).not.toContain('cursor');
     expect(tools).not.toContain('copilot');
     expect(tools).toContain('claude');
+  });
+
+  it('should accept a CLI group name (not just the internal tool field) for --only', async () => {
+    // "agy" is antigravity-cli's CLI command word (CLI_GROUP_TOOL_MAP in
+    // cli-groups.ts) — the adapter registry's `tool` field is
+    // "antigravity-cli". --only used to compare verbatim against `tool`, so
+    // `--only agy` silently matched nothing.
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'ais-init-only-cli-alias-'));
+    const result = await initRulesRepository({
+      cwd,
+      name: 'only-agy-test',
+      only: ['agy']
+    });
+
+    const config = await fs.readJson(result.configPath);
+    const tools = Object.keys(config.sourceDir);
+    expect(tools).toContain('antigravity-cli');
+    expect(tools).not.toContain('claude');
   });
 
   it('should only create directories for filtered tools', async () => {

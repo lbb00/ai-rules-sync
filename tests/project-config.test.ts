@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import path from 'path';
 import fs from 'fs-extra';
 import { getConfigSource, getCombinedProjectConfig, getRepoSourceConfig, getSourceDir } from '../src/project-config.js';
-import { findAdapterForAlias } from '../src/adapters/index.js';
 
 vi.mock('fs-extra');
 
@@ -253,46 +252,5 @@ describe('getCombinedProjectConfig - gemini and codex md sections', () => {
     expect(config.gemini?.skills?.['my-skill']).toBeDefined();
     expect(config.gemini?.agents?.['my-agent']).toBeDefined();
     expect(config.gemini?.md?.['GEMINI']).toBeDefined();
-  });
-});
-
-describe('findAdapterForAlias - gemini.md and codex.md', () => {
-  it('should find gemini-md adapter for alias in gemini.md', () => {
-    const cfg = {
-      gemini: { md: { 'GEMINI': 'https://example.com/repo.git' } }
-    };
-    const result = findAdapterForAlias(cfg, 'GEMINI');
-    expect(result).not.toBeNull();
-    expect(result?.adapter.name).toBe('gemini-md');
-    expect(result?.section).toBe('gemini.md');
-  });
-
-  it('should find codex-md adapter for alias in codex.md', () => {
-    const cfg = {
-      codex: { md: { 'AGENTS': 'https://example.com/repo.git' } }
-    };
-    const result = findAdapterForAlias(cfg, 'AGENTS');
-    expect(result).not.toBeNull();
-    expect(result?.adapter.name).toBe('codex-md');
-    expect(result?.section).toBe('codex.md');
-  });
-
-  it('should return null for unknown alias', () => {
-    const cfg = {};
-    const result = findAdapterForAlias(cfg, 'unknown-alias');
-    expect(result).toBeNull();
-  });
-
-  it('should prefer gemini.agents over gemini.md for same alias when both present', () => {
-    // In practice they should not have the same alias, but test priority order
-    const cfg = {
-      gemini: {
-        agents: { 'GEMINI': 'url-agents' },
-        md: { 'GEMINI': 'url-md' },
-      }
-    };
-    // agents is checked before md in findAdapterForAlias
-    const result = findAdapterForAlias(cfg, 'GEMINI');
-    expect(result?.section).toBe('gemini.agents');
   });
 });

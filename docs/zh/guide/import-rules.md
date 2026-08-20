@@ -1,8 +1,6 @@
-# 导入规则
+# 导入资产
 
-将项目中已有的规则导入到仓库，使其可以在项目和团队间共享。
-
-`import` 命令会将条目复制到仓库并提交，然后用软链接替换原文件。
+把项目里已有的文件复制进资产仓库并提交，再用软链接替换原文件，其他项目就可以 `add` 它。
 
 ```bash
 # 从项目导入规则到仓库
@@ -30,4 +28,4 @@ ais cursor rules import my-rule --dry-run
 5. 用指向仓库副本的软链接替换原文件
 6. 将依赖保存到 [`ai-rules-sync.json`](/zh/reference/configuration)
 
-现在规则存储在仓库中，可以通过 `ais cursor add my-custom-rule` 共享到其他项目。
+现在规则存储在仓库中，可以通过 `ais cursor rules add my-custom-rule` 共享到其他项目。

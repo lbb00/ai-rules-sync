@@ -6,6 +6,7 @@
 | Skills | directory | `.opencode/skills/` | - | [文档](https://opencode.ai/docs/skills/) |
 | Agents | file | `.opencode/agents/` | `.md` | [文档](https://opencode.ai/docs/agents/) |
 | Tools | file | `.opencode/tools/` | `.ts`, `.js` | [文档](https://opencode.ai/docs/tools/) |
+| Rules | file | `.opencode/rules/` | `.md` | [文档](https://opencode.ai) |
 
 ## Commands
 

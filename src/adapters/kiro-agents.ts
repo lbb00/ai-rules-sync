@@ -1,4 +1,4 @@
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
 export const kiroAgentsAdapter = createBaseAdapter({
   name: 'kiro-agents',
@@ -9,4 +9,6 @@ export const kiroAgentsAdapter = createBaseAdapter({
   targetDir: '.kiro/agents',
   mode: 'file',
   fileSuffixes: ['.md'],
+  resolveSource: createMultiSuffixResolver(['.md'], 'Agent'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
 });

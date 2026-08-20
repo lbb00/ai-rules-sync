@@ -108,4 +108,12 @@ export interface DotfileCreateOptions {
     manifest?: ManifestStore;
     /** Optional target name resolver (handles suffix-aware renaming) */
     resolveTargetName?: (name: string, alias?: string, sourceSuffix?: string) => string;
+    /**
+     * Suffixes this adapter may append to a manifest alias when linking
+     * (e.g. ['.mdc', '.md']). Used to locate the real on-disk file when a
+     * manifest alias was stored without its suffix (the documented
+     * string-shorthand config format, e.g. {"react": "url"} for an entry
+     * whose linked file is actually "react.mdc").
+     */
+    knownSuffixes?: string[];
 }

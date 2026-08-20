@@ -1,4 +1,4 @@
-# 用户全局级别同步
+# 用户级同步
 
 将规则同步到用户主目录（`$HOME`）。依赖关系记录在 `~/.config/ai-rules-sync/user.json` 中，适用于机器上的**所有项目**。
 
@@ -28,15 +28,15 @@ ais gemini md add GEMINI --user
 ais codex md add AGENTS --user
 
 # 添加用户级别 cursor 规则（适用于所有项目）
-ais cursor add my-style --user
+ais cursor rules add my-style --user
 
 # 安装所有用户条目（适合新机器设置）
-ais user install
+ais install -g
 ```
 
 ## 与项目级别对比
 
-| | 项目级别 | 用户全局级别 |
+| | 项目级 | 用户级 |
 |---|---|---|
 | **范围** | 单个项目目录 | `$HOME`（所有项目） |
 | **标志** | （默认） | `--user` / `-u` |
@@ -44,7 +44,7 @@ ais user install
 | **通过 Git 共享** | ✅ 是 | ❌ 否（个人） |
 | **管理 Gitignore** | ✅ 是 | ❌ 跳过 |
 | **典型内容** | 团队规则、项目规范 | 个人 CLAUDE.md、GEMINI.md、编码风格 |
-| **恢复命令** | `ais install` | `ais user install` |
+| **恢复命令** | `ais install` | `ais install -g` |
 
 ## 多机器工作流
 
@@ -55,11 +55,11 @@ ais user install
 ais use git@github.com:me/my-rules.git
 ais claude md add CLAUDE --user
 ais gemini md add GEMINI --user
-ais cursor add my-style --user
+ais cursor rules add my-style --user
 
 # 机器 B：一条命令恢复
 ais use git@github.com:me/my-rules.git
-ais user install
+ais install -g
 # 完成！所有个人 AI 配置已恢复
 ```
 

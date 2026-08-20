@@ -1,4 +1,4 @@
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
 export const continuePromptsAdapter = createBaseAdapter({
   name: 'continue-prompts',
@@ -9,4 +9,6 @@ export const continuePromptsAdapter = createBaseAdapter({
   targetDir: '.continue/prompts',
   mode: 'file',
   fileSuffixes: ['.md'],
+  resolveSource: createMultiSuffixResolver(['.md'], 'Prompt'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
 });

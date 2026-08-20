@@ -27,7 +27,9 @@ describe('AI Tool Adapters', () => {
       expect(cursorAgentsAdapter.configPath).toEqual(['cursor', 'agents']);
       expect(cursorAgentsAdapter.defaultSourceDir).toBe('.cursor/agents');
       expect(cursorAgentsAdapter.targetDir).toBe('.cursor/agents');
-      expect(cursorAgentsAdapter.mode).toBe('directory');
+      // Cursor subagents are single .md files, not directories.
+      expect(cursorAgentsAdapter.mode).toBe('file');
+      expect(cursorAgentsAdapter.fileSuffixes).toEqual(['.md']);
     });
   });
 
@@ -51,7 +53,9 @@ describe('AI Tool Adapters', () => {
       expect(claudeAgentsAdapter.configPath).toEqual(['claude', 'agents']);
       expect(claudeAgentsAdapter.defaultSourceDir).toBe('.claude/agents');
       expect(claudeAgentsAdapter.targetDir).toBe('.claude/agents');
-      expect(claudeAgentsAdapter.mode).toBe('directory');
+      // Claude Code subagents are single .md files, not directories.
+      expect(claudeAgentsAdapter.mode).toBe('file');
+      expect(claudeAgentsAdapter.fileSuffixes).toEqual(['.md']);
     });
   });
 

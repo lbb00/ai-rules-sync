@@ -15,7 +15,7 @@ Additional config files:
 | `user.json` | `~/.config/ai-rules-sync/user.json` | User-level config (applies to all projects) |
 
 ::: tip
-Most users never edit these files directly — the CLI (`ais add`, `ais rm`, etc.) manages them. Edit manually only for advanced cases: aliases, custom `targetDir`, or custom `sourceDir` in rules repos.
+Most users never edit these files directly — the CLI (`ais <tool> <subtype> add`, `ais <tool> <subtype> remove`, etc.) manages them. Edit manually only for advanced cases: aliases, custom `targetDir`, or custom `sourceDir` in rules repos.
 :::
 
 ## Schema Version
@@ -224,7 +224,7 @@ Use `*` as a tool key to define shared dependencies that apply to all tools when
 }
 ```
 
-All tools (`copilot`, `trae`, `opencode`, `codex`, `gemini`, `warp`, `windsurf`, `cline`) follow the same `tool → subtype → entries` structure.
+All adapters follow the same `tool → subtype → entries` structure. See [Supported Tools](/reference/supported-tools).
 
 ### Entry Formats
 
@@ -269,7 +269,7 @@ Override where the symlink is placed in the project.
 Use `ai-rules-sync.local.json` for rules you don't want to commit:
 
 ```bash
-ais cursor add company-secrets --local
+ais cursor rules add company-secrets --local
 ```
 
 - Same structure as `ai-rules-sync.json`
@@ -277,6 +277,25 @@ ais cursor add company-secrets --local
 - Merges with main config (local takes precedence on conflict)
 
 ---
+
+## Global Config Location and Compatibility
+
+AIS resolves its global state directory at command execution time:
+
+1. `AIS_CONFIG_HOME` — use this directory directly.
+2. `XDG_CONFIG_HOME` — use `<XDG_CONFIG_HOME>/ai-rules-sync`.
+3. Default — `~/.config/ai-rules-sync`.
+
+This lets tests and isolated environments avoid the real user config. Config files with a schema `version` newer than the running AIS are rejected instead of being silently interpreted. A dependency config may also declare a minimum CLI version:
+
+```json
+{
+  "version": 1,
+  "requiresAis": ">=1.0.0"
+}
+```
+
+`ais status --user` reports unsupported tools, subtypes, and version requirements without deleting unknown entries.
 
 ## User-Level Config (user.json)
 

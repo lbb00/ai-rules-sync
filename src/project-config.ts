@@ -1,11 +1,12 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { getUserConfigPath, getUserProjectConfig, saveUserProjectConfig } from './config.js';
+import { assertSupportedConfigVersion, CURRENT_CONFIG_VERSION } from './config-schema.js';
 
 const CONFIG_FILENAME = 'ai-rules-sync.json';
 const LOCAL_CONFIG_FILENAME = 'ai-rules-sync.local.json';
 
-export const CURRENT_CONFIG_VERSION = 1;
+export { CURRENT_CONFIG_VERSION } from './config-schema.js';
 
 /** Wildcard key for fallback config when tool-specific config is not found */
 export const WILDCARD_TOOL = '*';
@@ -190,6 +191,7 @@ export type ToolSections = Record<string, SubtypeMap>;
  */
 export interface ProjectConfig {
     version?: number;
+    requiresAis?: string;
     // Global path prefix for source directories (only used in rules repos)
     rootPath?: string;
     // Source directory configuration (only used in rules repos)
@@ -210,14 +212,15 @@ export interface RepoSourceConfig {
 export type ConfigSource = 'new' | 'none';
 
 async function readConfigFile<T>(filePath: string): Promise<T> {
-    if (await fs.pathExists(filePath)) {
-        try {
-            return await fs.readJson(filePath);
-        } catch (e) {
-            // ignore
-        }
+    if (!await fs.pathExists(filePath)) return {} as T;
+    let value: Record<string, unknown>;
+    try {
+        value = await fs.readJson(filePath);
+    } catch (error: any) {
+        throw new Error(`Failed to read ${filePath}: ${error.message}`);
     }
-    return {} as T;
+    assertSupportedConfigVersion(value, filePath);
+    return value as T;
 }
 
 async function hasAnyNewConfig(projectPath: string): Promise<boolean> {
@@ -263,6 +266,20 @@ export function deleteAtPath(obj: unknown, configPath: ConfigPath, key: string):
         return true;
     }
     return false;
+}
+
+/**
+ * Whether a given repo-side source name is already configured in a section —
+ * either as a plain (non-aliased) key, or as the `rule` an aliased entry
+ * points back to (`"my-alias": { url, rule: sourceName }`). A raw
+ * `sourceName in section` check misses aliased entries entirely, since their
+ * config key is the alias, not the source name.
+ */
+export function isSourceNameConfigured(section: Record<string, RuleEntry>, sourceName: string): boolean {
+    if (sourceName in section) return true;
+    return Object.values(section).some(
+        entry => typeof entry === 'object' && entry !== null && entry.rule === sourceName
+    );
 }
 
 /**
@@ -355,7 +372,7 @@ function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig
     const allKeys = new Set([...Object.keys(main), ...Object.keys(local)]);
 
     for (const key of allKeys) {
-        if (key === 'version' || key === 'rootPath' || key === 'sourceDir') {
+        if (key === 'version' || key === 'requiresAis' || key === 'rootPath' || key === 'sourceDir') {
             result[key] = main[key] ?? local[key];
         } else {
             // Tool section with subtypes: merge each subtype independently
@@ -402,7 +419,63 @@ export async function getRepoSourceConfig(projectPath: string): Promise<RepoSour
 }
 
 /**
+ * Origin of a resolved source directory, in priority order (highest first):
+ * override (CLI/global) > explicit repo tool entry > repo "*" wildcard entry > adapter default.
+ * Concept mirrors the dependency-side wildcard in getRuleSection (same WILDCARD_TOOL constant,
+ * different value shape: RuleEntry there vs SourceDirValue here) — kept separate on purpose (see design doc §3.6).
+ */
+export type SourceDirOrigin = 'override' | 'explicit' | 'wildcard' | 'default';
+
+/**
+ * Resolve the source directory for a specific tool type from repo config, along with which
+ * priority tier produced it.
+ * @param repoConfig - The repo source configuration
+ * @param tool - Tool name: 'cursor', 'copilot', 'claude', etc.
+ * @param subtype - Subtype: 'rules', 'plans', 'instructions', 'skills', 'agents', etc.
+ * @param defaultDir - Default directory if not configured
+ * @param globalOverride - Optional override from CLI or global config (highest priority)
+ */
+export function resolveSourceDir(
+    repoConfig: RepoSourceConfig,
+    tool: string,
+    subtype: string,
+    defaultDir: string,
+    globalOverride?: SourceDirConfig
+): { dir: string; origin: SourceDirOrigin } {
+    const rootPath = repoConfig.rootPath || '';
+
+    // 1. Check globalOverride first (CLI or global config - highest priority)
+    if (globalOverride) {
+        const overrideDir = readNestedStringValue(globalOverride, tool, subtype);
+        if (overrideDir !== undefined) {
+            // globalOverride paths are relative to repo root, so no rootPath prefix
+            return { dir: overrideDir, origin: 'override' };
+        }
+    }
+
+    // 2. Check repoConfig for an explicit tool-specific entry
+    const explicitValue = readNestedSourceDirValueFromTool(repoConfig as Record<string, unknown>, tool, subtype);
+    if (explicitValue !== undefined) {
+        const toolDir = typeof explicitValue === 'string' ? explicitValue : explicitValue.dir;
+        return { dir: rootPath ? path.join(rootPath, toolDir) : toolDir, origin: 'explicit' };
+    }
+
+    // 3. Fall back to repoConfig's "*" wildcard entry
+    if (tool !== WILDCARD_TOOL) {
+        const wildcardValue = readNestedSourceDirValueFromTool(repoConfig as Record<string, unknown>, WILDCARD_TOOL, subtype);
+        if (wildcardValue !== undefined) {
+            const toolDir = typeof wildcardValue === 'string' ? wildcardValue : wildcardValue.dir;
+            return { dir: rootPath ? path.join(rootPath, toolDir) : toolDir, origin: 'wildcard' };
+        }
+    }
+
+    // 4. Nothing configured - use adapter default
+    return { dir: rootPath ? path.join(rootPath, defaultDir) : defaultDir, origin: 'default' };
+}
+
+/**
  * Get the source directory for a specific tool type from repo config.
+ * Thin wrapper over resolveSourceDir for call sites that only need the path.
  * @param repoConfig - The repo source configuration
  * @param tool - Tool name: 'cursor', 'copilot', 'claude', etc.
  * @param subtype - Subtype: 'rules', 'plans', 'instructions', 'skills', 'agents', etc.
@@ -416,24 +489,7 @@ export function getSourceDir(
     defaultDir: string,
     globalOverride?: SourceDirConfig
 ): string {
-    const rootPath = repoConfig.rootPath || '';
-
-    // 1. Check globalOverride first (CLI or global config - highest priority)
-    if (globalOverride) {
-        const overrideDir = readNestedStringValue(globalOverride, tool, subtype);
-        if (overrideDir !== undefined) {
-            // globalOverride paths are relative to repo root, so no rootPath prefix
-            return overrideDir;
-        }
-    }
-
-    // 2. Check repoConfig (from repo's ai-rules-sync.json)
-    const rawValue = readNestedSourceDirValue(repoConfig, tool, subtype);
-    const toolDir = typeof rawValue === 'string' ? rawValue : rawValue?.dir;
-
-    // 3. Apply rootPath and default
-    const dir = toolDir ?? defaultDir;
-    return rootPath ? path.join(rootPath, dir) : dir;
+    return resolveSourceDir(repoConfig, tool, subtype, defaultDir, globalOverride).dir;
 }
 
 /**

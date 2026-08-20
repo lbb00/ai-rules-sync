@@ -6,11 +6,71 @@
 import path from 'path';
 import os from 'os';
 import chalk from 'chalk';
+import fs from 'fs-extra';
 import { getConfig, setConfig, getUserConfigPath } from '../config.js';
 import { SourceDirConfig } from '../project-config.js';
+import { planRepositoryPrune, removeRepositoryConfig } from './repository-maintenance.js';
+import { setToolProfile } from './profiles.js';
 
 export interface QueryOutputOptions {
     json?: boolean;
+}
+
+export async function removeRepoConfig(repoName: string, options: { dryRun?: boolean; json?: boolean } = {}): Promise<void> {
+    const config = await getConfig();
+    const next = removeRepositoryConfig(config, repoName);
+    const payload = { name: repoName, action: 'remove-config-only', dryRun: !!options.dryRun };
+    if (!options.dryRun) await setConfig(next);
+    if (options.json) console.log(JSON.stringify(payload, null, 2));
+    else console.log(options.dryRun
+        ? chalk.yellow(`[DRY RUN] Would remove repository "${repoName}" from AIS config only.`)
+        : chalk.green(`Removed repository "${repoName}" from AIS config; local files were not deleted.`));
+}
+
+export async function pruneRepoConfigs(options: { dryRun?: boolean; json?: boolean } = {}): Promise<void> {
+    const config = await getConfig();
+    const plan = planRepositoryPrune({
+        currentRepo: config.currentRepo,
+        repos: config.repos,
+        pathExists: candidate => fs.pathExistsSync(candidate),
+    });
+    if (!options.dryRun && plan.remove.length > 0) {
+        const removeNames = new Set(plan.remove.map(item => item.name));
+        await setConfig({ ...config, repos: Object.fromEntries(Object.entries(config.repos).filter(([name]) => !removeNames.has(name))) });
+    }
+    if (options.json) console.log(JSON.stringify({ dryRun: !!options.dryRun, ...plan }, null, 2));
+    else if (plan.remove.length === 0) console.log(chalk.green('No stale repository config entries found.'));
+    else {
+        console.log(chalk.bold(options.dryRun ? '[DRY RUN] Repository config prune:' : 'Pruned repository config entries:'));
+        for (const item of plan.remove) console.log(`  - ${item.name}: ${item.reason} (${item.action})`);
+        console.log(chalk.gray('No local repository directory was deleted.'));
+    }
+}
+
+export async function setProfile(name: string, tools: string[], options: QueryOutputOptions = {}): Promise<void> {
+    const config = await getConfig();
+    const profiles = setToolProfile(config.profiles, name, tools);
+    await setConfig({ ...config, profiles });
+    const payload = { name, tools: profiles[name].tools };
+    if (options.json) console.log(JSON.stringify(payload, null, 2));
+    else console.log(chalk.green(`Set profile "${name}": ${payload.tools.join(', ')}`));
+}
+
+export async function removeProfile(name: string, options: QueryOutputOptions = {}): Promise<void> {
+    const config = await getConfig();
+    if (!config.profiles?.[name]) throw new Error(`Profile "${name}" not found.`);
+    const profiles = { ...config.profiles };
+    delete profiles[name];
+    await setConfig({ ...config, profiles });
+    if (options.json) console.log(JSON.stringify({ name, removed: true }, null, 2));
+    else console.log(chalk.green(`Removed profile "${name}".`));
+}
+
+export async function listProfiles(options: QueryOutputOptions = {}): Promise<void> {
+    const profiles = (await getConfig()).profiles ?? {};
+    if (options.json) console.log(JSON.stringify({ profiles }, null, 2));
+    else if (Object.keys(profiles).length === 0) console.log(chalk.yellow('No tool profiles configured.'));
+    else for (const [name, profile] of Object.entries(profiles)) console.log(`${name}: ${profile.tools.join(', ')}`);
 }
 
 /**

@@ -1,5 +1,7 @@
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
+// Cursor subagents are single .md files with YAML frontmatter
+// (.cursor/agents/<name>.md) — not directories.
 export const cursorAgentsAdapter = createBaseAdapter({
   name: 'cursor-agents',
   tool: 'cursor',
@@ -7,5 +9,8 @@ export const cursorAgentsAdapter = createBaseAdapter({
   configPath: ['cursor', 'agents'],
   defaultSourceDir: '.cursor/agents',
   targetDir: '.cursor/agents',
-  mode: 'directory',
+  mode: 'file',
+  fileSuffixes: ['.md'],
+  resolveSource: createMultiSuffixResolver(['.md'], 'Agent'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
 });

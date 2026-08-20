@@ -6,7 +6,7 @@
 
 ```bash
 # 添加到自定义目录
-ais cursor add my-rule -d docs/ai/rules
+ais cursor rules add my-rule -d docs/ai/rules
 ```
 
 ### Monorepo 用法
@@ -14,16 +14,16 @@ ais cursor add my-rule -d docs/ai/rules
 在 Monorepo 中，可以将不同规则同步到不同的包：
 
 ```bash
-ais cursor add react-rules frontend-rules -d packages/frontend/.cursor/rules
-ais cursor add node-rules backend-rules -d packages/backend/.cursor/rules
+ais cursor rules add react-rules frontend-rules -d packages/frontend/.cursor/rules
+ais cursor rules add node-rules backend-rules -d packages/backend/.cursor/rules
 ```
 
 ::: warning
 将同一规则添加到多个位置需要**别名**：
 
 ```bash
-ais cursor add auth-rules -d packages/frontend/.cursor/rules
-ais cursor add auth-rules backend-auth -d packages/backend/.cursor/rules
+ais cursor rules add auth-rules -d packages/frontend/.cursor/rules
+ais cursor rules add auth-rules backend-auth -d packages/backend/.cursor/rules
 ```
 :::
 

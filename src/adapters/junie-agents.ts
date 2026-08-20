@@ -1,4 +1,4 @@
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
 export const junieAgentsAdapter = createBaseAdapter({
   name: 'junie-agents',
@@ -9,4 +9,6 @@ export const junieAgentsAdapter = createBaseAdapter({
   targetDir: '.junie/agents',
   mode: 'file',
   fileSuffixes: ['.md'],
+  resolveSource: createMultiSuffixResolver(['.md'], 'Agent'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
 });

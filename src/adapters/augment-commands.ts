@@ -1,4 +1,4 @@
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
 export const augmentCommandsAdapter = createBaseAdapter({
   name: 'augment-commands',
@@ -9,4 +9,6 @@ export const augmentCommandsAdapter = createBaseAdapter({
   targetDir: '.augment/commands',
   mode: 'file',
   fileSuffixes: ['.md'],
+  resolveSource: createMultiSuffixResolver(['.md'], 'Command'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
 });

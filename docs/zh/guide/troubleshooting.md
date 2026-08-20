@@ -11,7 +11,7 @@
 **解决：** 在项目首次 `add`（或未设置当前仓库）时，需指定仓库：
 
 ```bash
-ais cursor add react -t https://github.com/your-org/rules-repo.git
+ais cursor rules add react -t https://github.com/your-org/rules-repo.git
 ```
 
 之后 `ais use` 会记住仓库，可省略 `-t`。
@@ -24,17 +24,21 @@ ais cursor add react -t https://github.com/your-org/rules-repo.git
 
 ## 符号链接
 
+### 一次性检查所有符号链接是否健康
+
+运行 `ais doctor` 扫描所有已配置条目，报告哪些是 `missing`、`conflict` 或 `stale`（只读，不会做任何修改）。这是发现下面两种症状最快的方式，不用逐条手动排查。
+
 ### 克隆后符号链接损坏
 
 **现象：** 克隆项目后，`.cursor/rules/` 显示损坏的符号链接。
 
-**解决：** 在项目根目录运行 `ais install`。AIS 会读取 `ai-rules-sync.json` 并重建所有符号链接。
+**解决：** 运行 `ais doctor` 确认是 `missing`，然后在项目根目录运行 `ais install`。AIS 会读取 `ai-rules-sync.json` 并重建所有符号链接。
 
 ### 符号链接指向错误位置
 
 **现象：** 修改源仓库后规则未更新。
 
-**解决：** 检查符号链接目标是否存在。运行 `ais status` 验证。若仓库已移动，运行 `ais use <正确仓库>` 和 `ais install`。
+**解决：** 运行 `ais doctor`——`stale` 状态说明符号链接跟当前仓库源对不上。检查符号链接目标是否存在，运行 `ais status` 验证。若仓库已移动，运行 `ais use <正确仓库>` 和 `ais install`。
 
 ## 仓库
 
@@ -47,7 +51,7 @@ ais cursor add react -t https://github.com/your-org/rules-repo.git
 ```bash
 ais ls                    # 列出所有仓库
 ais use correct-repo      # 切换当前仓库
-ais cursor add react -t https://github.com/org/correct-repo.git  # 或显式指定 -t
+ais cursor rules add react -t https://github.com/org/correct-repo.git  # 或显式指定 -t
 ```
 
 ### 仓库落后于上游
@@ -64,16 +68,16 @@ ais update --dry-run      # 仅预览不执行
 
 ## 用户级配置
 
-### `ais user install` 无效果
+### `ais install -g` 无效果
 
-**现象：** 运行 `ais user install` 完成，但 `~/.claude/` 等目录无文件。
+**现象：** 运行 `ais install -g` 完成，但 `~/.claude/` 等目录无文件。
 
 **解决：** 确保 `~/.config/ai-rules-sync/user.json` 中有条目。先添加：
 
 ```bash
 ais use https://github.com/me/my-rules.git
 ais claude md add CLAUDE --user
-ais user install
+ais install -g
 ```
 
 ### 用户配置路径
@@ -96,8 +100,8 @@ ais config user show      # 验证
 **解决：** 使用别名，使同一仓库条目映射到不同本地名称：
 
 ```bash
-ais cursor add auth-rules -d packages/frontend/.cursor/rules
-ais cursor add auth-rules backend-auth -d packages/backend/.cursor/rules
+ais cursor rules add auth-rules -d packages/frontend/.cursor/rules
+ais cursor rules add auth-rules backend-auth -d packages/backend/.cursor/rules
 ```
 
 ## 获取帮助

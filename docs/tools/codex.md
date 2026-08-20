@@ -4,6 +4,7 @@
 |------|------|--------------------------|---------------|---------------|
 | Rules | file | `.codex/rules/` | `.rules` | [Docs](https://developers.openai.com/codex/rules) |
 | Skills | directory | `.agents/skills/` | - | [Docs](https://developers.openai.com/codex/skills) |
+| Agents | file | `.codex/agents/` | `.toml` | [Docs](https://developers.openai.com/codex) |
 | AGENTS.md | file | `.codex/` | `.md` | [Docs](https://developers.openai.com/codex) |
 
 ## Rules
@@ -24,6 +25,13 @@ ais codex skills rm code-assistant
 ::: info
 Codex skills use `.agents/skills/` (not `.codex/skills/`) per OpenAI documentation.
 :::
+
+## Agents
+
+```bash
+ais codex agents add code-reviewer
+ais codex agents rm code-reviewer
+```
 
 ## AGENTS.md
 

@@ -1,4 +1,4 @@
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
 export const traeCommandsAdapter = createBaseAdapter({
   name: 'trae-commands',
@@ -9,4 +9,6 @@ export const traeCommandsAdapter = createBaseAdapter({
   targetDir: '.trae/commands',
   mode: 'file',
   fileSuffixes: ['.md'],
+  resolveSource: createMultiSuffixResolver(['.md'], 'Command'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
 });

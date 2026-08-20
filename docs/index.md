@@ -3,33 +3,36 @@ layout: home
 
 hero:
   name: AI Rules Sync
-  text: Manage AI Agent Rules Across Projects
-  tagline: Stop copying .mdc files around. Manage your rules in Git repositories and sync them via symbolic links.
+  text: Native assets. Many repos. Many projects.
+  tagline: Federation via symbolic links — not a format converter. Compose skills, rules, commands, and agents from Git repositories into every project.
   actions:
     - theme: brand
       text: Get Started
       link: /guide/getting-started
     - theme: alt
-      text: View on GitHub
+      text: What is AIS?
+      link: /guide/what-is-ais
+    - theme: alt
+      text: GitHub
       link: https://github.com/lbb00/ai-rules-sync
 
 features:
+  - icon: 🔗
+    title: Symlinks, not copies
+    details: Edit the source repository once. Every linked project sees the change immediately.
   - icon: 🧩
-    title: Multi-Repository
-    details: Mix rules from company standards, team protocols, and open-source collections.
-  - icon: 🔄
-    title: Sync Once, Update Everywhere
-    details: One source of truth, automatic updates across all projects.
-  - icon: 🤝
-    title: Team Alignment
-    details: Share coding standards instantly, onboard new members with one command.
-  - icon: 🔒
-    title: Privacy First
-    details: Keep sensitive rules local with ai-rules-sync.local.json.
+    title: Many-to-many compose
+    details: Mix company, personal, and community repos in one project. Remap directories across tools.
+  - icon: 📦
+    title: Native files
+    details: AIS never rewrites your assets. Skills stay skills, rules stay rules.
+  - icon: 👥
+    title: Team restore
+    details: Commit ai-rules-sync.json. Teammates and CI run ais install.
+  - icon: 🏠
+    title: User-level configs
+    details: Sync CLAUDE.md, GEMINI.md, and personal rules into $HOME. Restore with ais install -g.
   - icon: 🛠️
-    title: Git Integration
-    details: Manage repositories directly through CLI (ais git).
-  - icon: 🔌
-    title: Extensible
-    details: Plugin architecture supporting 10+ AI tools including Cursor, Copilot, Claude, and more.
+    title: 30+ tools
+    details: Cursor, Copilot, Claude, Codex, Gemini, and many more — one CLI workflow.
 ---

@@ -1,4 +1,4 @@
-import { createBaseAdapter } from './base.js';
+import { createBaseAdapter, createMultiSuffixResolver, createSuffixAwareTargetResolver } from './base.js';
 
 export const junieRulesAdapter = createBaseAdapter({
   name: 'junie-rules',
@@ -9,4 +9,6 @@ export const junieRulesAdapter = createBaseAdapter({
   targetDir: '.junie/rules',
   mode: 'file',
   fileSuffixes: ['.md'],
+  resolveSource: createMultiSuffixResolver(['.md'], 'Rule'),
+  resolveTargetName: createSuffixAwareTargetResolver(['.md']),
 });

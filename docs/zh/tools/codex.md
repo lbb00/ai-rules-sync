@@ -4,6 +4,7 @@
 |------|------|------------|----------|------|
 | Rules | file | `.codex/rules/` | `.rules` | [文档](https://developers.openai.com/codex/rules) |
 | Skills | directory | `.agents/skills/` | - | [文档](https://developers.openai.com/codex/skills) |
+| Agents | file | `.codex/agents/` | `.toml` | [文档](https://developers.openai.com/codex) |
 | AGENTS.md | file | `.codex/` | `.md` | [文档](https://developers.openai.com/codex) |
 
 ## Rules
@@ -24,6 +25,13 @@ ais codex skills rm code-assistant
 ::: info
 Codex skills 使用 `.agents/skills/`（非 `.codex/skills/`），遵循 OpenAI 文档。
 :::
+
+## Agents
+
+```bash
+ais codex agents add code-reviewer
+ais codex agents rm code-reviewer
+```
 
 ## AGENTS.md
 

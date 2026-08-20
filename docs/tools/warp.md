@@ -11,13 +11,13 @@ Warp Rules use the [AGENTS.md standard](https://agents.md/). Use the `agents-md`
 
 ```bash
 # Add AGENTS.md from repo root (applies globally in Warp)
-ais agents-md add .
+ais agents-md file add .
 
 # Add directory-specific rules
-ais agents-md add src
+ais agents-md file add src
 
 # Remove
-ais agents-md rm .
+ais agents-md file rm .
 ```
 
 ## Skills

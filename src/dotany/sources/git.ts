@@ -20,7 +20,16 @@ export class GitSource implements SourceResolver {
     private async ensureCloned(): Promise<void> {
         if (this.cloned) return;
         if (await fs.pathExists(path.join(this.cloneDir, '.git'))) {
-            await execa('git', ['pull'], { cwd: this.cloneDir });
+            // A repo with no upstream (e.g. a purely local rules dir that
+            // was `git init`'d but never pushed/tracked) has nothing to
+            // pull — `git pull` there fails with "no tracking information"
+            // instead of being a no-op, so check for an upstream first.
+            try {
+                await execa('git', ['rev-parse', '--abbrev-ref', '@{u}'], { cwd: this.cloneDir });
+                await execa('git', ['pull'], { cwd: this.cloneDir });
+            } catch {
+                // No upstream configured, skip pull.
+            }
         } else {
             await execa('git', ['clone', this.repoUrl, this.cloneDir]);
         }
