@@ -80,6 +80,7 @@ describe('lifecycle check/update', () => {
     execaMock.mockImplementation(async (_cmd: string, args: string[]) => {
       const command = args.join(' ');
       if (command === 'fetch --quiet') return { stdout: '' };
+      if (command === 'ls-remote --symref https://example.com/rules.git HEAD') return { stdout: 'ref: refs/heads/main\tHEAD' };
       if (command === 'rev-parse --short HEAD') return { stdout: 'abc1234' };
       if (command === 'rev-parse --abbrev-ref --symbolic-full-name @{u}') return { stdout: 'origin/main' };
       if (command === 'rev-list --left-right --count HEAD...@{u}') return { stdout: '0\t2' };
@@ -98,6 +99,29 @@ describe('lifecycle check/update', () => {
       ahead: 0,
       behind: 2
     });
+  });
+
+  it('should report a remote without a default branch as unrecoverable', async () => {
+    vi.mocked(getCombinedProjectConfig).mockResolvedValue({
+      cursor: { rules: { react: 'https://example.com/rules.git' } }
+    } as any);
+    vi.mocked(getConfig).mockResolvedValue({
+      currentRepo: 'rules',
+      repos: { rules: { name: 'rules', url: 'https://example.com/rules.git', path: '/tmp/rules' } }
+    } as any);
+    vi.spyOn(fs, 'pathExists').mockImplementation(async (target: fs.PathLike) => {
+      const value = String(target);
+      return value === '/tmp/rules' || value === '/tmp/rules/.git';
+    });
+    vi.mocked(execa as any).mockImplementation(async (_cmd: string, args: string[]) => {
+      const command = args.join(' ');
+      if (command === 'fetch --quiet') return { stdout: '' };
+      if (command.startsWith('ls-remote --symref')) return { stdout: '' };
+      throw new Error(`Unexpected git command: ${command}`);
+    });
+
+    const result = await checkRepositories({ projectPath: '/tmp/project' });
+    expect(result.entries[0]).toMatchObject({ status: 'no-default-branch' });
   });
 
   it('should preview updates in dry-run mode without pulling', async () => {
@@ -129,6 +153,7 @@ describe('lifecycle check/update', () => {
     execaMock.mockImplementation(async (_cmd: string, args: string[]) => {
       const command = args.join(' ');
       if (command === 'fetch --quiet') return { stdout: '' };
+      if (command === 'ls-remote --symref https://example.com/rules.git HEAD') return { stdout: 'ref: refs/heads/main\tHEAD' };
       if (command === 'rev-parse --short HEAD') return { stdout: 'abc1234' };
       if (command === 'rev-parse --abbrev-ref --symbolic-full-name @{u}') return { stdout: 'origin/main' };
       if (command === 'rev-list --left-right --count HEAD...@{u}') return { stdout: '0\t1' };

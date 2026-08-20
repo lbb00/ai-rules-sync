@@ -63,10 +63,10 @@ ais completion install    # optional tab completion
 
 ```bash
 cd your-project
-ais cursor add react -t https://github.com/your-org/rules-repo.git
+ais cursor rules add react -t https://github.com/your-org/rules-repo.git
 
 # After the first add, omit -t
-ais cursor add vue
+ais cursor rules add vue
 ais copilot instructions add coding-standards
 ais claude skills add code-review
 ```
@@ -84,13 +84,16 @@ ais cursor rules import my-rule --push
 ais install    # reads ai-rules-sync.json
 ```
 
-**Personal configs (`--user`)**
+**Personal configs (`--global`, alias `--user`)**
 
 ```bash
-ais claude md add CLAUDE --user
-ais gemini md add GEMINI --user
-ais user install    # new machine
+ais config profile set personal --tools claude,pi,codex
+ais skills add code-review --profile personal --global
+ais install --global    # restore on a new machine
+ais doctor --user --remote
 ```
+
+Use `ais env` to confirm the executable, version, config paths, build identity, and current rules repository.
 
 ---
 

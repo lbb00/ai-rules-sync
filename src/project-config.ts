@@ -1,11 +1,12 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { getUserConfigPath, getUserProjectConfig, saveUserProjectConfig } from './config.js';
+import { assertSupportedConfigVersion, CURRENT_CONFIG_VERSION } from './config-schema.js';
 
 const CONFIG_FILENAME = 'ai-rules-sync.json';
 const LOCAL_CONFIG_FILENAME = 'ai-rules-sync.local.json';
 
-export const CURRENT_CONFIG_VERSION = 1;
+export { CURRENT_CONFIG_VERSION } from './config-schema.js';
 
 /** Wildcard key for fallback config when tool-specific config is not found */
 export const WILDCARD_TOOL = '*';
@@ -190,6 +191,7 @@ export type ToolSections = Record<string, SubtypeMap>;
  */
 export interface ProjectConfig {
     version?: number;
+    requiresAis?: string;
     // Global path prefix for source directories (only used in rules repos)
     rootPath?: string;
     // Source directory configuration (only used in rules repos)
@@ -210,14 +212,15 @@ export interface RepoSourceConfig {
 export type ConfigSource = 'new' | 'none';
 
 async function readConfigFile<T>(filePath: string): Promise<T> {
-    if (await fs.pathExists(filePath)) {
-        try {
-            return await fs.readJson(filePath);
-        } catch (e) {
-            // ignore
-        }
+    if (!await fs.pathExists(filePath)) return {} as T;
+    let value: Record<string, unknown>;
+    try {
+        value = await fs.readJson(filePath);
+    } catch (error: any) {
+        throw new Error(`Failed to read ${filePath}: ${error.message}`);
     }
-    return {} as T;
+    assertSupportedConfigVersion(value, filePath);
+    return value as T;
 }
 
 async function hasAnyNewConfig(projectPath: string): Promise<boolean> {
@@ -369,7 +372,7 @@ function mergeCombined(main: ProjectConfig, local: ProjectConfig): ProjectConfig
     const allKeys = new Set([...Object.keys(main), ...Object.keys(local)]);
 
     for (const key of allKeys) {
-        if (key === 'version' || key === 'rootPath' || key === 'sourceDir') {
+        if (key === 'version' || key === 'requiresAis' || key === 'rootPath' || key === 'sourceDir') {
             result[key] = main[key] ?? local[key];
         } else {
             // Tool section with subtypes: merge each subtype independently

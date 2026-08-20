@@ -29,10 +29,13 @@ import {
   SourceDirOrigin,
   ProjectConfig
 } from '../project-config.js';
-import { RepoConfig, getUserProjectConfig } from '../config.js';
+import { RepoConfig, getConfig, getUserProjectConfig } from '../config.js';
 import { handleAdd, handleRemove, CommandContext, AddOptions } from '../commands/handlers.js';
 import { getTargetRepo } from '../commands/helpers.js';
 import { discoverEntriesForAdapter } from '../commands/add-all.js';
+import { resolveProfileTools } from '../commands/profiles.js';
+import { formatGlobalInstallGuidance } from '../commands/install-guidance.js';
+import { inspectSourceRecoverability } from '../commands/recoverability.js';
 
 /**
  * Commander collector for --tools: accumulates across repeated flags AND
@@ -223,6 +226,25 @@ export function resolveScopeAdapters(
   return resolved;
 }
 
+async function resolveConfiguredScopeAdapters(
+  groupName: string,
+  groupMembers: SyncAdapter[],
+  options: { tools?: string[]; all?: boolean; profile?: string },
+  example?: ConceptHintExample,
+): Promise<SyncAdapter[]> {
+  if (options.profile && (options.all || (options.tools && options.tools.length > 0))) {
+    throw new Error(`"ais ${groupName}": --profile is mutually exclusive with --tools and --all.`);
+  }
+  const tools = options.profile
+    ? resolveProfileTools((await getConfig()).profiles, options.profile)
+    : options.tools;
+  return resolveScopeAdapters(groupName, groupMembers, tools, options.all, example);
+}
+
+function adapterTargetDir(adapter: SyncAdapter, isGlobal: boolean): string {
+  return isGlobal ? (adapter.userTargetDir || adapter.targetDir) : adapter.targetDir;
+}
+
 /**
  * Whether `key` (or a suffixed variant of it) is already configured for this
  * adapter. File/hybrid-mode entries are stored in config under their
@@ -311,7 +333,7 @@ export async function buildAddPreviewRow(
     hit,
     configured,
     action,
-    targetPath: path.join(adapter.targetDir, configKey),
+    targetPath: path.join(adapterTargetDir(adapter, isGlobal), configKey),
     ...(resolveError ? { error: resolveError } : {})
   };
 }
@@ -340,6 +362,7 @@ function printAddPreviewTable(groupName: string, rows: AddPreviewRow[]): void {
 interface AddCmdOptions {
   tools?: string[];
   all?: boolean;
+  profile?: string;
   global?: boolean;
   user?: boolean;
   local?: boolean;
@@ -349,7 +372,7 @@ interface AddCmdOptions {
 }
 
 interface AddOneNameResult {
-  results: Array<{ tool: string; cliName: string; hit: boolean; action: string; error?: string }>;
+  results: Array<{ tool: string; cliName: string; hit: boolean; action: string; targetPath?: string; error?: string }>;
   errors: Array<{ entry: string; error: string }>;
   installed: number;
   skipped: number;
@@ -402,7 +425,7 @@ async function addOneName(
       projectPath: isGlobal ? os.homedir() : process.cwd(),
       repo,
       isLocal: options.local || false,
-      ...(isGlobal ? { user: true, skipIgnore: true } : {})
+      ...(isGlobal ? { user: true, skipIgnore: true, suppressUserGuidance: true } : {})
     };
     const addOptions: AddOptions = { local: options.local, user: isGlobal };
 
@@ -413,10 +436,10 @@ async function addOneName(
       // that whole block N times, so silence it here too (not just --json)
       // and print one aligned summary line per tool instead.
       const result = await withSilencedConsole(() => handleAdd(adapter, ctx, name, alias, addOptions));
-      const targetPath = path.join(adapter.targetDir, result.targetName);
+      const targetPath = path.join(isGlobal ? os.homedir() : process.cwd(), adapterTargetDir(adapter, isGlobal), result.targetName);
       if (result.linked) {
         installed++;
-        results.push({ tool: adapter.tool, cliName, hit: true, action: 'added' });
+        results.push({ tool: adapter.tool, cliName, hit: true, action: 'added', targetPath });
         if (!options.json) {
           console.log(`  ${cliName.padEnd(12)} ${chalk.green('linked'.padEnd(24))} -> ${targetPath}`);
         }
@@ -426,7 +449,7 @@ async function addOneName(
         // claiming success (see DotfileManager.add() in dotany/manager.ts).
         skipped++;
         const message = `real file/directory already exists at ${targetPath} — not overwritten`;
-        results.push({ tool: adapter.tool, cliName, hit: true, action: 'skip: conflict', error: message });
+        results.push({ tool: adapter.tool, cliName, hit: true, action: 'skip: conflict', targetPath, error: message });
         if (!options.json) {
           console.log(`  ${cliName.padEnd(12)} ${chalk.yellow('skip: conflict'.padEnd(24))} -> ${message}`);
         }
@@ -465,7 +488,7 @@ async function runAdd(
     }
 
     const isGlobal = !!(options.global || options.user);
-    const targets = resolveScopeAdapters(groupName, groupMembers, options.tools, options.all, {
+    const targets = await resolveConfiguredScopeAdapters(groupName, groupMembers, options, {
       verb: 'add',
       args: [names[0], alias]
     });
@@ -527,8 +550,9 @@ async function runAdd(
       combined.skipped += one.skipped;
     }
 
+    const recoverability = isGlobal ? await inspectSourceRecoverability(repo) : undefined;
     if (options.json) {
-      console.log(JSON.stringify({ group: groupName, results: combined.results, errors: combined.errors, installed: combined.installed, skipped: combined.skipped }, null, 2));
+      console.log(JSON.stringify({ group: groupName, results: combined.results, errors: combined.errors, installed: combined.installed, skipped: combined.skipped, recoverability }, null, 2));
     } else {
       console.log(chalk.bold('\nSummary:'));
       console.log(chalk.green(`  Installed: ${combined.installed}`));
@@ -538,6 +562,13 @@ async function runAdd(
       if (combined.errors.length > 0) {
         console.log(chalk.red(`  Errors: ${combined.errors.length}`));
         combined.errors.forEach(e => console.log(chalk.red(`    - ${e.entry}: ${e.error}`)));
+      }
+      if (isGlobal) {
+        const guidance = formatGlobalInstallGuidance(combined.results.flatMap(result =>
+          result.targetPath ? [{ tool: result.cliName, targetPath: result.targetPath, action: result.action }] : []
+        ));
+        if (guidance) console.log(`\n${guidance}`);
+        if (recoverability && !recoverability.recoverable) console.log(chalk.yellow(`\nWarning: ${recoverability.message}`));
       }
     }
 
@@ -553,6 +584,7 @@ async function runAdd(
 interface AddAllCmdOptions {
   tools?: string[];
   all?: boolean;
+  profile?: string;
   global?: boolean;
   user?: boolean;
   local?: boolean;
@@ -579,7 +611,7 @@ async function runAddAll(
 ): Promise<void> {
   try {
     const isGlobal = !!(options.global || options.user);
-    const targets = resolveScopeAdapters(groupName, groupMembers, options.tools, options.all);
+    const targets = await resolveConfiguredScopeAdapters(groupName, groupMembers, options);
     const repo = await getTargetRepo(program.opts());
     const projectPath = isGlobal ? os.homedir() : process.cwd();
     const projectConfig = isGlobal ? await getUserProjectConfig() : await getCombinedProjectConfig(process.cwd());
@@ -621,7 +653,7 @@ async function runAddAll(
           projectPath,
           repo,
           isLocal: options.local || false,
-          ...(isGlobal ? { user: true, skipIgnore: true } : {})
+          ...(isGlobal ? { user: true, skipIgnore: true, suppressUserGuidance: true } : {})
         };
         const addOptions: AddOptions = { local: options.local, user: isGlobal };
 
@@ -691,6 +723,7 @@ async function runAddAll(
 interface RemoveCmdOptions {
   tools?: string[];
   all?: boolean;
+  profile?: string;
   global?: boolean;
   user?: boolean;
   dryRun?: boolean;
@@ -754,7 +787,7 @@ async function runRemove(
     }
 
     const isGlobal = !!(options.global || options.user);
-    const targets = resolveScopeAdapters(groupName, groupMembers, options.tools, options.all, {
+    const targets = await resolveConfiguredScopeAdapters(groupName, groupMembers, options, {
       verb: 'remove',
       args: [names[0]]
     });
@@ -798,6 +831,7 @@ async function runRemove(
 interface ListCmdOptions {
   tools?: string[];
   all?: boolean;
+  profile?: string;
   global?: boolean;
   user?: boolean;
   json?: boolean;
@@ -810,7 +844,7 @@ async function runList(
 ): Promise<void> {
   try {
     const isGlobal = !!(options.global || options.user);
-    const targets = resolveScopeAdapters(groupName, groupMembers, options.tools, options.all);
+    const targets = await resolveConfiguredScopeAdapters(groupName, groupMembers, options);
     const config = isGlobal ? await getUserProjectConfig() : await getCombinedProjectConfig(process.cwd());
 
     const rows = targets.map(adapter => {
@@ -859,6 +893,7 @@ export function registerBroadcastGroups(program: Command): void {
       .description(`Add a ${groupName} entry to one or more tools (comma-separate <name> for several at once; alias only applies to a single name)`)
       .option('--tools <list>', 'Comma-separated CLI tool names, repeatable', collectTools)
       .option('--all', `Target every tool with a ${groupName} adapter`)
+      .option('--profile <name>', 'Use a configured global tool profile')
       .option('-g, --global', 'Write to user config (~/.config/ai-rules-sync/user.json)')
       .option('-u, --user', 'Alias for --global')
       .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
@@ -874,6 +909,7 @@ export function registerBroadcastGroups(program: Command): void {
       .description(`Discover and add every ${groupName} entry from the repo to one or more tools`)
       .option('--tools <list>', 'Comma-separated CLI tool names, repeatable', collectTools)
       .option('--all', `Target every tool with a ${groupName} adapter`)
+      .option('--profile <name>', 'Use a configured global tool profile')
       .option('-g, --global', 'Write to user config (~/.config/ai-rules-sync/user.json)')
       .option('-u, --user', 'Alias for --global')
       .option('-l, --local', 'Add to ai-rules-sync.local.json (private)')
@@ -888,6 +924,7 @@ export function registerBroadcastGroups(program: Command): void {
       .description(`Remove a ${groupName} entry from one or more tools (comma-separate <alias> for several at once)`)
       .option('--tools <list>', 'Comma-separated CLI tool names, repeatable', collectTools)
       .option('--all', `Target every tool with a ${groupName} adapter`)
+      .option('--profile <name>', 'Use a configured global tool profile')
       .option('-g, --global', 'Remove from user config')
       .option('-u, --user', 'Alias for --global')
       .option('--dry-run', 'Preview without making changes')
@@ -900,6 +937,7 @@ export function registerBroadcastGroups(program: Command): void {
       .description(`List configured ${groupName} entries per tool`)
       .option('--tools <list>', 'Comma-separated CLI tool names, repeatable', collectTools)
       .option('--all', `Target every tool with a ${groupName} adapter`)
+      .option('--profile <name>', 'Use a configured global tool profile')
       .option('-g, --global', 'Read from user config')
       .option('-u, --user', 'Alias for --global')
       .option('--json', 'Structured JSON output instead of text')

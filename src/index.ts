@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import path from 'path';
 import os from 'os';
 import fs from 'fs-extra';
-import { getConfig, setConfig, getReposBaseDir, getCurrentRepo, getUserConfigPath, getUserProjectConfig, RepoConfig } from './config.js';
+import { getConfig, setConfig, getConfigDir, getReposBaseDir, getCurrentRepo, getUserConfigPath, getUserProjectConfig, RepoConfig } from './config.js';
 import { cloneOrUpdateRepo, getRemoteUrl, runGitCommand } from './git.js';
 import { addIgnoreEntry, isLocalPath, resolveLocalPath } from './utils.js';
 import { getCombinedProjectConfig, getConfigSource, getRepoSourceConfig, getSourceDir, ProjectConfig } from './project-config.js';
@@ -14,7 +14,7 @@ import { adapterRegistry } from './adapters/index.js';
 import { SyncAdapter } from './adapters/types.js';
 import { registerToolGroup } from './cli/tool-group.js';
 import { registerBroadcastGroups } from './cli/broadcast.js';
-import { cliNameForTool } from './adapters/cli-groups.js';
+import { cliNameForTool, resolveToolByCliName } from './adapters/cli-groups.js';
 import {
   getTargetRepo,
   resolveCommandAliasFromConfig
@@ -24,10 +24,16 @@ import { installEntriesForAdapter, installEntriesForTool, installAllUserEntries 
 import { discoverAllEntries, handleAddAll } from './commands/add-all.js';
 import { parseSourceDirParams } from './cli/source-dir-parser.js';
 import { parseCsvOption } from './cli/csv-option.js';
-import { setRepoSourceDir, clearRepoSourceDir, showRepoConfig, listRepos, handleUserConfigShow, handleUserConfigSet, handleUserConfigReset } from './commands/config.js';
-import { getFormattedVersion } from './commands/version.js';
+import { setRepoSourceDir, clearRepoSourceDir, showRepoConfig, listRepos, removeRepoConfig, pruneRepoConfigs, setProfile, removeProfile, listProfiles, handleUserConfigShow, handleUserConfigSet, handleUserConfigReset } from './commands/config.js';
+import { getFormattedVersion, getVersionInfo } from './commands/version.js';
 import { checkRepositories, updateRepositories, initRulesRepository } from './commands/lifecycle.js';
 import { runDoctor } from './commands/doctor.js';
+import { buildEnvironmentInfo } from './commands/environment.js';
+import { resolveStatusRepository } from './commands/status.js';
+import { buildSupportedSections, inspectConfigCompatibility } from './commands/config-compatibility.js';
+import { groupSearchEntries } from './commands/search.js';
+
+const versionInfo = await getVersionInfo();
 
 // Intercept version flags to show detailed version info before Commander processes them
 if (process.argv.includes('-v') || process.argv.includes('--version')) {
@@ -104,6 +110,8 @@ function formatCheckStatus(status: string): string {
       return chalk.blue('ahead');
     case 'no-upstream':
       return chalk.gray('no-upstream');
+    case 'no-default-branch':
+      return chalk.red('no-default-branch');
     case 'missing-local':
       return chalk.yellow('missing-local');
     case 'not-configured':
@@ -116,7 +124,7 @@ function formatCheckStatus(status: string): string {
 program
   .name('ais')
   .description('AI Rules Sync - Sync agent rules from git repository')
-  .version('0.7.0', '-v, --version', 'Display version information')
+  .version(versionInfo.projectVersion, '-v, --version', 'Display version information')
   .option('-t, --target <repoName>', 'Specify target rule repository (name or URL)');
 
 // ============ Use command ============
@@ -290,13 +298,15 @@ program
   .action(async (cmdOptions: { user?: boolean; json?: boolean }) => {
     try {
       const globalConfig = await getConfig();
-      const currentRepo = globalConfig.currentRepo ? globalConfig.repos?.[globalConfig.currentRepo] : undefined;
-      const repoExists = currentRepo ? await fs.pathExists(currentRepo.path) : false;
+      const selectedRepo = resolveStatusRepository(globalConfig.repos, globalConfig.currentRepo, program.opts().target);
+      const repoExists = selectedRepo ? await fs.pathExists(selectedRepo.path) : false;
 
       const projectPath = process.cwd();
       const projectConfigSource = await getConfigSource(projectPath);
       const projectConfig = await getCombinedProjectConfig(projectPath);
       const projectCounts = collectToolCounts(projectConfig);
+      const supportedSections = buildSupportedSections(adapterRegistry.all());
+      const projectCompatibility = inspectConfigCompatibility(projectConfig, supportedSections, versionInfo.projectVersion);
 
       let userStatus:
         | {
@@ -304,6 +314,7 @@ program
             exists: boolean;
             totalEntries: number;
             perTool: Record<string, number>;
+            compatibility: ReturnType<typeof inspectConfigCompatibility>;
           }
         | undefined;
       if (cmdOptions.user) {
@@ -315,24 +326,27 @@ program
           path: userConfigPath,
           exists: userConfigExists,
           totalEntries: userCounts.total,
-          perTool: userCounts.perTool
+          perTool: userCounts.perTool,
+          compatibility: inspectConfigCompatibility(userConfig, supportedSections, versionInfo.projectVersion)
         };
       }
 
       const statusPayload = {
-        repository: currentRepo
+        repository: selectedRepo
           ? {
-              name: currentRepo.name,
-              url: currentRepo.url,
-              path: currentRepo.path,
-              exists: repoExists
+              name: selectedRepo.name,
+              url: selectedRepo.url,
+              path: selectedRepo.path,
+              exists: repoExists,
+              selectedByTarget: !!program.opts().target
             }
           : null,
         project: {
           path: projectPath,
           configSource: projectConfigSource,
           totalEntries: projectCounts.total,
-          perTool: projectCounts.perTool
+          perTool: projectCounts.perTool,
+          compatibility: projectCompatibility
         },
         user: userStatus
       };
@@ -343,12 +357,12 @@ program
       }
 
       console.log(chalk.bold('Repository:'));
-      if (!currentRepo) {
+      if (!selectedRepo) {
         console.log(chalk.yellow('  No repository configured. Use "ais use <url>" first.'));
       } else {
-        console.log(`  Name: ${chalk.cyan(currentRepo.name)}`);
-        console.log(`  URL: ${chalk.gray(currentRepo.url)}`);
-        console.log(`  Path: ${currentRepo.path}`);
+        console.log(`  Name: ${chalk.cyan(selectedRepo.name)}${program.opts().target ? chalk.gray(' (selected by --target)') : ''}`);
+        console.log(`  URL: ${chalk.gray(selectedRepo.url)}`);
+        console.log(`  Path: ${selectedRepo.path}`);
         console.log(`  Available locally: ${repoExists ? chalk.green('yes') : chalk.red('no')}`);
       }
 
@@ -356,6 +370,7 @@ program
       console.log(`  Path: ${projectPath}`);
       console.log(`  Config source: ${projectConfigSource}`);
       console.log(`  Configured entries: ${projectCounts.total}`);
+      for (const message of projectCompatibility.messages) console.log(chalk.yellow(`  Warning: ${message}`));
       if (projectCounts.total > 0) {
         for (const [tool, count] of Object.entries(projectCounts.perTool)) {
           console.log(`    - ${tool}: ${count}`);
@@ -367,6 +382,7 @@ program
         console.log(`  Path: ${userStatus.path}`);
         console.log(`  Exists: ${userStatus.exists ? chalk.green('yes') : chalk.red('no')}`);
         console.log(`  Configured entries: ${userStatus.totalEntries}`);
+        for (const message of userStatus.compatibility.messages) console.log(chalk.yellow(`  Warning: ${message}`));
         if (userStatus.totalEntries > 0) {
           for (const [tool, count] of Object.entries(userStatus.perTool)) {
             console.log(`    - ${tool}: ${count}`);
@@ -380,14 +396,43 @@ program
   });
 
 program
+  .command('env')
+  .description('Show AIS runtime, config, and repository diagnostics')
+  .option('--json', 'Output diagnostics as JSON')
+  .action(async (cmdOptions: { json?: boolean }) => {
+    try {
+      const config = await getConfig();
+      const info = await buildEnvironmentInfo({
+        version: versionInfo.projectVersion,
+        executable: process.argv[1],
+        configDir: getConfigDir(),
+        userConfigPath: await getUserConfigPath(),
+        currentRepo: config.currentRepo ? config.repos[config.currentRepo] : undefined,
+      });
+      if (cmdOptions.json) {
+        console.log(JSON.stringify(info, null, 2));
+      } else {
+        console.log(chalk.bold('AIS environment:'));
+        for (const [key, value] of Object.entries(info)) {
+          console.log(`  ${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`);
+        }
+      }
+    } catch (error: any) {
+      console.error(chalk.red('Error reading AIS environment:'), error.message);
+      process.exit(1);
+    }
+  });
+
+program
   .command('search [query]')
   .description('Search entries available in the rules repository')
   .option('--tools <tools>', 'Filter by tools (comma-separated)')
   .option('--adapters <adapters>', 'Filter by adapter names (comma-separated)')
   .option('--configured', 'Show only entries already in project config')
   .option('--unconfigured', 'Show only entries not in project config')
+  .option('--by-adapter', 'Expand one row per compatible adapter')
   .option('--json', 'Output search results as JSON')
-  .action(async (query: string | undefined, cmdOptions: { tools?: string; adapters?: string; configured?: boolean; unconfigured?: boolean; json?: boolean }) => {
+  .action(async (query: string | undefined, cmdOptions: { tools?: string; adapters?: string; configured?: boolean; unconfigured?: boolean; byAdapter?: boolean; json?: boolean }) => {
     try {
       if (cmdOptions.configured && cmdOptions.unconfigured) {
         throw new Error('Cannot use both --configured and --unconfigured together.');
@@ -430,9 +475,13 @@ program
         subtype: entry.adapter.subtype,
         entryName: entry.entryName,
         sourceName: entry.sourceName,
+        sourcePath: path.relative(repo.path, entry.sourcePath),
         isDirectory: entry.isDirectory,
         configured: entry.alreadyInConfig
       }));
+
+      const assets = groupSearchEntries(serialized);
+      const outputEntries = cmdOptions.byAdapter ? serialized : assets;
 
       if (cmdOptions.json) {
         console.log(JSON.stringify({
@@ -441,35 +490,37 @@ program
             url: repo.url
           },
           query: query || null,
-          total: serialized.length,
-          entries: serialized
+          view: cmdOptions.byAdapter ? 'adapter' : 'asset',
+          total: outputEntries.length,
+          entries: outputEntries
         }, null, 2));
         return;
       }
 
-      if (serialized.length === 0) {
+      if (outputEntries.length === 0) {
         console.log(chalk.yellow('No matching entries found.'));
+        return;
+      }
+
+      if (!cmdOptions.byAdapter) {
+        console.log(chalk.bold(`Found ${assets.length} assets:`));
+        for (const asset of assets) {
+          const configured = asset.configuredTools.length > 0 ? `; configured: ${asset.configuredTools.join(', ')}` : '';
+          console.log(`  - ${asset.entryName} ${chalk.gray(`[${asset.subtype}; tools: ${asset.compatibleTools.join(', ')}${configured}]`)}`);
+        }
         return;
       }
 
       const grouped = new Map<string, typeof serialized>();
       for (const item of serialized) {
-        const key = item.adapter;
-        const list = grouped.get(key) || [];
+        const list = grouped.get(item.adapter) || [];
         list.push(item);
-        grouped.set(key, list);
+        grouped.set(item.adapter, list);
       }
-
-      console.log(chalk.bold(`Found ${serialized.length} entries:`));
+      console.log(chalk.bold(`Found ${serialized.length} adapter entries:`));
       for (const [adapterName, items] of grouped) {
         console.log(chalk.cyan(`\n${adapterName} (${items.length})`));
-        for (const item of items) {
-          const flags: string[] = [];
-          if (item.configured) flags.push('configured');
-          if (item.isDirectory) flags.push('dir');
-          const suffix = flags.length > 0 ? ` ${chalk.gray(`[${flags.join(', ')}]`)}` : '';
-          console.log(`  - ${item.entryName}${suffix}`);
-        }
+        for (const item of items) console.log(`  - ${item.entryName}${item.configured ? chalk.gray(' [configured]') : ''}`);
       }
     } catch (error: any) {
       console.error(chalk.red('Error searching entries:'), error.message);
@@ -514,8 +565,11 @@ program
         console.log(`  - ${chalk.cyan(name)}: ${formatCheckStatus(entry.status)}${counts}${detail}`);
       }
 
+      const attention = result.entries.filter(entry => entry.status !== 'up-to-date');
       if (result.updateAvailable > 0) {
         console.log(chalk.yellow(`\n${result.updateAvailable} repositories have updates available.`));
+      } else if (attention.length > 0) {
+        console.log(chalk.yellow(`\n${attention.length} repositories need attention.`));
       } else {
         console.log(chalk.green('\nAll repositories are up-to-date.'));
       }
@@ -529,14 +583,22 @@ program
   .command('doctor')
   .description('Verify configured entries have healthy symlinks (read-only)')
   .option('-u, --user', 'Also check user config entries')
+  .option('--remote', 'Also fetch and verify referenced repositories are recoverable')
+  .option('--no-fetch', 'Do not fetch when using --remote')
   .option('--json', 'Output results as JSON')
-  .action(async (cmdOptions: { user?: boolean; json?: boolean }) => {
+  .action(async (cmdOptions: { user?: boolean; remote?: boolean; fetch?: boolean; json?: boolean }) => {
     try {
       const globalConfig = await getConfig();
       const result = await runDoctor(adapterRegistry.all(), process.cwd(), globalConfig.repos || {}, { user: cmdOptions.user });
+      const remote = cmdOptions.remote ? await checkRepositories({
+        projectPath: process.cwd(),
+        user: cmdOptions.user,
+        fetch: cmdOptions.fetch,
+        target: program.opts().target,
+      }) : undefined;
 
       if (cmdOptions.json) {
-        console.log(JSON.stringify(result, null, 2));
+        console.log(JSON.stringify({ ...result, ...(remote ? { repositories: remote } : {}) }, null, 2));
       } else if (result.entries.length === 0) {
         console.log(chalk.yellow('No configured entries found.'));
       } else {
@@ -559,7 +621,15 @@ program
         }
       }
 
-      if (result.counts.missing > 0 || result.counts.conflict > 0 || result.counts.stale > 0) {
+      if (remote && !cmdOptions.json) {
+        console.log(chalk.bold('\nRepository recoverability:'));
+        for (const entry of remote.entries) {
+          console.log(`  - ${entry.repoName || entry.repoUrl}: ${formatCheckStatus(entry.status)}${entry.message ? ` - ${entry.message}` : ''}`);
+        }
+      }
+
+      const remoteProblems = remote?.entries.filter(entry => !['up-to-date', 'update-available'].includes(entry.status)) ?? [];
+      if (result.counts.missing > 0 || result.counts.conflict > 0 || result.counts.stale > 0 || remoteProblems.length > 0) {
         process.exit(1);
       }
     } catch (error: any) {
@@ -1000,6 +1070,84 @@ configRepo
       await listRepos({ json: options.json });
     } catch (error: any) {
       console.error(chalk.red('Error listing repositories:'), error.message);
+      process.exit(1);
+    }
+  });
+
+configRepo
+  .command('remove <repoName>')
+  .alias('rm')
+  .description('Remove a repository from AIS config without deleting local files')
+  .option('--dry-run', 'Preview without changing config')
+  .option('--json', 'Output result as JSON')
+  .action(async (repoName: string, options: { dryRun?: boolean; json?: boolean }) => {
+    try {
+      await removeRepoConfig(repoName, options);
+    } catch (error: any) {
+      console.error(chalk.red('Error removing repository config:'), error.message);
+      process.exit(1);
+    }
+  });
+
+configRepo
+  .command('prune')
+  .description('Remove missing, temporary, and duplicate repository entries from AIS config')
+  .option('--dry-run', 'Preview without changing config')
+  .option('--json', 'Output result as JSON')
+  .action(async (options: { dryRun?: boolean; json?: boolean }) => {
+    try {
+      await pruneRepoConfigs(options);
+    } catch (error: any) {
+      console.error(chalk.red('Error pruning repository config:'), error.message);
+      process.exit(1);
+    }
+  });
+
+const configProfile = configCmd
+  .command('profile')
+  .description('Manage named tool profiles for broadcast commands');
+
+configProfile
+  .command('set <name>')
+  .description('Create or replace a tool profile')
+  .requiredOption('--tools <tools>', 'Comma-separated tool names')
+  .option('--json', 'Output result as JSON')
+  .action(async (name: string, options: { tools: string; json?: boolean }) => {
+    try {
+      const tools = parseCsvOption(options.tools) ?? [];
+      const unknown = tools.filter(tool => !resolveToolByCliName(tool));
+      if (unknown.length > 0) throw new Error(`Unknown tools: ${unknown.join(', ')}.`);
+      await setProfile(name, tools, options);
+    } catch (error: any) {
+      console.error(chalk.red('Error setting tool profile:'), error.message);
+      process.exit(1);
+    }
+  });
+
+configProfile
+  .command('remove <name>')
+  .alias('rm')
+  .description('Remove a tool profile')
+  .option('--json', 'Output result as JSON')
+  .action(async (name: string, options: { json?: boolean }) => {
+    try {
+      await removeProfile(name, options);
+    } catch (error: any) {
+      console.error(chalk.red('Error removing tool profile:'), error.message);
+      process.exit(1);
+    }
+  });
+
+configProfile
+  .command('list')
+  .alias('ls')
+  .description('List tool profiles')
+  .option('--json', 'Output profiles as JSON')
+  .action(async (options: { json?: boolean }) => {
+    try {
+      await listProfiles(options);
+    } catch (error: any) {
+      console.error(chalk.red('Error listing tool profiles:'), error.message);
       process.exit(1);
     }
   });

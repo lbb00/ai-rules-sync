@@ -8,7 +8,9 @@
 
 - Removed top-level `ais add`/`ais remove` (guessed which tool/subtype to use from project state). Use `ais <tool> <subtype> add/remove` for one tool, or `ais <subtype> add/remove --tools <list>|--all` to target several at once.
 - Removed `ais user install`. Use `ais install -g` (or `-u`) instead — same behavior, folded into the main install command.
-- `ais status --json`'s `project.inferredMode` field is gone along with the inference layer.
+- `ais status --json`'s `project.inferredMode` field is gone along with the inference layer. Its project/user sections now include compatibility diagnostics, and a repository selected with `--target` includes `selectedByTarget`.
+- `ais search --json` now returns asset-centric grouped entries by default. Pass `--by-adapter` for the pre-1.0 adapter-expanded shape.
+- Malformed config files and schema versions newer than the running AIS now fail explicitly instead of being treated as empty config.
 - `ais add-all --tools <unknown-name>` now exits non-zero instead of warning and skipping.
 - `ais <tool> add`/`ais <tool> remove` (the flat, single-subtype shortcuts cursor/windsurf/cline/agents-md used to expose) no longer write anything. They're hidden commands that print the replacement command and exit non-zero — kept only so old tutorials fail with guidance instead of "unknown command".
 
@@ -21,6 +23,10 @@
 - Top-level `--help` collapses the 30 tool-group commands into a single index line instead of burying the core commands and broadcast groups under them.
 - New `ais doctor` command: read-only check of every configured entry's symlink health (`ok`/`missing`/`conflict`/`stale`), with `--user` and `--json`. Exits non-zero when something needs attention, so it's usable as a CI gate. Makes no changes and never clones a repo.
 - Broadcast `add <name>` and `remove <alias>` now accept a comma-separated list (`ais skills add a,b,c --tools ...`, `ais skills remove a,b,c --tools ...`) to act on several entries in one call; `add`'s alias is only accepted with a single name. New `ais <subtype> add-all` broadcast subcommand discovers and adds every entry the repo has for that subtype across the targeted tools in one call, with `--dry-run` and `--force`.
+- Global tool profiles (`ais config profile set personal --tools claude,pi,codex`) can replace repeated `--tools` lists in broadcast commands. Successful global installs now report their real target paths, warn when the source cannot be restored from its configured remote, and remind active agent sessions to restart.
+- Global state honors `AIS_CONFIG_HOME` and `XDG_CONFIG_HOME`; `ais env` reports the active executable, version, config paths, build identity, and repository. Config schema versions newer than the running CLI are rejected, while `ais status` reports minimum-version requirements and unknown tool/subtype sections without deleting them.
+- `ais status -t <repo>` inspects a selected configured repository without switching it. `ais config repo remove/prune` safely cleans config records without deleting local repositories. `ais doctor --remote` adds opt-in repository recoverability checks.
+- `ais search` now groups compatible adapters into one asset-centric result by default; `--by-adapter` retains the expanded diagnostic view.
 
 **Fixed:**
 

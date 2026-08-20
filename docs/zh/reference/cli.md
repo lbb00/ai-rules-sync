@@ -92,7 +92,9 @@ ais check --json
 
 ```bash
 ais doctor
-ais doctor --user     # 同时检查用户作用域的条目
+ais doctor --user             # 同时检查用户作用域的条目
+ais doctor --remote           # 同时拉取并检查仓库能否恢复
+ais doctor --remote --no-fetch
 ais doctor --json
 ```
 
@@ -104,8 +106,12 @@ ais doctor --json
 
 ```bash
 ais status
-ais status --user                 # 包含用户配置状态
+ais status --user                 # 包含用户配置状态和兼容性警告
+ais status -t company-rules       # 不切换 currentRepo，直接查看指定仓库
 ais status --json
+
+ais env                            # 版本、可执行文件、配置路径、构建身份和当前仓库
+ais env --json
 ```
 
 ### `ais search [query]`
@@ -117,6 +123,7 @@ ais search react
 ais search --tools claude,cursor
 ais search --configured           # 仅显示已在项目配置中的条目
 ais search --unconfigured         # 仅显示尚未配置的条目
+ais search --by-adapter           # 展开默认的资产聚合视图
 ais search --json
 ```
 
@@ -198,6 +205,7 @@ ais cursor rules import my-rule         # 同上，显式指定子类型
 ```bash
 ais skills add my-skill --tools claude,cursor,codex
 ais skills add my-skill --all               # 所有带 skills 适配器的工具
+ais skills add my-skill --profile personal --global
 ais skills add a,b,c --tools claude,cursor  # <name> 逗号分隔即可一次添加多个
 ais skills remove my-skill --tools claude   # 别名：rm
 ais skills remove a,b,c --tools claude      # remove 同样支持逗号分隔的多个名称
@@ -215,11 +223,13 @@ ais md add AGENTS.md --tools agents-md,claude
 ais prompts add release-notes --tools copilot
 ```
 
-每个 `<group> add/remove/list` 都接受 `--tools <list>`（逗号分隔，可重复传）或 `--all`，以及表示用户作用域的 `-g/--global`（别名 `-u/--user`）和 `--json`。`add` 和 `remove` 还都支持用逗号分隔多个条目名称/别名一次处理多个——`add` 的可选 alias 参数只在只给一个名称时才生效。`add` 还额外支持 `-l/--local`、`--dry-run` 和 `--strict`（某个工具在仓库中没有匹配条目时直接报错退出，而不是只警告）。
+每个 `<group> add/remove/list` 必须在 `--tools <list>`（逗号分隔，可重复传）、`--all`、`--profile <name>` 中选择一个，并可使用表示用户作用域的 `-g/--global`（别名 `-u/--user`）和 `--json`。`add` 和 `remove` 还都支持用逗号分隔多个条目名称/别名一次处理多个——`add` 的可选 alias 参数只在只给一个名称时才生效。`add` 还额外支持 `-l/--local`、`--dry-run` 和 `--strict`（某个工具在仓库中没有匹配条目时直接报错退出，而不是只警告）。
 
 `<group> add-all` 会发现仓库里该子类型下的所有条目，把每个尚未配置过的条目添加到每个目标工具——是单工具 `ais <tool> add-all` 在广播命令组层面的对应版本。它接受同样的 `--tools`/`--all`、`-g/--global`、`-l/--local`、`--dry-run`、`--json`，外加 `-f/--force` 用于重新添加已经配置过的条目。
 
 无法识别的 `--tools` 名称会给出「你是不是想输入」的建议；如果某个工具在该组里没有对应适配器、但存在已知的等价物（例如 Copilot 用 `instructions` 对应 `rules` 组），会直接提示对应的替代命令，而不是悄无声息地什么都不做。如果目标位置已经存在一个真实的、非符号链接的文件或目录，`add` 会拒绝覆盖它，报告 `skip: conflict`，而不是谎称成功。
+
+全局安装会打印每个真实目标路径，并提醒重启活跃的 Agent 会话。如果源是本地路径、含未提交改动、没有 upstream 或领先 upstream，AIS 也会警告新机器暂时无法复现该资产。
 
 ## 其他命令
 
@@ -256,6 +266,15 @@ ais config repo set-source <repo> <tool.subtype> <path>
 ais config repo show <repo>
 ais config repo clear-source <repo> [tool.subtype]   # 省略 subtype 则清除全部
 ais config repo list            # 与 ais ls 相同
+ais config repo remove <repo> --dry-run
+ais config repo remove <repo>   # 只删配置，绝不删除本地仓库
+ais config repo prune --dry-run # 缺失、临时和重复的仓库配置
+ais config repo prune
+
+# 广播命令使用的具名工具 profile
+ais config profile set personal --tools claude,pi,codex
+ais config profile list
+ais config profile remove personal
 
 # 用户配置路径
 ais config user show

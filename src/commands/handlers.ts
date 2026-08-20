@@ -10,6 +10,8 @@ import { SyncAdapter } from '../adapters/types.js';
 import { importEntry, ImportOptions } from '../sync-engine.js';
 import { addIgnoreEntry, removeIgnoreEntry } from '../utils.js';
 import { addUserDependency, removeUserDependency, getCombinedProjectConfig, getRepoSourceConfig, getSourceDir, getTargetDir, getEntryConfig, WILDCARD_TOOL, type ProjectConfig } from '../project-config.js';
+import { formatGlobalInstallGuidance } from './install-guidance.js';
+import { inspectSourceRecoverability } from './recoverability.js';
 
 /**
  * Context for command execution
@@ -22,6 +24,8 @@ export interface CommandContext {
   user?: boolean;
   /** When true, skip gitignore management (used for user mode) */
   skipIgnore?: boolean;
+  /** Broadcast commands aggregate user guidance after all tools finish. */
+  suppressUserGuidance?: boolean;
 }
 
 /**
@@ -167,6 +171,12 @@ export async function handleAdd(
       options?.targetDir
     );
     console.log(chalk.green(`Updated user config dependency.`));
+    if (result.linked && !ctx.suppressUserGuidance) {
+      const targetPath = path.join(ctx.projectPath, options?.targetDir || adapter.userTargetDir || adapter.targetDir, result.targetName);
+      console.log(`\n${formatGlobalInstallGuidance([{ tool: adapter.tool, targetPath, action: 'added' }])}`);
+      const recoverability = await inspectSourceRecoverability(ctx.repo);
+      if (!recoverability.recoverable) console.log(chalk.yellow(`\nWarning: ${recoverability.message}`));
+    }
     return {
       sourceName: result.sourceName,
       targetName: result.targetName,

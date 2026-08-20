@@ -92,7 +92,9 @@ Verify every configured entry actually has a healthy symlink — read-only, make
 
 ```bash
 ais doctor
-ais doctor --user     # also check user-scope entries
+ais doctor --user             # also check user-scope entries
+ais doctor --remote           # also fetch and verify repository recoverability
+ais doctor --remote --no-fetch
 ais doctor --json
 ```
 
@@ -104,8 +106,12 @@ Show project status (repos, symlinks, config files).
 
 ```bash
 ais status
-ais status --user                 # include user config status
+ais status --user                 # include user config status and compatibility warnings
+ais status -t company-rules       # inspect a configured repository without switching currentRepo
 ais status --json
+
+ais env                            # version, executable, config paths, build identity, current repo
+ais env --json
 ```
 
 ### `ais search [query]`
@@ -117,6 +123,7 @@ ais search react
 ais search --tools claude,cursor
 ais search --configured           # only entries already in project config
 ais search --unconfigured         # only entries not yet configured
+ais search --by-adapter           # expand the default asset-centric view
 ais search --json
 ```
 
@@ -198,6 +205,7 @@ Push one entry to several tools in a single command, instead of repeating `ais <
 ```bash
 ais skills add my-skill --tools claude,cursor,codex
 ais skills add my-skill --all               # every tool with a skills adapter
+ais skills add my-skill --profile personal --global
 ais skills add a,b,c --tools claude,cursor  # comma-separate <name> to add several at once
 ais skills remove my-skill --tools claude   # alias: rm
 ais skills remove a,b,c --tools claude      # remove also takes a comma-separated list
@@ -215,11 +223,13 @@ ais md add AGENTS.md --tools agents-md,claude
 ais prompts add release-notes --tools copilot
 ```
 
-Every `<group> add/remove/list` takes `--tools <list>` (comma-separated, repeatable) or `--all`, plus `-g/--global` (alias `-u/--user`) for user scope and `--json`. `add` and `remove` additionally accept a comma-separated list of entry names/aliases to act on several at once — `add`'s optional alias argument only applies when a single name is given. `add` also takes `-l/--local`, `--dry-run`, and `--strict` (fail instead of warn when a tool has no matching repo entry).
+Every `<group> add/remove/list` takes exactly one of `--tools <list>` (comma-separated, repeatable), `--all`, or `--profile <name>`, plus `-g/--global` (alias `-u/--user`) for user scope and `--json`. `add` and `remove` additionally accept a comma-separated list of entry names/aliases to act on several at once — `add`'s optional alias argument only applies when a single name is given. `add` also takes `-l/--local`, `--dry-run`, and `--strict` (fail instead of warn when a tool has no matching repo entry).
 
 `<group> add-all` discovers every entry the repository has for that subtype and adds each one not already configured, across every targeted tool — the broadcast-group equivalent of the per-tool `ais <tool> add-all`. It takes the same `--tools`/`--all`, `-g/--global`, `-l/--local`, `--dry-run`, and `--json` options, plus `-f/--force` to re-add entries that are already configured.
 
 An unrecognized `--tools` name gets a "did you mean" suggestion; a tool with no adapter in that group but a known equivalent (e.g. Copilot's `instructions` for the `rules` group) is pointed at the exact replacement command instead of silently doing nothing. If a target's `add` finds a real, non-symlink file or directory already sitting at the destination, it refuses to overwrite it and reports `skip: conflict` instead of claiming success.
+
+Global installs print each real target path and remind active agent sessions to restart. AIS also warns when the installed source is a local path, has uncommitted changes, lacks an upstream, or is ahead of its upstream, because a fresh machine cannot reproduce that asset yet.
 
 ## Other Commands
 
@@ -256,6 +266,15 @@ ais config repo set-source <repo> <tool.subtype> <path>
 ais config repo show <repo>
 ais config repo clear-source <repo> [tool.subtype]   # omit subtype to clear all
 ais config repo list            # same as ais ls
+ais config repo remove <repo> --dry-run
+ais config repo remove <repo>   # config only; never deletes the local repository
+ais config repo prune --dry-run # missing, temporary, and duplicate config entries
+ais config repo prune
+
+# Named tool profiles for broadcast commands
+ais config profile set personal --tools claude,pi,codex
+ais config profile list
+ais config profile remove personal
 
 # User config path
 ais config user show

@@ -20,7 +20,13 @@ describe('Config Module', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.stubEnv('AIS_CONFIG_HOME', '');
+    vi.stubEnv('XDG_CONFIG_HOME', '');
     // os.homedir is mocked by factory to return mockHomeDir always
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('should return empty config if file does not exist', async () => {

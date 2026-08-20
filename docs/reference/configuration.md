@@ -278,6 +278,25 @@ ais cursor rules add company-secrets --local
 
 ---
 
+## Global Config Location and Compatibility
+
+AIS resolves its global state directory at command execution time:
+
+1. `AIS_CONFIG_HOME` — use this directory directly.
+2. `XDG_CONFIG_HOME` — use `<XDG_CONFIG_HOME>/ai-rules-sync`.
+3. Default — `~/.config/ai-rules-sync`.
+
+This lets tests and isolated environments avoid the real user config. Config files with a schema `version` newer than the running AIS are rejected instead of being silently interpreted. A dependency config may also declare a minimum CLI version:
+
+```json
+{
+  "version": 1,
+  "requiresAis": ">=1.0.0"
+}
+```
+
+`ais status --user` reports unsupported tools, subtypes, and version requirements without deleting unknown entries.
+
 ## User-Level Config (user.json)
 
 > Global rules applied to all projects. Stored at `~/.config/ai-rules-sync/user.json`.

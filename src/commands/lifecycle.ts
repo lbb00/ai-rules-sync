@@ -14,6 +14,7 @@ type CheckStatus =
   | 'ahead'
   | 'diverged'
   | 'no-upstream'
+  | 'no-default-branch'
   | 'missing-local'
   | 'not-configured'
   | 'error';
@@ -191,6 +192,18 @@ async function inspectRepo(repoUrl: string, repo: RepoConfig, shouldFetch: boole
   if (shouldFetch) {
     try {
       await runGit(repo.path, ['fetch', '--quiet']);
+      const remoteHead = await runGit(repo.path, ['ls-remote', '--symref', repoUrl, 'HEAD']);
+      if (!/^ref:\s+refs\/heads\//m.test(remoteHead)) {
+        return {
+          repoUrl,
+          repoName: repo.name,
+          localPath: repo.path,
+          status: 'no-default-branch',
+          ahead: 0,
+          behind: 0,
+          message: 'Remote has no default branch; a fresh clone cannot restore this source.'
+        };
+      }
     } catch (error: any) {
       return {
         repoUrl,
@@ -199,7 +212,7 @@ async function inspectRepo(repoUrl: string, repo: RepoConfig, shouldFetch: boole
         status: 'error',
         ahead: 0,
         behind: 0,
-        message: `git fetch failed: ${error.message}`
+        message: `remote verification failed: ${error.message}`
       };
     }
   }
